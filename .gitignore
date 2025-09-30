@@ -1,3 +1,6 @@
+# =========================
+# Java / Maven
+# =========================
 HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
@@ -31,3 +34,43 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# =========================
+# Node / Vue 前端
+# =========================
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Dependency directories
+node_modules/
+
+# Build output
+/dist/
+/dist-ssr/
+/build/
+/coverage/
+
+# Local env files
+.env.local
+.env.*.local
+
+# Editor directories and files
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+
+# Cache / Temp
+/.cache
+/.parcel-cache
+/.eslintcache
+/.stylelintcache
+/.tsbuildinfo
