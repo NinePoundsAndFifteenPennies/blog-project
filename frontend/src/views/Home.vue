@@ -140,6 +140,7 @@ export default {
           comments: 0,
           tags: [],
           category: null
+
         }))
 
         totalPages.value = response.totalPages || 1

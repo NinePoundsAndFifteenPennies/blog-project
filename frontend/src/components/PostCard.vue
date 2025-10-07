@@ -28,7 +28,13 @@
           </div>
           <div>
             <p class="text-sm font-medium text-gray-900">{{ post.author?.username || '匿名' }}</p>
-            <p class="text-xs text-gray-500">{{ formatDate(post.createdAt) }}</p>
+            <!-- 优化：如果有 updatedAt 则显示“更新于”，否则显示“创建于”；悬停显示完整时间信息 -->
+            <p
+                class="text-xs text-gray-500"
+                :title="titleAttr"
+            >
+              {{ dateLabel }} {{ displayDate }}
+            </p>
           </div>
         </div>
 
@@ -98,6 +104,35 @@ export default {
       return date.toLocaleDateString('zh-CN')
     }
 
+    const formatFullDate = (dateString) => {
+      if (!dateString) return ''
+      try {
+        return new Date(dateString).toLocaleString('zh-CN')
+      } catch (e) {
+        return dateString
+      }
+    }
+
+    // 显示优先级：若 updatedAt 存在且不为空 -> 使用 updatedAt 并显示“更新于”，否则使用 createdAt 并显示“创建于”
+    const displayDate = computed(() => {
+      const d = props.post?.updatedAt || props.post?.createdAt
+      return formatDate(d)
+    })
+
+    const dateLabel = computed(() => {
+      return props.post?.updatedAt ? '更新于' : '创建于'
+    })
+
+    // 鼠标悬停时，显示创建时间和（若有）更新时间的完整时间信息
+    const titleAttr = computed(() => {
+      const created = formatFullDate(props.post?.createdAt)
+      const updated = formatFullDate(props.post?.updatedAt)
+      if (props.post?.updatedAt) {
+        return `创建：${created}\n更新：${updated}`
+      }
+      return `创建：${created}`
+    })
+
     const goToDetail = () => {
       router.push(`/post/${props.post.id}`)
     }
@@ -105,6 +140,9 @@ export default {
     return {
       authorInitial,
       formatDate,
+      displayDate,
+      dateLabel,
+      titleAttr,
       goToDetail
     }
   }
