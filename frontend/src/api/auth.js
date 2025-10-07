@@ -1,4 +1,4 @@
-import request from '../utlis/request'  // ../utils/request.js
+import request from '@/utils/request'  // ../utils/request.js
 
 /**
  * 用户注册
