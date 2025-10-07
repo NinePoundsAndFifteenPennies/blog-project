@@ -175,50 +175,28 @@ export default {
       password: ''
     })
 
-    // 表单验证
-    const validateForm = () => {
-      errors.username = ''
-      errors.password = ''
-      let isValid = true
-
-      if (!formData.username.trim()) {
-        errors.username = '请输入用户名'
-        isValid = false
-      }
-
-      if (!formData.password) {
-        errors.password = '请输入密码'
-        isValid = false
-      } else if (formData.password.length < 6) {
-        errors.password = '密码至少6个字符'
-        isValid = false
-      }
-
-      return isValid
-    }
-
-    // 处理登录
     const handleLogin = async () => {
-      if (!validateForm()) return
+      // 简单的本地验证
+      if (!formData.username || !formData.password) {
+        errorMessage.value = '请输入用户名和密码';
+        return;
+      }
 
       loading.value = true
       errorMessage.value = ''
 
       try {
-        // 调用store的login action
         await store.dispatch('login', {
           username: formData.username,
           password: formData.password
         })
 
-        // 登录成功后跳转
+        // 登录成功后跳转到之前想去的页面，或首页
         const redirect = route.query.redirect || '/'
-        await router.push(redirect)
+        router.push(redirect)
 
-        // 强制刷新以显示登录后的状态
-        window.location.reload()
       } catch (error) {
-        errorMessage.value = error.response?.data?.message || '登录失败,请检查用户名和密码'
+        errorMessage.value = error.response?.data?.message || '登录失败, 请检查用户名和密码'
         console.error('登录失败:', error)
       } finally {
         loading.value = false

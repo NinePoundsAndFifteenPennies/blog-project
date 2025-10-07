@@ -224,13 +224,12 @@
 
 <script>
 import { ref, reactive, computed } from 'vue'
-import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
+import { register } from '@/api/auth' // 请确保 src/api/auth.js 中导出了 named export `register`
 
 export default {
   name: 'Register',
   setup() {
-    const store = useStore()
     const router = useRouter()
 
     const loading = ref(false)
@@ -254,9 +253,9 @@ export default {
       agreeToTerms: ''
     })
 
-    // 计算密码强度
+    // 计算密码强度（返回 0-4）
     const passwordStrength = computed(() => {
-      const password = formData.password
+      const password = formData.password || ''
       if (!password) return 0
 
       let strength = 0
@@ -266,6 +265,7 @@ export default {
       if (/\d/.test(password)) strength++
       if (/[^a-zA-Z0-9]/.test(password)) strength++
 
+      // 上面最多可能为 5，限制到 4 以内以匹配 UI 显示层级
       return Math.min(strength, 4)
     })
 
@@ -287,15 +287,16 @@ export default {
     // 验证用户名
     const validateUsername = () => {
       errors.username = ''
-      if (!formData.username.trim()) {
+      const val = formData.username || ''
+      if (!val.trim()) {
         errors.username = '请输入用户名'
         return false
       }
-      if (formData.username.length < 3) {
+      if (val.length < 3) {
         errors.username = '用户名至少3个字符'
         return false
       }
-      if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
+      if (!/^[a-zA-Z0-9_]+$/.test(val)) {
         errors.username = '用户名只能包含字母、数字和下划线'
         return false
       }
@@ -305,12 +306,13 @@ export default {
     // 验证邮箱
     const validateEmail = () => {
       errors.email = ''
-      if (!formData.email.trim()) {
+      const val = formData.email || ''
+      if (!val.trim()) {
         errors.email = '请输入邮箱'
         return false
       }
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(formData.email)) {
+      if (!emailRegex.test(val)) {
         errors.email = '请输入有效的邮箱地址'
         return false
       }
@@ -320,11 +322,12 @@ export default {
     // 验证密码
     const validatePassword = () => {
       errors.password = ''
-      if (!formData.password) {
+      const val = formData.password || ''
+      if (!val) {
         errors.password = '请输入密码'
         return false
       }
-      if (formData.password.length < 6) {
+      if (val.length < 6) {
         errors.password = '密码至少6个字符'
         return false
       }
@@ -334,11 +337,12 @@ export default {
     // 验证确认密码
     const validateConfirmPassword = () => {
       errors.confirmPassword = ''
-      if (!formData.confirmPassword) {
+      const val = formData.confirmPassword || ''
+      if (!val) {
         errors.confirmPassword = '请再次输入密码'
         return false
       }
-      if (formData.password !== formData.confirmPassword) {
+      if (formData.password !== val) {
         errors.confirmPassword = '两次输入的密码不一致'
         return false
       }
@@ -366,7 +370,7 @@ export default {
       )
     }
 
-    // 处理注册
+    // 处理注册（直接调用 API）
     const handleRegister = async () => {
       if (!validateForm()) return
 
@@ -374,18 +378,20 @@ export default {
       errorMessage.value = ''
 
       try {
-        // TODO: 调用store的register action
-        await store.dispatch('register', {
+        // 假设 register 返回的是 axios 的 Promise（request 已做了 response.data 处理）
+        await register({
           username: formData.username,
           email: formData.email,
           password: formData.password
         })
 
-        // 注册成功后跳转到首页
-        router.push('/')
-      } catch (error) {
-        errorMessage.value = error.response?.data?.message || '注册失败,请稍后重试'
-        console.error('注册失败:', error)
+        // 注册成功后跳转到登录页或首页（按你需求）
+        alert('注册成功！请使用账号登录。')
+        router.push('/login')
+      } catch (err) {
+        // 兼容多种错误对象结构
+        errorMessage.value = err?.response?.data?.message || err?.message || '注册失败, 请稍后重试'
+        console.error('注册失败:', err)
       } finally {
         loading.value = false
       }
