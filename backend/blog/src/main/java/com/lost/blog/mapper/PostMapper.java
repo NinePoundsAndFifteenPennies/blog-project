@@ -4,7 +4,7 @@ import com.lost.blog.dto.PostResponse;
 import com.lost.blog.model.Post;
 import org.springframework.stereotype.Component;
 
-@Component // 声明为Spring组件
+@Component
 public class PostMapper {
 
     public PostResponse toResponse(Post post) {
@@ -18,6 +18,8 @@ public class PostMapper {
         postResponse.setContentType(post.getContentType());
         postResponse.setCreatedAt(post.getCreatedAt());
         postResponse.setUpdatedAt(post.getUpdatedAt());
+        postResponse.setPublishedAt(post.getPublishedAt());  // 新增
+        postResponse.setDraft(post.getDraft());  // 新增
         postResponse.setAuthorUsername(post.getUser().getUsername());
         return postResponse;
     }

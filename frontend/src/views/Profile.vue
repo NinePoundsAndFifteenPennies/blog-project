@@ -24,6 +24,10 @@
                     <span class="font-semibold text-gray-900">{{ userStats.posts }}</span>
                     <span class="text-gray-600 ml-1">文章</span>
                   </div>
+                  <div>
+                    <span class="font-semibold text-gray-900">{{ userStats.drafts }}</span>
+                    <span class="text-gray-600 ml-1">草稿</span>
+                  </div>
                 </div>
               </div>
 
@@ -37,41 +41,56 @@
             </div>
           </div>
 
-          <!-- Tabs (暂时隐藏草稿箱) -->
+          <!-- Tabs -->
           <div class="card mb-6">
             <div class="flex border-b border-gray-200">
               <button
-                  class="px-6 py-4 font-medium text-primary-600 border-b-2 border-primary-600"
+                  :class="['px-6 py-4 font-medium', activeTab === 'posts' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-600']"
+                  @click="activeTab = 'posts'"
               >
-                我的文章
+                我的文章 ({{ userStats.posts }})
+              </button>
+              <button
+                  :class="['px-6 py-4 font-medium', activeTab === 'drafts' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-600']"
+                  @click="activeTab = 'drafts'"
+              >
+                草稿箱 ({{ userStats.drafts }})
               </button>
             </div>
           </div>
 
-          <!-- Content -->
+          <!-- Loading -->
           <div v-if="loading" class="text-center py-12">
             <div class="spinner w-12 h-12 mx-auto"></div>
           </div>
 
           <!-- Posts List -->
-          <div v-else-if="posts.length" class="space-y-4">
+          <div v-else-if="visibleList.length" class="space-y-4">
             <div
-                v-for="post in posts"
+                v-for="post in visibleList"
                 :key="post.id"
                 class="card p-6 hover:shadow-card-hover transition-shadow duration-200"
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1">
-                  <router-link
-                      :to="`/post/${post.id}`"
-                      class="text-xl font-bold text-gray-900 hover:text-primary-600 transition-colors duration-200"
-                  >
-                    {{ post.title }}
-                  </router-link>
+                  <div class="flex items-center space-x-2 mb-2">
+                    <router-link
+                        :to="`/post/${post.id}`"
+                        class="text-xl font-bold text-gray-900 hover:text-primary-600 transition-colors duration-200"
+                    >
+                      {{ post.title }}
+                    </router-link>
+                    <span v-if="post.is_draft" class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                      草稿
+                    </span>
+                  </div>
+
                   <p class="text-gray-600 mt-2 line-clamp-2">{{ post.summary }}</p>
 
                   <div class="flex items-center space-x-6 mt-4 text-sm text-gray-500">
-                    <span>{{ formatDate(post.createdAt) }}</span>
+                    <span>创建: {{ formatDate(post.created_at) }}</span>
+                    <span v-if="!post.is_draft && post.published_at">发布: {{ formatDate(post.published_at) }}</span>
+                    <span v-if="post.updated_at">更新: {{ formatDate(post.updated_at) }}</span>
                   </div>
                 </div>
 
@@ -102,8 +121,12 @@
             <svg class="w-20 h-20 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <h3 class="text-xl font-semibold text-gray-700 mb-2">还没有发布文章</h3>
-            <p class="text-gray-500 mb-6">开始创作你的第一篇文章吧!</p>
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">
+              {{ activeTab === 'drafts' ? '草稿箱为空' : '还没有发布文章' }}
+            </h3>
+            <p class="text-gray-500 mb-6">
+              {{ activeTab === 'drafts' ? '你还没有草稿，去创作第一篇草稿吧！' : '开始创作你的第一篇文章吧!' }}
+            </p>
             <router-link to="/post/create" class="btn-primary inline-block">
               <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -125,88 +148,68 @@ import { getPosts, deletePost } from '@/api/posts'
 
 export default {
   name: 'Profile',
-  components: {
-    Header
-  },
+  components: { Header },
   setup() {
     const store = useStore()
-
     const loading = ref(false)
     const posts = ref([])
+    const activeTab = ref('posts')
 
     const currentUser = computed(() => store.getters.currentUser)
-    const userInitial = computed(() => {
-      return currentUser.value?.username?.charAt(0).toUpperCase() || 'U'
-    })
+    const userInitial = computed(() => currentUser.value?.username?.charAt(0).toUpperCase() || 'U')
 
-    const userStats = reactive({
-      posts: 0
-    })
+    const userStats = reactive({ posts: 0, drafts: 0 })
 
-    // 格式化日期
-    const formatDate = (dateString) => {
-      if (!dateString) return ''
-      const date = new Date(dateString)
-      return date.toLocaleDateString('zh-CN')
+    const formatDate = (str) => {
+      if (!str) return ''
+      const date = new Date(str)
+      return date.toLocaleString('zh-CN', { hour12: false })
     }
 
-    // 加载用户文章
     const loadPosts = async () => {
+      if (!currentUser.value) return
       loading.value = true
       try {
-        // 直接调用 /api/posts 获取所有文章,前端过滤当前用户的文章
-        const response = await getPosts({ page: 0, size: 100 })
+        const res = await getPosts({ page: 0, size: 100 })
+        const allPosts = res.content || []
 
-        // 过滤出当前用户的文章
-        const allPosts = response.content || []
-        const myPosts = allPosts.filter(
-            post => post.authorUsername === currentUser.value.username
-        )
+        const myPosts = allPosts.filter(p => p.user_id === currentUser.value.id)
 
-        posts.value = myPosts.map(post => ({
-          id: post.id,
-          title: post.title,
-          summary: post.content ? post.content.substring(0, 100).replace(/[#*`\n]/g, '') : '',
-          createdAt: post.createdAt
+        posts.value = myPosts.map(p => ({
+          ...p,
+          summary: p.content?.replace(/[#*`\n]/g, '').slice(0, 100) || ''
         }))
 
-        // 更新统计数据
-        userStats.posts = posts.value.length
-      } catch (error) {
-        console.error('加载文章失败:', error)
+        userStats.drafts = posts.value.filter(p => p.is_draft).length
+        userStats.posts = posts.value.filter(p => !p.is_draft).length
+      } catch (e) {
+        console.error('加载失败:', e)
       } finally {
         loading.value = false
       }
     }
 
-    // 删除文章
-    const handleDelete = async (postId) => {
-      if (!confirm('确定要删除这篇文章吗?')) return
-
+    const handleDelete = async (id) => {
+      if (!confirm('确定删除该文章吗？')) return
       try {
-        await deletePost(postId)
-        posts.value = posts.value.filter(post => post.id !== postId)
-        userStats.posts = posts.value.length
+        await deletePost(id)
+        posts.value = posts.value.filter(p => p.id !== id)
+        userStats.drafts = posts.value.filter(p => p.is_draft).length
+        userStats.posts = posts.value.filter(p => !p.is_draft).length
         alert('删除成功')
-      } catch (error) {
-        console.error('删除失败:', error)
-        alert('删除失败,请稍后重试')
+      } catch (e) {
+        console.error(e)
+        alert('删除失败')
       }
     }
 
-    onMounted(() => {
-      loadPosts()
-    })
+    const visibleList = computed(() =>
+        activeTab.value === 'drafts' ? posts.value.filter(p => p.is_draft) : posts.value.filter(p => !p.is_draft)
+    )
 
-    return {
-      loading,
-      posts,
-      currentUser,
-      userInitial,
-      userStats,
-      formatDate,
-      handleDelete
-    }
+    onMounted(loadPosts)
+
+    return { loading, posts, userStats, currentUser, userInitial, formatDate, handleDelete, activeTab, visibleList }
   }
 }
 </script>

@@ -22,9 +22,8 @@ public class PostServiceImpl implements PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
-    private final PostMapper postMapper; // 注入Mapper
+    private final PostMapper postMapper;
 
-    // 最小改动：在构造函数中加入 PostMapper 参数并赋值
     @Autowired
     public PostServiceImpl(PostRepository postRepository,
                            UserRepository userRepository,
@@ -37,18 +36,19 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public PostResponse createPost(PostRequest postRequest, UserDetails currentUser) {
-        // --- 新增的检查逻辑 ---
-        if (postRepository.existsByTitle(postRequest.getTitle())) {
-            throw new RuntimeException("错误：文章标题已存在！");
-        }
-
         User user = userRepository.findByUsername(currentUser.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("未找到用户: " + currentUser.getUsername()));
+
+        // 检查同一用户下是否已有相同标题的文章
+        if (postRepository.existsByTitleAndUser(postRequest.getTitle(), user)) {
+            throw new RuntimeException("错误：您已有同名文章！");
+        }
 
         Post post = new Post();
         post.setTitle(postRequest.getTitle());
         post.setContent(postRequest.getContent());
         post.setContentType(postRequest.getContentType());
+        post.setDraft(postRequest.getDraft() != null ? postRequest.getDraft() : false);
         post.setUser(user);
 
         Post savedPost = postRepository.save(post);
@@ -61,58 +61,63 @@ public class PostServiceImpl implements PostService {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + id + " 的文章"));
 
+        // 如果是草稿，只有作者可以查看
+        // 注意：这里的检查需要在有用户上下文时才生效
+        // 对于公开接口，草稿文章应该在列表查询时就被过滤掉
+
         return postMapper.toResponse(post);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<PostResponse> getAllPosts(Pageable pageable) {
-        Page<Post> postsPage = postRepository.findAll(pageable);
+        // 只返回已发布的文章
+        Page<Post> postsPage = postRepository.findByDraftFalse(pageable);
         return postsPage.map(postMapper::toResponse);
     }
-
 
     @Override
     @Transactional
     public PostResponse updatePost(Long id, PostRequest postRequest, UserDetails currentUser) {
-        // 1. 根据ID从数据库中找到要更新的文章
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + id + " 的文章"));
 
-        // 2. --- 核心权限校验 ---
-        // 检查文章的作者用户名是否和当前登录的用户名一致
+        // 权限校验
         if (!post.getUser().getUsername().equals(currentUser.getUsername())) {
             throw new AccessDeniedException("无权修改该文章");
         }
 
-        // 3. 更新文章内容
+        // ===== 新增：标题重复检查 =====
+        // 如果标题被修改了，需要检查新标题是否与该用户的其他文章冲突
+        if (!post.getTitle().equals(postRequest.getTitle())) {
+            if (postRepository.existsByTitleAndUserAndIdNot(
+                    postRequest.getTitle(),
+                    post.getUser(),
+                    id)) {
+                throw new RuntimeException("您已有标题为「" + postRequest.getTitle() + "」的文章！");
+            }
+        }
+
+        // 更新字段
         post.setTitle(postRequest.getTitle());
         post.setContent(postRequest.getContent());
         post.setContentType(postRequest.getContentType());
-        // `updatedAt` 字段会因为 @PreUpdate 注解自动更新
+        post.setDraft(postRequest.getDraft() != null ? postRequest.getDraft() : false);
 
-        // 4. 保存更新后的文章
         Post updatedPost = postRepository.save(post);
-
-        // 5. 返回更新后的DTO
         return postMapper.toResponse(updatedPost);
     }
 
     @Override
     @Transactional
     public void deletePost(Long id, UserDetails currentUser) {
-        // 1. 找到文章
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + id + " 的文章"));
 
-        // 2. --- 同样的核心权限校验 ---
         if (!post.getUser().getUsername().equals(currentUser.getUsername())) {
             throw new AccessDeniedException("无权删除该文章");
         }
 
-        // 3. 执行删除
         postRepository.delete(post);
     }
 }
-
-

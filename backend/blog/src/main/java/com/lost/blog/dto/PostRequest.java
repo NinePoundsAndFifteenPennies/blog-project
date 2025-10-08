@@ -2,8 +2,8 @@ package com.lost.blog.dto;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
-import com.lost.blog.model.ContentType; // 导入枚举
-import jakarta.validation.constraints.NotNull; // 导入NotNull
+import com.lost.blog.model.ContentType;
+import jakarta.validation.constraints.NotNull;
 
 public class PostRequest {
 
@@ -16,6 +16,9 @@ public class PostRequest {
 
     @NotNull(message = "必须指定内容类型")
     private ContentType contentType;
+
+    // 新增：是否为草稿，默认 false（即发布状态）
+    private Boolean draft = false;
 
     // Getters and Setters
     public String getTitle() {
@@ -33,11 +36,20 @@ public class PostRequest {
     public void setContent(String content) {
         this.content = content;
     }
+
     public ContentType getContentType() {
         return contentType;
     }
 
     public void setContentType(ContentType contentType) {
         this.contentType = contentType;
+    }
+
+    public Boolean getDraft() {
+        return draft;
+    }
+
+    public void setDraft(Boolean draft) {
+        this.draft = draft;
     }
 }
