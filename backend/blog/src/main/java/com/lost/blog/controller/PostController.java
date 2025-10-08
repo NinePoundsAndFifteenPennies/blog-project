@@ -12,8 +12,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.web.bind.annotation.PutMapping;
-
 
 @RestController
 @RequestMapping("/api/posts")
@@ -34,13 +32,16 @@ public class PostController {
         return new ResponseEntity<>(createdPost, HttpStatus.CREATED);
     }
 
-    // 获取一篇文章
+    // 获取一篇文章（传入 currentUser 用于草稿权限检查）
     @GetMapping("/{id}")
-    public ResponseEntity<PostResponse> getPostById(@PathVariable Long id) {
-        PostResponse post = postService.getPostById(id);
+    public ResponseEntity<PostResponse> getPostById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        PostResponse post = postService.getPostById(id, currentUser);
         return ResponseEntity.ok(post);
     }
-    // 获取所有文章（分页）
+
+    // 获取所有已发布的文章（分页）
     @GetMapping
     public ResponseEntity<Page<PostResponse>> getAllPosts(Pageable pageable) {
         Page<PostResponse> posts = postService.getAllPosts(pageable);
@@ -49,17 +50,19 @@ public class PostController {
 
     // 更新一篇文章
     @PutMapping("/{id}")
-    public ResponseEntity<PostResponse> updatePost(@PathVariable Long id,
-                                                   @Valid @RequestBody PostRequest postRequest,
-                                                   @AuthenticationPrincipal UserDetails currentUser) {
+    public ResponseEntity<PostResponse> updatePost(
+            @PathVariable Long id,
+            @Valid @RequestBody PostRequest postRequest,
+            @AuthenticationPrincipal UserDetails currentUser) {
         PostResponse updatedPost = postService.updatePost(id, postRequest, currentUser);
         return ResponseEntity.ok(updatedPost);
     }
 
     // 删除一篇文章
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deletePost(@PathVariable Long id,
-                                             @AuthenticationPrincipal UserDetails currentUser) {
+    public ResponseEntity<String> deletePost(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails currentUser) {
         postService.deletePost(id, currentUser);
         return ResponseEntity.ok("文章删除成功");
     }

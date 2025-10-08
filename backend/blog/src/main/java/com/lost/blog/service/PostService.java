@@ -19,17 +19,17 @@ public interface PostService {
     /**
      * 根据ID获取一篇文章
      * @param id 文章ID
+     * @param currentUser 当前用户（可能为null，用于草稿权限检查）
      * @return 文章响应数据
      */
-    PostResponse getPostById(Long id);
+    PostResponse getPostById(Long id, UserDetails currentUser);
 
     /**
-     * 获取所有文章（分页）
+     * 获取所有已发布的文章（分页）
      * @param pageable 分页信息
      * @return 分页后的文章响应数据
      */
     Page<PostResponse> getAllPosts(Pageable pageable);
-
 
     /**
      * 更新一篇文章
