@@ -80,7 +80,7 @@
                     >
                       {{ post.title }}
                     </router-link>
-                    <span v-if="post.is_draft" class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                    <span v-if="post.draft" class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
                       草稿
                     </span>
                   </div>
@@ -88,9 +88,9 @@
                   <p class="text-gray-600 mt-2 line-clamp-2">{{ post.summary }}</p>
 
                   <div class="flex items-center space-x-6 mt-4 text-sm text-gray-500">
-                    <span>创建: {{ formatDate(post.created_at) }}</span>
-                    <span v-if="!post.is_draft && post.published_at">发布: {{ formatDate(post.published_at) }}</span>
-                    <span v-if="post.updated_at">更新: {{ formatDate(post.updated_at) }}</span>
+                    <span>创建: {{ formatDate(post.createdAt) }}</span>
+                    <span v-if="!post.draft && post.publishedAt">发布: {{ formatDate(post.publishedAt) }}</span>
+                    <span v-if="post.updatedAt">更新: {{ formatDate(post.updatedAt) }}</span>
                   </div>
                 </div>
 
@@ -173,15 +173,15 @@ export default {
         const res = await getPosts({ page: 0, size: 100 })
         const allPosts = res.content || []
 
-        const myPosts = allPosts.filter(p => p.user_id === currentUser.value.id)
+        const myPosts = allPosts.filter(p => p.authorUsername === currentUser.value.username)
 
         posts.value = myPosts.map(p => ({
           ...p,
           summary: p.content?.replace(/[#*`\n]/g, '').slice(0, 100) || ''
         }))
 
-        userStats.drafts = posts.value.filter(p => p.is_draft).length
-        userStats.posts = posts.value.filter(p => !p.is_draft).length
+        userStats.drafts = posts.value.filter(p => p.draft).length
+        userStats.posts = posts.value.filter(p => !p.draft).length
       } catch (e) {
         console.error('加载失败:', e)
       } finally {
@@ -194,8 +194,8 @@ export default {
       try {
         await deletePost(id)
         posts.value = posts.value.filter(p => p.id !== id)
-        userStats.drafts = posts.value.filter(p => p.is_draft).length
-        userStats.posts = posts.value.filter(p => !p.is_draft).length
+        userStats.drafts = posts.value.filter(p => p.draft).length
+        userStats.posts = posts.value.filter(p => !p.draft).length
         alert('删除成功')
       } catch (e) {
         console.error(e)
@@ -204,7 +204,7 @@ export default {
     }
 
     const visibleList = computed(() =>
-        activeTab.value === 'drafts' ? posts.value.filter(p => p.is_draft) : posts.value.filter(p => !p.is_draft)
+        activeTab.value === 'drafts' ? posts.value.filter(p => p.draft) : posts.value.filter(p => !p.draft)
     )
 
     onMounted(loadPosts)
