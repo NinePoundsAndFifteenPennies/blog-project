@@ -178,19 +178,8 @@ export default {
           summary: p.content?.replace(/[#*`\n]/g, '').slice(0, 100) || ''
         }))
 
-        // 调试：输出所有文章和草稿状态
-        console.log('当前用户的所有文章（包括草稿）:', myPosts.length)
-        console.log('文章列表详情:', posts.value.map(p => ({ 
-          id: p.id, 
-          title: p.title, 
-          draft: p.draft,
-          draftType: typeof p.draft 
-        })))
-
         userStats.drafts = posts.value.filter(p => p.draft).length
         userStats.posts = posts.value.filter(p => !p.draft).length
-        
-        console.log('统计 - 草稿数:', userStats.drafts, '已发布:', userStats.posts)
       } catch (e) {
         console.error('加载失败:', e)
       } finally {
