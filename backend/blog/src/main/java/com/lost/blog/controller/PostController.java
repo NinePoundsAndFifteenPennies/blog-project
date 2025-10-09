@@ -48,6 +48,15 @@ public class PostController {
         return ResponseEntity.ok(posts);
     }
 
+    // 获取当前用户的所有文章（包括草稿）
+    @GetMapping("/my")
+    public ResponseEntity<Page<PostResponse>> getMyPosts(
+            @AuthenticationPrincipal UserDetails currentUser,
+            Pageable pageable) {
+        Page<PostResponse> posts = postService.getMyPosts(currentUser, pageable);
+        return ResponseEntity.ok(posts);
+    }
+
     // 更新一篇文章
     @PutMapping("/{id}")
     public ResponseEntity<PostResponse> updatePost(

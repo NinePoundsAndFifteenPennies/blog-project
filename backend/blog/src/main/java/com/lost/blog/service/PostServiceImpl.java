@@ -96,6 +96,19 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Page<PostResponse> getMyPosts(UserDetails currentUser, Pageable pageable) {
+        User user = userRepository.findByUsername(currentUser.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("未找到用户: " + currentUser.getUsername()));
+        
+        Page<Post> postsPage = postRepository.findByUser(user, pageable);
+        logger.debug("查询用户 {} 的所有文章（包括草稿），总数: {}",
+                user.getUsername(), postsPage.getTotalElements());
+        
+        return postsPage.map(postMapper::toResponse);
+    }
+
+    @Override
     @Transactional
     public PostResponse updatePost(Long id, PostRequest postRequest, UserDetails currentUser) {
         Post post = postRepository.findById(id)

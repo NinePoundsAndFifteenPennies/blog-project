@@ -144,7 +144,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import Header from '@/components/Header.vue'
-import { getPosts, deletePost } from '@/api/posts'
+import { getMyPosts, deletePost } from '@/api/posts'
 
 export default {
   name: 'Profile',
@@ -170,10 +170,8 @@ export default {
       if (!currentUser.value) return
       loading.value = true
       try {
-        const res = await getPosts({ page: 0, size: 100 })
-        const allPosts = res.content || []
-
-        const myPosts = allPosts.filter(p => p.authorUsername === currentUser.value.username)
+        const res = await getMyPosts({ page: 0, size: 100 })
+        const myPosts = res.content || []
 
         posts.value = myPosts.map(p => ({
           ...p,
