@@ -32,6 +32,14 @@ public interface PostService {
     Page<PostResponse> getAllPosts(Pageable pageable);
 
     /**
+     * 获取当前用户的所有文章（包括草稿）
+     * @param currentUser 当前登录的用户
+     * @param pageable 分页信息
+     * @return 分页后的文章响应数据
+     */
+    Page<PostResponse> getMyPosts(UserDetails currentUser, Pageable pageable);
+
+    /**
      * 更新一篇文章
      * @param id 文章ID
      * @param postRequest 更新的文章数据

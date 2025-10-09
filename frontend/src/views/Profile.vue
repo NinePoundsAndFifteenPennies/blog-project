@@ -144,7 +144,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import Header from '@/components/Header.vue'
-import { getPosts, deletePost } from '@/api/posts'
+import { getMyPosts, deletePost } from '@/api/posts'
 
 export default {
   name: 'Profile',
@@ -170,18 +170,27 @@ export default {
       if (!currentUser.value) return
       loading.value = true
       try {
-        const res = await getPosts({ page: 0, size: 100 })
-        const allPosts = res.content || []
-
-        const myPosts = allPosts.filter(p => p.authorUsername === currentUser.value.username)
+        const res = await getMyPosts({ page: 0, size: 100 })
+        const myPosts = res.content || []
 
         posts.value = myPosts.map(p => ({
           ...p,
           summary: p.content?.replace(/[#*`\n]/g, '').slice(0, 100) || ''
         }))
 
+        // 调试：输出所有文章和草稿状态
+        console.log('当前用户的所有文章（包括草稿）:', myPosts.length)
+        console.log('文章列表详情:', posts.value.map(p => ({ 
+          id: p.id, 
+          title: p.title, 
+          draft: p.draft,
+          draftType: typeof p.draft 
+        })))
+
         userStats.drafts = posts.value.filter(p => p.draft).length
         userStats.posts = posts.value.filter(p => !p.draft).length
+        
+        console.log('统计 - 草稿数:', userStats.drafts, '已发布:', userStats.posts)
       } catch (e) {
         console.error('加载失败:', e)
       } finally {

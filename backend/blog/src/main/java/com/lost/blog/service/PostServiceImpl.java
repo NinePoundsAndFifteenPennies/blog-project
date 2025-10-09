@@ -92,6 +92,30 @@ public class PostServiceImpl implements PostService {
         Page<Post> postsPage = postRepository.findByDraftFalse(pageable);
         logger.debug("查询已发布文章列表，页码: {}，数量: {}",
                 pageable.getPageNumber(), postsPage.getTotalElements());
+        // 调试：输出每篇文章的草稿状态
+        postsPage.getContent().forEach(post -> 
+            logger.debug("文章ID: {}, 标题: {}, 草稿状态: {}", 
+                post.getId(), post.getTitle(), post.getDraft())
+        );
+        return postsPage.map(postMapper::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PostResponse> getMyPosts(UserDetails currentUser, Pageable pageable) {
+        User user = userRepository.findByUsername(currentUser.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("未找到用户: " + currentUser.getUsername()));
+        
+        Page<Post> postsPage = postRepository.findByUser(user, pageable);
+        logger.info("查询用户 {} 的所有文章（包括草稿），总数: {}",
+                user.getUsername(), postsPage.getTotalElements());
+        
+        // 调试：输出每篇文章的草稿状态
+        postsPage.getContent().forEach(post -> 
+            logger.debug("用户文章 - ID: {}, 标题: {}, 草稿状态: {}", 
+                post.getId(), post.getTitle(), post.getDraft())
+        );
+        
         return postsPage.map(postMapper::toResponse);
     }
 

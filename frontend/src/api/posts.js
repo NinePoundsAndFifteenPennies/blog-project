@@ -13,6 +13,18 @@ export function getPosts(params) {
 }
 
 /**
+ * 获取当前用户的所有文章（包括草稿）
+ * @param {Object} params - 查询参数 { page, size }
+ */
+export function getMyPosts(params) {
+    return request({
+        url: '/posts/my',
+        method: 'get',
+        params: params
+    })
+}
+
+/**
  * 根据ID获取文章详情
  * @param {Number} id - 文章ID
  */
