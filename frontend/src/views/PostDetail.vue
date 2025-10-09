@@ -213,6 +213,9 @@ export default {
           title: response.title,
           content: response.content,
           authorUsername: response.authorUsername,
+          author: {
+            username: response.authorUsername
+          },
           createdAt: response.createdAt,
           updatedAt: response.updatedAt
         }
