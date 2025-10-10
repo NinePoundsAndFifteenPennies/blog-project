@@ -149,7 +149,7 @@
 </template>
 
 <script>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter, useRoute } from 'vue-router'
 
@@ -175,6 +175,13 @@ export default {
       password: ''
     })
 
+    // 检查是否有来自URL的提示信息（如token过期）
+    onMounted(() => {
+      if (route.query.message) {
+        errorMessage.value = route.query.message
+      }
+    })
+
     const handleLogin = async () => {
       // 简单的本地验证
       if (!formData.username || !formData.password) {
@@ -188,7 +195,8 @@ export default {
       try {
         await store.dispatch('login', {
           username: formData.username,
-          password: formData.password
+          password: formData.password,
+          rememberMe: formData.rememberMe
         })
 
         // 登录成功后跳转到之前想去的页面，或首页

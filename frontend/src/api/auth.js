@@ -14,7 +14,7 @@ export function register(userData) {
 
 /**
  * 用户登录
- * @param {Object} credentials - 登录凭证 { username, password }
+ * @param {Object} credentials - 登录凭证 { username, password, rememberMe }
  * @returns {Promise<string>} - 返回JWT token
  */
 export async function login(credentials) {
@@ -23,7 +23,11 @@ export async function login(credentials) {
     const response = await request({
         url: "/users/login",
         method: "post",
-        data: credentials,
+        data: {
+            username: credentials.username,
+            password: credentials.password,
+            rememberMe: credentials.rememberMe || false
+        },
     });
     return response.accessToken;
 }
@@ -54,4 +58,20 @@ export async function getCurrentUser() {
 export function logout() {
     // 登出只是本地操作，清除token即可
     return Promise.resolve();
+}
+
+/**
+ * 刷新Token
+ * @param {boolean} rememberMe - 是否记住我
+ * @returns {Promise<string>} - 返回新的JWT token
+ */
+export async function refreshToken(rememberMe) {
+    const response = await request({
+        url: "/users/refresh-token",
+        method: "post",
+        data: {
+            rememberMe: rememberMe || false
+        },
+    });
+    return response.accessToken;
 }

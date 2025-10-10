@@ -6,6 +6,7 @@ export default createStore({
     state: {
         user: JSON.parse(localStorage.getItem('user')) || null,
         token: localStorage.getItem('token') || null,
+        rememberMe: localStorage.getItem('rememberMe') === 'true',
     },
 
     getters: {
@@ -23,20 +24,25 @@ export default createStore({
             }
         },
 
-        SET_TOKEN(state, token) {
+        SET_TOKEN(state, { token, rememberMe }) {
             state.token = token
+            state.rememberMe = rememberMe
             if (token) {
                 localStorage.setItem('token', token)
+                localStorage.setItem('rememberMe', rememberMe.toString())
             } else {
                 localStorage.removeItem('token')
+                localStorage.removeItem('rememberMe')
             }
         },
 
         CLEAR_AUTH(state) {
             state.user = null
             state.token = null
+            state.rememberMe = false
             localStorage.removeItem('user')
             localStorage.removeItem('token')
+            localStorage.removeItem('rememberMe')
         }
     },
 
@@ -44,9 +50,9 @@ export default createStore({
         // --- 登录操作 (重构) ---
         async login({ commit, dispatch }, credentials) {
             try {
-                // 1. 调用API获取token
+                // 1. 调用API获取token (传递rememberMe参数)
                 const token = await login(credentials)
-                commit('SET_TOKEN', token)
+                commit('SET_TOKEN', { token, rememberMe: credentials.rememberMe || false })
 
                 // 2. 获取token后，再调用API获取用户信息
                 await dispatch('fetchCurrentUser')

@@ -61,8 +61,8 @@ public class UserController {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // 这里假设 JwtTokenProvider.generateToken 接受一个 Authentication 或 username（请根据你的实现调整）
-        String jwt = tokenProvider.generateToken(authentication);
+        // 根据rememberMe参数生成不同过期时间的token
+        String jwt = tokenProvider.generateToken(authentication, loginRequest.isRememberMe());
         return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
     }
 
@@ -74,5 +74,22 @@ public class UserController {
         }
         // 如果你想返回更多用户信息，可以返回自定义 DTO
         return ResponseEntity.ok("当前登录用户是: " + currentUser.getUsername());
+    }
+
+    // -------- 刷新Token --------
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refreshToken(@AuthenticationPrincipal UserDetails currentUser,
+                                         @RequestBody(required = false) LoginRequest refreshRequest) {
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未登录");
+        }
+        
+        // 从当前认证信息重新生成token
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        // 如果请求中包含rememberMe标志，使用它；否则默认为false（短期token）
+        boolean rememberMe = refreshRequest != null && refreshRequest.isRememberMe();
+        String jwt = tokenProvider.generateToken(authentication, rememberMe);
+        return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
     }
 }

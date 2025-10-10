@@ -68,6 +68,7 @@ router.beforeEach((to, from, next) => {
   // 设置页面标题
   document.title = to.meta.title ? `${to.meta.title} - 博客系统` : "博客系统";
 
+  // 检查token是否存在于localStorage中
   const token = localStorage.getItem("token");
   const isAuthenticated = !!token;
 
