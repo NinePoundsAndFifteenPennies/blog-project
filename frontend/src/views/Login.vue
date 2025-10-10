@@ -188,7 +188,8 @@ export default {
       try {
         await store.dispatch('login', {
           username: formData.username,
-          password: formData.password
+          password: formData.password,
+          rememberMe: formData.rememberMe
         })
 
         // 登录成功后跳转到之前想去的页面，或首页

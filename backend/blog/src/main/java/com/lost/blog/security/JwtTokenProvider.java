@@ -19,19 +19,28 @@ public class JwtTokenProvider {
 
     private final SecretKey jwtSecretKey;
     private final long jwtExpirationInMs;
+    private final long jwtRememberMeExpirationInMs;
 
     public JwtTokenProvider(@Value("${app.jwt.secret}") String jwtSecret,
-                            @Value("${app.jwt.expiration-ms}") long jwtExpirationInMs) {
+                            @Value("${app.jwt.expiration-ms}") long jwtExpirationInMs,
+                            @Value("${app.jwt.remember-me-expiration-ms:2592000000}") long jwtRememberMeExpirationInMs) {
         this.jwtSecretKey = Keys.hmacShaKeyFor(jwtSecret.getBytes());
         this.jwtExpirationInMs = jwtExpirationInMs;
+        this.jwtRememberMeExpirationInMs = jwtRememberMeExpirationInMs;
     }
 
-    // 生成Token
+    // 生成Token (不记住我 - 短期token)
     public String generateToken(Authentication authentication) {
+        return generateToken(authentication, false);
+    }
+
+    // 生成Token (支持记住我)
+    public String generateToken(Authentication authentication, boolean rememberMe) {
         User userPrincipal = (User) authentication.getPrincipal();
 
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
+        long expirationTime = rememberMe ? jwtRememberMeExpirationInMs : jwtExpirationInMs;
+        Date expiryDate = new Date(now.getTime() + expirationTime);
 
         return Jwts.builder()
                 .setSubject(userPrincipal.getUsername())

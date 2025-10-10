@@ -61,8 +61,8 @@ public class UserController {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // 这里假设 JwtTokenProvider.generateToken 接受一个 Authentication 或 username（请根据你的实现调整）
-        String jwt = tokenProvider.generateToken(authentication);
+        // 根据rememberMe参数生成不同过期时间的token
+        String jwt = tokenProvider.generateToken(authentication, loginRequest.isRememberMe());
         return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
     }
 

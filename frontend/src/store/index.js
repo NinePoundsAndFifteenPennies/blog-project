@@ -2,10 +2,27 @@ import { createStore } from 'vuex'
 import { login, register, getCurrentUser } from '@/api/auth'
 import router from '@/router'
 
+// 辅助函数：根据rememberMe决定使用localStorage还是sessionStorage
+function getStorage(rememberMe) {
+    return rememberMe ? localStorage : sessionStorage
+}
+
+// 辅助函数：从任一存储中获取值
+function getFromAnyStorage(key) {
+    return localStorage.getItem(key) || sessionStorage.getItem(key)
+}
+
+// 辅助函数：从两个存储中都删除
+function removeFromBothStorages(key) {
+    localStorage.removeItem(key)
+    sessionStorage.removeItem(key)
+}
+
 export default createStore({
     state: {
-        user: JSON.parse(localStorage.getItem('user')) || null,
-        token: localStorage.getItem('token') || null,
+        user: JSON.parse(getFromAnyStorage('user')) || null,
+        token: getFromAnyStorage('token') || null,
+        rememberMe: localStorage.getItem('rememberMe') === 'true',
     },
 
     getters: {
@@ -16,27 +33,35 @@ export default createStore({
     mutations: {
         SET_USER(state, user) {
             state.user = user
+            const storage = getStorage(state.rememberMe)
             if (user) {
-                localStorage.setItem('user', JSON.stringify(user))
+                storage.setItem('user', JSON.stringify(user))
             } else {
-                localStorage.removeItem('user')
+                removeFromBothStorages('user')
             }
         },
 
-        SET_TOKEN(state, token) {
+        SET_TOKEN(state, { token, rememberMe }) {
             state.token = token
+            state.rememberMe = rememberMe
+            const storage = getStorage(rememberMe)
             if (token) {
-                localStorage.setItem('token', token)
+                storage.setItem('token', token)
+                // rememberMe标志始终存储在localStorage中，用于判断使用哪个storage
+                localStorage.setItem('rememberMe', rememberMe.toString())
             } else {
-                localStorage.removeItem('token')
+                removeFromBothStorages('token')
+                localStorage.removeItem('rememberMe')
             }
         },
 
         CLEAR_AUTH(state) {
             state.user = null
             state.token = null
-            localStorage.removeItem('user')
-            localStorage.removeItem('token')
+            state.rememberMe = false
+            removeFromBothStorages('user')
+            removeFromBothStorages('token')
+            localStorage.removeItem('rememberMe')
         }
     },
 
@@ -44,9 +69,9 @@ export default createStore({
         // --- 登录操作 (重构) ---
         async login({ commit, dispatch }, credentials) {
             try {
-                // 1. 调用API获取token
+                // 1. 调用API获取token (传递rememberMe参数)
                 const token = await login(credentials)
-                commit('SET_TOKEN', token)
+                commit('SET_TOKEN', { token, rememberMe: credentials.rememberMe || false })
 
                 // 2. 获取token后，再调用API获取用户信息
                 await dispatch('fetchCurrentUser')
