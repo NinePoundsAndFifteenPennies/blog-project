@@ -1,19 +1,26 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center p-4">
-    <div class="max-w-md w-full">
+  <div class="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
+    <!-- Animated background -->
+    <div class="absolute inset-0 bg-gradient-to-br from-primary-50 via-purple-50 to-pink-50">
+      <div class="absolute top-20 left-10 w-96 h-96 bg-primary-300/40 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-float"></div>
+      <div class="absolute top-40 right-10 w-96 h-96 bg-purple-300/40 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-float" style="animation-delay: 2s;"></div>
+      <div class="absolute -bottom-8 left-1/2 w-96 h-96 bg-pink-300/40 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-float" style="animation-delay: 4s;"></div>
+    </div>
+
+    <div class="max-w-md w-full relative z-10">
       <!-- Logo and Title -->
-      <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-primary rounded-2xl mb-4 shadow-lg">
-          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="text-center mb-8 animate-fade-in">
+        <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-primary rounded-3xl mb-6 shadow-glow transform hover:scale-110 transition-transform duration-300">
+          <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
         </div>
-        <h2 class="text-3xl font-bold text-gray-900 mb-2">欢迎回来</h2>
-        <p class="text-gray-600">登录到你的博客账户</p>
+        <h2 class="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-3">欢迎回来</h2>
+        <p class="text-gray-600 text-lg">登录到你的博客账户</p>
       </div>
 
-      <!-- Login Form Card -->
-      <div class="card p-8">
+      <!-- Login Form Card with glass morphism -->
+      <div class="card p-8 md:p-10 backdrop-blur-xl bg-white/80 shadow-glow-lg animate-slide-up">
         <form @submit.prevent="handleLogin" class="space-y-6">
           <!-- Username Field -->
           <div>
@@ -103,10 +110,15 @@
           <button
               type="submit"
               :disabled="loading"
-              class="w-full btn-primary flex items-center justify-center"
+              class="w-full btn-primary flex items-center justify-center text-lg py-4"
               :class="{ 'opacity-70 cursor-not-allowed': loading }"
           >
-            <span v-if="!loading">登录</span>
+            <span v-if="!loading" class="flex items-center space-x-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+              </svg>
+              <span>登录</span>
+            </span>
             <span v-else class="flex items-center">
               <div class="spinner w-5 h-5 mr-2"></div>
               登录中...
@@ -115,20 +127,20 @@
         </form>
 
         <!-- Divider -->
-        <div class="relative my-6">
+        <div class="relative my-8">
           <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-gray-200"></div>
+            <div class="w-full border-t-2 border-gray-200"></div>
           </div>
           <div class="relative flex justify-center text-sm">
-            <span class="px-4 bg-white text-gray-500">或</span>
+            <span class="px-4 bg-white text-gray-500 font-medium">或</span>
           </div>
         </div>
 
         <!-- Register Link -->
         <div class="text-center">
-          <p class="text-gray-600">
+          <p class="text-gray-600 mb-6">
             还没有账户?
-            <router-link to="/register" class="text-primary-600 hover:text-primary-700 font-medium">
+            <router-link to="/register" class="text-primary-600 hover:text-primary-700 font-semibold hover:underline">
               立即注册
             </router-link>
           </p>
@@ -136,12 +148,12 @@
       </div>
 
       <!-- Back to Home -->
-      <div class="text-center mt-6">
-        <router-link to="/" class="text-gray-600 hover:text-gray-900 text-sm flex items-center justify-center">
-          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="text-center mt-8 animate-fade-in" style="animation-delay: 0.3s;">
+        <router-link to="/" class="text-gray-600 hover:text-gray-900 text-sm inline-flex items-center space-x-2 hover:underline transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          返回首页
+          <span>返回首页</span>
         </router-link>
       </div>
     </div>
