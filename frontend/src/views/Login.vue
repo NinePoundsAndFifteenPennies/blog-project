@@ -149,7 +149,7 @@
 </template>
 
 <script>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter, useRoute } from 'vue-router'
 
@@ -173,6 +173,13 @@ export default {
     const errors = reactive({
       username: '',
       password: ''
+    })
+
+    // 检查是否有来自URL的提示信息（如token过期）
+    onMounted(() => {
+      if (route.query.message) {
+        errorMessage.value = route.query.message
+      }
     })
 
     const handleLogin = async () => {

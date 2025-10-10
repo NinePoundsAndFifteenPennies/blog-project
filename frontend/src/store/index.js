@@ -2,26 +2,10 @@ import { createStore } from 'vuex'
 import { login, register, getCurrentUser } from '@/api/auth'
 import router from '@/router'
 
-// 辅助函数：根据rememberMe决定使用localStorage还是sessionStorage
-function getStorage(rememberMe) {
-    return rememberMe ? localStorage : sessionStorage
-}
-
-// 辅助函数：从任一存储中获取值
-function getFromAnyStorage(key) {
-    return localStorage.getItem(key) || sessionStorage.getItem(key)
-}
-
-// 辅助函数：从两个存储中都删除
-function removeFromBothStorages(key) {
-    localStorage.removeItem(key)
-    sessionStorage.removeItem(key)
-}
-
 export default createStore({
     state: {
-        user: JSON.parse(getFromAnyStorage('user')) || null,
-        token: getFromAnyStorage('token') || null,
+        user: JSON.parse(localStorage.getItem('user')) || null,
+        token: localStorage.getItem('token') || null,
         rememberMe: localStorage.getItem('rememberMe') === 'true',
     },
 
@@ -33,24 +17,21 @@ export default createStore({
     mutations: {
         SET_USER(state, user) {
             state.user = user
-            const storage = getStorage(state.rememberMe)
             if (user) {
-                storage.setItem('user', JSON.stringify(user))
+                localStorage.setItem('user', JSON.stringify(user))
             } else {
-                removeFromBothStorages('user')
+                localStorage.removeItem('user')
             }
         },
 
         SET_TOKEN(state, { token, rememberMe }) {
             state.token = token
             state.rememberMe = rememberMe
-            const storage = getStorage(rememberMe)
             if (token) {
-                storage.setItem('token', token)
-                // rememberMe标志始终存储在localStorage中，用于判断使用哪个storage
+                localStorage.setItem('token', token)
                 localStorage.setItem('rememberMe', rememberMe.toString())
             } else {
-                removeFromBothStorages('token')
+                localStorage.removeItem('token')
                 localStorage.removeItem('rememberMe')
             }
         },
@@ -59,8 +40,8 @@ export default createStore({
             state.user = null
             state.token = null
             state.rememberMe = false
-            removeFromBothStorages('user')
-            removeFromBothStorages('token')
+            localStorage.removeItem('user')
+            localStorage.removeItem('token')
             localStorage.removeItem('rememberMe')
         }
     },
