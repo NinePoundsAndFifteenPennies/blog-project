@@ -65,6 +65,26 @@ docker-compose up -d
 - 前端：http://your-server-ip
 - 后端 API：http://your-server-ip:8080/api
 
+**重要**：应用已配置为绑定到所有网络接口（0.0.0.0），可以从不同网络环境访问。
+
+### 6. 配置防火墙允许外部访问
+
+如果需要从互联网访问，请确保防火墙开放以下端口：
+
+```bash
+# 开放 HTTP 端口
+sudo ufw allow 80/tcp
+
+# 开放后端 API 端口（如果需要直接访问）
+sudo ufw allow 8080/tcp
+
+# 如果配置了 HTTPS
+sudo ufw allow 443/tcp
+
+# 启用防火墙
+sudo ufw enable
+```
+
 ### 查看日志
 
 ```bash
