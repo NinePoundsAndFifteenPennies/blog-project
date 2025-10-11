@@ -177,8 +177,92 @@ app.jwt.remember-me-expiration-ms=2592000000  # 记住我30天
 - Swagger 或 OpenAPI 文档集成
 - 数据库初始化脚本 (`data.sql`) 及更完善的迁移工具支持（如 Flyway/Liquibase）
 - 更细粒度的角色与权限体系设计（如管理员、普通用户区分）
-- 部署层面的 Docker 容器化方案与 CI/CD 流水线
 
+### 6. 生产环境部署支持
+- ✅ 已完成：添加了生产环境配置文件和部署支持
+- ✅ 已完成：Docker 容器化方案（Dockerfile 和 docker-compose.yml）
+- ✅ 已完成：完整的部署文档和环境变量配置
+- 未完成：CI/CD 流水线自动化部署
+
+
+---
+
+## 生产环境部署
+
+项目已支持生产环境部署，提供了多种部署方式。详细的部署指南请参阅 [DEPLOYMENT.md](DEPLOYMENT.md)。
+
+### 快速开始
+
+#### 方式一：使用 Docker Compose（推荐）
+
+1. 复制环境变量示例文件：
+```bash
+cp .env.docker.example .env
+```
+
+2. 编辑 `.env` 文件，设置数据库密码和 JWT 密钥：
+```bash
+# 生成 JWT 密钥
+openssl rand -base64 64
+
+# 编辑 .env 文件，填入生成的密钥和其他配置
+```
+
+3. 构建并启动所有服务：
+```bash
+# 首先构建后端
+cd backend/blog
+./mvnw clean package -DskipTests
+cd ../..
+
+# 启动所有服务
+docker-compose up -d
+```
+
+4. 访问应用：
+- 前端：http://localhost
+- 后端 API：http://localhost:8080/api
+
+#### 方式二：传统部署
+
+1. 后端部署：
+```bash
+cd backend/blog
+
+# 复制环境变量示例
+cp .env.example .env
+
+# 编辑 .env 文件
+nano .env
+
+# 构建应用
+./mvnw clean package -DskipTests
+
+# 使用生产配置启动
+./start-prod.sh
+```
+
+2. 前端部署：
+```bash
+cd frontend
+
+# 构建生产版本
+npm run build
+
+# 使用 Nginx 或其他 Web 服务器托管 dist/ 目录
+```
+
+详细步骤请参考 [DEPLOYMENT.md](DEPLOYMENT.md)。
+
+### 生产环境配置要点
+
+1. **数据库配置**：通过环境变量 `DATABASE_URL`、`DATABASE_USERNAME`、`DATABASE_PASSWORD` 配置
+2. **JWT 密钥**：必须通过环境变量 `JWT_SECRET` 提供安全的密钥
+3. **Hibernate DDL**：生产环境使用 `validate` 模式，避免自动修改数据库结构
+4. **日志级别**：生产环境日志级别设置为 INFO
+5. **前端 API**：支持通过环境变量 `VUE_APP_API_BASE_URL` 配置后端地址
+
+---
 
 ## 下一步任务
 
