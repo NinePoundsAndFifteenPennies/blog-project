@@ -11,4 +11,4 @@ COPY target/blog-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
 
 # 启动应用
-ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=prod", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
