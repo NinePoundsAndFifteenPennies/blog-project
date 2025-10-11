@@ -128,6 +128,30 @@ cd ../..
 
 构建成功后，你会在 `backend/blog/target/` 目录下看到 `blog-0.0.1-SNAPSHOT.jar` 文件。
 
+**如果构建失败**：
+
+如果遇到依赖下载问题（如 Spring snapshot 版本无法访问），可以尝试：
+
+1. 检查服务器网络连接
+2. 配置 Maven 使用国内镜像（阿里云镜像）
+
+创建或编辑 `~/.m2/settings.xml` 文件：
+
+```xml
+<settings>
+  <mirrors>
+    <mirror>
+      <id>aliyun-maven</id>
+      <name>阿里云公共仓库</name>
+      <url>https://maven.aliyun.com/repository/public</url>
+      <mirrorOf>central</mirrorOf>
+    </mirror>
+  </mirrors>
+</settings>
+```
+
+然后重新运行构建命令。
+
 ### 第四步：启动所有服务
 
 现在可以一键启动所有服务（MySQL 数据库、后端应用、前端应用）：
