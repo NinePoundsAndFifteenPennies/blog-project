@@ -63,6 +63,28 @@
   .markdown-body img {
     @apply rounded-lg shadow-md my-4;
   }
+
+  /* 表格样式 */
+  .markdown-body table {
+    @apply w-full border-collapse mb-4;
+  }
+
+  .markdown-body table thead {
+    @apply bg-gray-100;
+  }
+
+  .markdown-body table th,
+  .markdown-body table td {
+    @apply border border-gray-300 px-4 py-2 text-left;
+  }
+
+  .markdown-body table th {
+    @apply font-semibold text-gray-700;
+  }
+
+  .markdown-body table tr:hover {
+    @apply bg-gray-50;
+  }
 }
 
 @layer components {
