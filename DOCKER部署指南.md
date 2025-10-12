@@ -249,8 +249,9 @@ nano .env
 # 将 DDL_AUTO=update 改为
 DDL_AUTO=validate
 
-# 重启后端服务使配置生效
-docker-compose restart backend
+# 重新构建并启动后端服务使配置生效
+# 注意：必须使用 --build 参数重新构建容器，仅 restart 不会更新配置
+docker-compose up -d --build backend
 ```
 
 ### 2. 配置 HTTPS（强烈推荐）
@@ -352,17 +353,143 @@ docker-compose up -d --build frontend
 
 #### 步骤 F：自动续期证书
 
-Let's Encrypt 证书 90 天有效，需要定期续期：
+Let's Encrypt 证书 90 天有效，需要定期续期。
+
+**重要提示**：由于前端容器占用了 80 端口，`certbot renew --nginx` 命令会失败。我们需要使用 `--webroot` 或 `--standalone` 模式，并在续期时临时停止前端容器。
+
+**推荐方法 1：使用 webroot 插件（推荐）**
+
+修改 Nginx 配置以支持 webroot 验证：
 
 ```bash
-# 测试自动续期
-sudo certbot renew --dry-run
+# 编辑前端 Nginx 配置
+nano frontend/nginx.conf
+```
 
-# 添加定时任务自动续期
+在 server 块中添加：
+
+```nginx
+    # Let's Encrypt 验证目录
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+```
+
+修改 `docker-compose.yml`，挂载 certbot webroot 目录：
+
+```yaml
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: blog-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    networks:
+      - blog-network
+```
+
+重新构建前端容器：
+
+```bash
+docker-compose up -d --build frontend
+```
+
+创建续期脚本：
+
+```bash
+sudo nano /usr/local/bin/renew-cert.sh
+```
+
+添加以下内容：
+
+```bash
+#!/bin/bash
+# SSL 证书续期脚本
+
+# 创建 webroot 目录
+mkdir -p /var/www/certbot
+
+# 使用 webroot 模式续期证书
+certbot renew --webroot -w /var/www/certbot --quiet
+
+# 重新加载前端 Nginx 配置
+docker-compose restart frontend
+
+echo "证书续期完成: $(date)"
+```
+
+添加执行权限和定时任务：
+
+```bash
+# 添加执行权限
+sudo chmod +x /usr/local/bin/renew-cert.sh
+
+# 添加定时任务（每天凌晨 2 点检查并续期）
 sudo crontab -e
 
-# 添加以下行（每天凌晨 2 点检查并续期）
-0 2 * * * certbot renew --quiet && docker-compose restart frontend
+# 添加以下行
+0 2 * * * /usr/local/bin/renew-cert.sh >> /var/log/certbot-renew.log 2>&1
+```
+
+**推荐方法 2：临时停止容器续期**
+
+创建续期脚本：
+
+```bash
+sudo nano /usr/local/bin/renew-cert-standalone.sh
+```
+
+添加以下内容：
+
+```bash
+#!/bin/bash
+# SSL 证书续期脚本（standalone 模式）
+
+cd /path/to/blog-project  # 修改为你的项目路径
+
+# 停止前端容器释放 80 端口
+docker-compose stop frontend
+
+# 使用 standalone 模式续期证书
+certbot renew --standalone --quiet
+
+# 重新启动前端容器
+docker-compose start frontend
+
+echo "证书续期完成: $(date)"
+```
+
+添加执行权限和定时任务：
+
+```bash
+# 添加执行权限
+sudo chmod +x /usr/local/bin/renew-cert-standalone.sh
+
+# 添加定时任务（每天凌晨 2 点检查并续期）
+sudo crontab -e
+
+# 添加以下行
+0 2 * * * /usr/local/bin/renew-cert-standalone.sh >> /var/log/certbot-renew.log 2>&1
+```
+
+**测试续期**：
+
+```bash
+# 测试 webroot 模式（方法 1）
+sudo certbot renew --webroot -w /var/www/certbot --dry-run
+
+# 或测试 standalone 模式（方法 2）
+docker-compose stop frontend
+sudo certbot renew --standalone --dry-run
+docker-compose start frontend
 ```
 
 ### 3. 定期备份数据库
@@ -409,91 +536,38 @@ sudo crontab -e
 0 3 * * * /usr/local/bin/backup-blog-db.sh
 ```
 
-## 🛠️ 日常运维
+## 🛠️ 日常维护
 
-### 查看服务状态
+部署完成后，你需要进行一些日常维护操作，如查看日志、更新代码、重启服务等。
+
+**详细的日常维护操作请参考：[日常维护.md](./日常维护.md)**
+
+该文档包含：
+- 查看服务状态和日志
+- 更新应用代码
+- 重启和停止服务
+- 进入容器调试
+- 修改配置文件
+- 数据库操作（备份、恢复等）
+- 性能监控
+- 清理 Docker 资源
+
+### 快速参考
 
 ```bash
-# 查看所有容器状态
+# 查看服务状态
 docker-compose ps
 
-# 查看容器资源占用
-docker stats
-```
-
-### 查看日志
-
-```bash
-# 查看所有服务日志
-docker-compose logs -f
-
-# 查看最近 100 行日志
-docker-compose logs --tail=100
-
-# 查看特定服务日志
+# 查看日志
 docker-compose logs -f backend
-docker-compose logs -f frontend
-docker-compose logs -f mysql
-```
 
-### 重启服务
-
-```bash
-# 重启所有服务
-docker-compose restart
-
-# 重启特定服务
-docker-compose restart backend
-docker-compose restart frontend
-```
-
-### 停止服务
-
-```bash
-# 停止所有服务（保留数据）
-docker-compose stop
-
-# 停止并删除容器（保留数据）
-docker-compose down
-
-# 停止并删除容器和数据卷（会删除数据库数据！慎用！）
-docker-compose down -v
-```
-
-### 更新应用
-
-当你有代码更新时：
-
-```bash
-# 1. 拉取最新代码
+# 更新代码并重新部署
 git pull
-
-# 2. 重新构建后端
-cd backend/blog
-./mvnw clean package -DskipTests
-cd ../..
-
-# 3. 重新构建并启动服务
+cd backend/blog && ./mvnw clean package -DskipTests && cd ../..
 docker-compose up -d --build
 
-# 4. 查看日志确认更新成功
-docker-compose logs -f backend
-```
-
-### 进入容器调试
-
-```bash
-# 进入后端容器
-docker exec -it blog-backend bash
-
-# 进入前端容器
-docker exec -it blog-frontend sh
-
-# 进入 MySQL 容器
-docker exec -it blog-mysql bash
-
-# 在 MySQL 容器中连接数据库
-docker exec -it blog-mysql mysql -u root -p
+# 重启服务
+docker-compose restart backend
 ```
 
 ## 🐛 常见问题排查
@@ -585,8 +659,8 @@ cat .env | grep DDL_AUTO
 nano .env
 # 改为：DDL_AUTO=update
 
-# 3. 重启后端服务
-docker-compose restart backend
+# 3. 重新构建并启动后端服务（必须使用 --build 参数）
+docker-compose up -d --build backend
 
 # 4. 查看日志确认表已创建
 docker-compose logs backend | grep -i "table"
@@ -633,39 +707,11 @@ sudo netstat -tlnp | grep -E '80|8080|3306'
 #     - "8000:80"
 ```
 
-## 📊 性能监控
+## 📊 性能监控与优化
 
-### 基础监控
+关于性能监控、资源清理和优化建议，请参考 [日常维护.md](./日常维护.md) 中的相关章节。
 
-```bash
-# 查看容器资源使用情况
-docker stats
-
-# 查看磁盘使用情况
-df -h
-
-# 查看 Docker 占用的空间
-docker system df
-```
-
-### 清理 Docker 资源
-
-随着时间推移，Docker 会积累一些未使用的镜像和容器：
-
-```bash
-# 清理未使用的镜像
-docker image prune -a
-
-# 清理未使用的容器
-docker container prune
-
-# 清理所有未使用的资源
-docker system prune -a
-
-# 注意：不要使用 -v 参数，否则会删除数据卷！
-```
-
-## 💡 优化建议
+## 💡 生产环境优化建议
 
 ### 1. 使用域名访问
 
@@ -710,14 +756,20 @@ docker-compose up -d
 - ✅ 配置了环境变量和密钥
 - ✅ 构建并启动了所有服务
 - ✅ 配置了防火墙允许外部访问
-- ✅ （可选）配置了 HTTPS 加密
+- ✅ （可选）配置了 HTTPS 加密和自动续期
 - ✅ 设置了数据库备份
 
 **后续维护**：
+- 查看 [日常维护.md](./日常维护.md) 了解如何进行日常运维操作
 - 定期查看日志，关注系统运行状态
 - 定期备份数据库
 - 定期更新系统和应用
 - 关注服务器资源使用情况
+
+**重要提醒**：
+- 修改环境变量或配置文件后，需要使用 `docker-compose up -d --build` 重新构建容器
+- SSL 证书需要定期续期，已配置自动续期脚本
+- 生产环境应将数据库表管理模式设置为 `validate`
 
 如果遇到问题，请参考"常见问题排查"章节，或查看容器日志获取详细错误信息。
 
