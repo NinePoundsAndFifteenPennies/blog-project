@@ -101,6 +101,38 @@
 
 ---
 
+## 🚀 部署指南
+
+系统已支持使用 Docker 一键部署到生产服务器，详细部署步骤请参考：
+
+- **[DOCKER部署指南.md](./DOCKER部署指南.md)** - 完整的 Docker 部署教程，包括环境准备、配置、启动、HTTPS 配置和安全设置
+- **[日常维护.md](./日常维护.md)** - 部署后的日常运维操作，包括查看日志、更新代码、备份数据库等
+
+**快速开始**：
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/NinePoundsAndFifteenPennies/blog-project.git
+cd blog-project
+
+# 2. 配置环境变量
+cp .env.docker.example .env
+nano .env  # 修改数据库密码、JWT密钥等
+
+# 3. 构建后端
+cd backend/blog
+./mvnw clean package -DskipTests
+cd ../..
+
+# 4. 启动所有服务
+docker-compose up -d
+
+# 5. 查看日志
+docker-compose logs -f
+```
+
+---
+
 ## 本机开发与测试说明
 
 为了方便在本机进行快速开发和测试，项目中存在一些简化配置，**这些配置不应用于生产环境**。
