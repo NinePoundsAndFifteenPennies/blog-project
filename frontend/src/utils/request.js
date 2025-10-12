@@ -5,7 +5,7 @@ import { jwtDecode } from "jwt-decode";
 
 // 创建axios实例
 const request = axios.create({
-  baseURL: "/api",
+  baseURL: process.env.VUE_APP_API_BASE_URL || "/api",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
@@ -45,7 +45,8 @@ const isTokenExpiringSoon = (token) => {
 // 刷新token的函数
 const refreshAuthToken = async (rememberMe) => {
   try {
-    const response = await axios.post('/api/users/refresh-token', {
+    const baseURL = process.env.VUE_APP_API_BASE_URL || "/api";
+    const response = await axios.post(`${baseURL}/users/refresh-token`, {
       rememberMe: rememberMe
     }, {
       headers: {
