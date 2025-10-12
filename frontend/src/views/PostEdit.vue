@@ -89,12 +89,18 @@
                     <span>{{ wordCount }} 字</span>
                   </div>
                 </div>
-                <textarea
+                <!-- Editor Toolbar -->
+                <EditorToolbar
+                    :contentType="formData.contentType"
+                    @insert="handleToolbarInsert"
+                />
+                <!-- CodeMirror Editor -->
+                <CodeMirrorEditor
+                    ref="editorRef"
                     v-model="formData.content"
+                    :contentType="formData.contentType"
                     :placeholder="contentPlaceholder"
-                    class="w-full h-96 border-none outline-none resize-none font-mono text-sm leading-relaxed placeholder-gray-300"
-                    :class="{ 'text-red-500': errors.content }"
-                ></textarea>
+                />
                 <p v-if="errors.content" class="mt-2 text-sm text-red-600">{{ errors.content }}</p>
               </div>
             </div>
@@ -169,18 +175,23 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
 import Header from '@/components/Header.vue'
+import EditorToolbar from '@/components/EditorToolbar.vue'
+import CodeMirrorEditor from '@/components/CodeMirrorEditor.vue'
 import { getPostById, createPost, updatePost } from '@/api/posts'
 
 export default {
   name: 'PostEdit',
   components: {
-    Header
+    Header,
+    EditorToolbar,
+    CodeMirrorEditor
   },
   setup() {
     const route = useRoute()
     const router = useRouter()
 
     const loading = ref(false)
+    const editorRef = ref(null)
 
     const formData = reactive({
       title: '',
@@ -345,6 +356,13 @@ export default {
       }
     }
 
+    // Handle toolbar insert
+    const handleToolbarInsert = ({ before, after, placeholder }) => {
+      if (editorRef.value) {
+        editorRef.value.insertText(before, after, placeholder)
+      }
+    }
+
     onMounted(() => {
       loadPost()
     })
@@ -359,15 +377,15 @@ export default {
       contentPlaceholder,
       publishButtonText,
       previewContent,
+      editorRef,
       saveDraft,
-      handlePublish
+      handlePublish,
+      handleToolbarInsert
     }
   }
 }
 </script>
 
 <style scoped>
-textarea {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-}
+/* Custom styles are now in components */
 </style>
