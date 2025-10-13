@@ -339,6 +339,29 @@
         </div>
       </div>
     </div>
+
+    <!-- Language Selector Modal -->
+    <div v-if="showLanguageModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="showLanguageModal = false">
+      <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold mb-4">选择代码语言</h3>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">编程语言</label>
+          <select v-model="codeLanguage" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
+            <option v-for="lang in availableLanguages" :key="lang.value" :value="lang.value">
+              {{ lang.label }}
+            </option>
+          </select>
+        </div>
+        <div class="flex space-x-3">
+          <button @click="insertCodeBlock" class="flex-1 btn-primary">
+            插入代码块
+          </button>
+          <button @click="showLanguageModal = false" class="flex-1 btn-secondary">
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -346,8 +369,62 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
+import hljs from 'highlight.js/lib/core'
+// 导入常用语言
+import javascript from 'highlight.js/lib/languages/javascript'
+import python from 'highlight.js/lib/languages/python'
+import java from 'highlight.js/lib/languages/java'
+import cpp from 'highlight.js/lib/languages/cpp'
+import css from 'highlight.js/lib/languages/css'
+import html from 'highlight.js/lib/languages/xml'
+import json from 'highlight.js/lib/languages/json'
+import bash from 'highlight.js/lib/languages/bash'
+import sql from 'highlight.js/lib/languages/sql'
+import go from 'highlight.js/lib/languages/go'
+import rust from 'highlight.js/lib/languages/rust'
+import typescript from 'highlight.js/lib/languages/typescript'
+import 'highlight.js/styles/atom-one-dark.css'
+
 import Header from '@/components/Header.vue'
 import { getPostById, createPost, updatePost } from '@/api/posts'
+
+// 注册语言
+hljs.registerLanguage('javascript', javascript)
+hljs.registerLanguage('js', javascript)
+hljs.registerLanguage('python', python)
+hljs.registerLanguage('py', python)
+hljs.registerLanguage('java', java)
+hljs.registerLanguage('cpp', cpp)
+hljs.registerLanguage('c++', cpp)
+hljs.registerLanguage('css', css)
+hljs.registerLanguage('html', html)
+hljs.registerLanguage('xml', html)
+hljs.registerLanguage('json', json)
+hljs.registerLanguage('bash', bash)
+hljs.registerLanguage('sh', bash)
+hljs.registerLanguage('sql', sql)
+hljs.registerLanguage('go', go)
+hljs.registerLanguage('golang', go)
+hljs.registerLanguage('rust', rust)
+hljs.registerLanguage('typescript', typescript)
+hljs.registerLanguage('ts', typescript)
+
+// 配置 marked 使用 highlight.js
+marked.setOptions({
+  highlight: function(code, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return hljs.highlight(code, { language: lang }).value
+      } catch (err) {
+        console.error('Highlight error:', err)
+      }
+    }
+    // 自动检测语言
+    return hljs.highlightAuto(code).value
+  },
+  breaks: true,
+  gfm: true
+})
 
 export default {
   name: 'PostEdit',
@@ -360,6 +437,34 @@ export default {
 
     const loading = ref(false)
     const contentTextarea = ref(null)
+    const showLanguageModal = ref(false)
+    const codeLanguage = ref('javascript')
+    const availableLanguages = [
+      { value: 'javascript', label: 'JavaScript' },
+      { value: 'typescript', label: 'TypeScript' },
+      { value: 'python', label: 'Python' },
+      { value: 'java', label: 'Java' },
+      { value: 'cpp', label: 'C++' },
+      { value: 'c', label: 'C' },
+      { value: 'csharp', label: 'C#' },
+      { value: 'go', label: 'Go' },
+      { value: 'rust', label: 'Rust' },
+      { value: 'php', label: 'PHP' },
+      { value: 'ruby', label: 'Ruby' },
+      { value: 'swift', label: 'Swift' },
+      { value: 'kotlin', label: 'Kotlin' },
+      { value: 'html', label: 'HTML' },
+      { value: 'css', label: 'CSS' },
+      { value: 'scss', label: 'SCSS' },
+      { value: 'json', label: 'JSON' },
+      { value: 'xml', label: 'XML' },
+      { value: 'sql', label: 'SQL' },
+      { value: 'bash', label: 'Bash/Shell' },
+      { value: 'powershell', label: 'PowerShell' },
+      { value: 'yaml', label: 'YAML' },
+      { value: 'markdown', label: 'Markdown' },
+      { value: 'plaintext', label: 'Plain Text' }
+    ]
 
     const formData = reactive({
       title: '',
@@ -596,11 +701,9 @@ export default {
           cursorOffset = selectedText ? insertText.length - 7 : insertText.length - 9
           break
         case 'codeblock':
-          insertText = selectedText 
-            ? `${'```'}\n${selectedText}\n${'```'}` 
-            : `${'```'}javascript\n// 代码\n${'```'}`
-          cursorOffset = selectedText ? insertText.length - 4 : 16
-          break
+          // 显示语言选择器
+          showLanguageModal.value = true
+          return // 不直接插入，等用户选择语言
         case 'table':
           insertText = '| 列1 | 列2 | 列3 |\n| --- | --- | --- |\n| 内容 | 内容 | 内容 |'
           cursorOffset = 2
@@ -622,6 +725,34 @@ export default {
       }, 0)
     }
 
+    // 插入代码块（带语言）
+    const insertCodeBlock = () => {
+      const textarea = contentTextarea.value
+      if (!textarea) return
+
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const selectedText = formData.content.substring(start, end)
+      const beforeText = formData.content.substring(0, start)
+      const afterText = formData.content.substring(end)
+
+      const insertText = selectedText 
+        ? `${'```'}${codeLanguage.value}\n${selectedText}\n${'```'}` 
+        : `${'```'}${codeLanguage.value}\n// ${availableLanguages.find(l => l.value === codeLanguage.value)?.label || '代码'}\n${'```'}`
+      
+      const cursorOffset = selectedText ? insertText.length - 4 : insertText.length - 4
+
+      formData.content = beforeText + insertText + afterText
+      
+      setTimeout(() => {
+        textarea.focus()
+        textarea.setSelectionRange(start + cursorOffset, start + cursorOffset)
+      }, 0)
+
+      // 关闭模态框
+      showLanguageModal.value = false
+    }
+
     // 键盘快捷键处理
     const handleKeydown = (e) => {
       const textarea = contentTextarea.value
@@ -636,6 +767,29 @@ export default {
         // 找到当前行
         const lines = beforeCursor.split('\n')
         const currentLine = lines[lines.length - 1]
+        
+        // 检查是否是任务列表（必须在无序列表之前检查）
+        const taskMatch = currentLine.match(/^(\s*)-\s+\[([ xX])\]\s+(.*)$/)
+        if (taskMatch) {
+          e.preventDefault()
+          const indent = taskMatch[1]
+          const content = taskMatch[3]
+          
+          // 如果内容为空，退出列表
+          if (!content.trim()) {
+            formData.content = beforeCursor.slice(0, -currentLine.length) + afterCursor
+            setTimeout(() => {
+              textarea.setSelectionRange(start - currentLine.length, start - currentLine.length)
+            }, 0)
+          } else {
+            // 继续任务列表
+            formData.content = beforeCursor + '\n' + indent + '- [ ] ' + afterCursor
+            setTimeout(() => {
+              textarea.setSelectionRange(start + indent.length + 6, start + indent.length + 6)
+            }, 0)
+          }
+          return
+        }
         
         // 检查是否是无序列表
         const ulMatch = currentLine.match(/^(\s*)-\s+(.*)$/)
@@ -685,44 +839,34 @@ export default {
           return
         }
         
-        // 检查是否是任务列表
-        const taskMatch = currentLine.match(/^(\s*)-\s+\[([ x])\]\s+(.*)$/)
-        if (taskMatch) {
-          e.preventDefault()
-          const indent = taskMatch[1]
-          const content = taskMatch[3]
-          
-          // 如果内容为空，退出列表
-          if (!content.trim()) {
-            formData.content = beforeCursor.slice(0, -currentLine.length) + afterCursor
-            setTimeout(() => {
-              textarea.setSelectionRange(start - currentLine.length, start - currentLine.length)
-            }, 0)
-          } else {
-            // 继续任务列表
-            formData.content = beforeCursor + '\n' + indent + '- [ ] ' + afterCursor
-            setTimeout(() => {
-              textarea.setSelectionRange(start + indent.length + 6, start + indent.length + 6)
-            }, 0)
-          }
-          return
-        }
-        
         // 检查是否是引用
         const quoteMatch = currentLine.match(/^(>\s*)(.*)$/)
         if (quoteMatch) {
+          e.preventDefault()
           const content = quoteMatch[2]
           
-          // 如果内容为空，退出引用
+          // 如果内容为空，检查前一行是否也是空引用
           if (!content.trim()) {
-            e.preventDefault()
-            formData.content = beforeCursor.slice(0, -currentLine.length) + afterCursor
+            // 检查前一行是否也是空的引用（> 开头但无内容）
+            if (lines.length >= 2) {
+              const prevLine = lines[lines.length - 2]
+              const prevQuoteMatch = prevLine.match(/^>\s*$/)
+              if (prevQuoteMatch) {
+                // 前一行也是空引用，退出引用模式
+                formData.content = beforeCursor.slice(0, -currentLine.length) + afterCursor
+                setTimeout(() => {
+                  textarea.setSelectionRange(start - currentLine.length, start - currentLine.length)
+                }, 0)
+                return
+              }
+            }
+            // 只有一个空引用，继续引用（允许空行）
+            formData.content = beforeCursor + '\n> ' + afterCursor
             setTimeout(() => {
-              textarea.setSelectionRange(start - currentLine.length, start - currentLine.length)
+              textarea.setSelectionRange(start + 3, start + 3)
             }, 0)
           } else {
-            // 继续引用
-            e.preventDefault()
+            // 有内容，继续引用
             formData.content = beforeCursor + '\n> ' + afterCursor
             setTimeout(() => {
               textarea.setSelectionRange(start + 3, start + 3)
@@ -932,7 +1076,11 @@ export default {
       contentTextarea,
       insertMarkdown,
       insertHTML,
-      handleKeydown
+      handleKeydown,
+      showLanguageModal,
+      codeLanguage,
+      availableLanguages,
+      insertCodeBlock
     }
   }
 }
