@@ -89,8 +89,186 @@
                     <span>{{ wordCount }} 字</span>
                   </div>
                 </div>
+
+                <!-- Formatting Toolbar for Markdown -->
+                <div v-if="formData.contentType === 'MARKDOWN'" class="mb-3 flex flex-wrap gap-1 pb-3 border-b border-gray-100">
+                  <!-- Headings -->
+                  <button @click="insertMarkdown('heading1')" type="button" class="toolbar-btn" title="标题 1 (Ctrl+1)">
+                    <span class="font-bold text-lg">H1</span>
+                  </button>
+                  <button @click="insertMarkdown('heading2')" type="button" class="toolbar-btn" title="标题 2 (Ctrl+2)">
+                    <span class="font-bold">H2</span>
+                  </button>
+                  <button @click="insertMarkdown('heading3')" type="button" class="toolbar-btn" title="标题 3 (Ctrl+3)">
+                    <span class="font-bold text-sm">H3</span>
+                  </button>
+                  
+                  <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                  
+                  <!-- Text Formatting -->
+                  <button @click="insertMarkdown('bold')" type="button" class="toolbar-btn" title="粗体 (Ctrl+B)">
+                    <span class="font-bold">B</span>
+                  </button>
+                  <button @click="insertMarkdown('italic')" type="button" class="toolbar-btn" title="斜体 (Ctrl+I)">
+                    <span class="italic">I</span>
+                  </button>
+                  <button @click="insertMarkdown('strikethrough')" type="button" class="toolbar-btn" title="删除线">
+                    <span class="line-through">S</span>
+                  </button>
+                  <button @click="insertMarkdown('code')" type="button" class="toolbar-btn" title="行内代码 (Ctrl+`)">
+                    <span class="font-mono text-xs">&lt;/&gt;</span>
+                  </button>
+                  
+                  <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                  
+                  <!-- Lists -->
+                  <button @click="insertMarkdown('ul')" type="button" class="toolbar-btn" title="无序列表">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </button>
+                  <button @click="insertMarkdown('ol')" type="button" class="toolbar-btn" title="有序列表">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </button>
+                  <button @click="insertMarkdown('tasklist')" type="button" class="toolbar-btn" title="任务列表">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                  </button>
+                  <button @click="insertMarkdown('quote')" type="button" class="toolbar-btn" title="引用">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                    </svg>
+                  </button>
+                  
+                  <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                  
+                  <!-- Links and Images -->
+                  <button @click="insertMarkdown('link')" type="button" class="toolbar-btn" title="链接 (Ctrl+K)">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  </button>
+                  <button @click="insertMarkdown('image')" type="button" class="toolbar-btn" title="图片">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                  <button @click="insertMarkdown('codeblock')" type="button" class="toolbar-btn" title="代码块">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                  </button>
+                  
+                  <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                  
+                  <!-- Table -->
+                  <button @click="insertMarkdown('table')" type="button" class="toolbar-btn" title="表格">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                  <button @click="insertMarkdown('hr')" type="button" class="toolbar-btn" title="分隔线">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14" />
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Formatting Toolbar for HTML -->
+                <div v-if="formData.contentType === 'HTML'" class="mb-3 flex flex-wrap gap-1 pb-3 border-b border-gray-100">
+                  <!-- Headings -->
+                  <button @click="insertHTML('h1')" type="button" class="toolbar-btn" title="标题 1">
+                    <span class="font-bold text-lg">H1</span>
+                  </button>
+                  <button @click="insertHTML('h2')" type="button" class="toolbar-btn" title="标题 2">
+                    <span class="font-bold">H2</span>
+                  </button>
+                  <button @click="insertHTML('h3')" type="button" class="toolbar-btn" title="标题 3">
+                    <span class="font-bold text-sm">H3</span>
+                  </button>
+                  
+                  <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                  
+                  <!-- Text Formatting -->
+                  <button @click="insertHTML('strong')" type="button" class="toolbar-btn" title="粗体">
+                    <span class="font-bold">B</span>
+                  </button>
+                  <button @click="insertHTML('em')" type="button" class="toolbar-btn" title="斜体">
+                    <span class="italic">I</span>
+                  </button>
+                  <button @click="insertHTML('u')" type="button" class="toolbar-btn" title="下划线">
+                    <span class="underline">U</span>
+                  </button>
+                  <button @click="insertHTML('code')" type="button" class="toolbar-btn" title="代码">
+                    <span class="font-mono text-xs">&lt;/&gt;</span>
+                  </button>
+                  
+                  <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                  
+                  <!-- Lists and Structure -->
+                  <button @click="insertHTML('ul')" type="button" class="toolbar-btn" title="无序列表">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </button>
+                  <button @click="insertHTML('ol')" type="button" class="toolbar-btn" title="有序列表">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </button>
+                  <button @click="insertHTML('blockquote')" type="button" class="toolbar-btn" title="引用">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                    </svg>
+                  </button>
+                  <button @click="insertHTML('p')" type="button" class="toolbar-btn" title="段落">
+                    <span class="text-xs">P</span>
+                  </button>
+                  
+                  <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                  
+                  <!-- Links and Media -->
+                  <button @click="insertHTML('a')" type="button" class="toolbar-btn" title="链接">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  </button>
+                  <button @click="insertHTML('img')" type="button" class="toolbar-btn" title="图片">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                  <button @click="insertHTML('pre')" type="button" class="toolbar-btn" title="预格式化">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                  </button>
+                  
+                  <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                  
+                  <!-- Table and Division -->
+                  <button @click="insertHTML('table')" type="button" class="toolbar-btn" title="表格">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                  <button @click="insertHTML('div')" type="button" class="toolbar-btn" title="容器">
+                    <span class="text-xs font-mono">div</span>
+                  </button>
+                  <button @click="insertHTML('hr')" type="button" class="toolbar-btn" title="分隔线">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14" />
+                    </svg>
+                  </button>
+                </div>
+
                 <textarea
+                    ref="contentTextarea"
                     v-model="formData.content"
+                    @keydown="handleKeydown"
                     :placeholder="contentPlaceholder"
                     class="w-full h-96 border-none outline-none resize-none font-mono text-sm leading-relaxed placeholder-gray-300"
                     :class="{ 'text-red-500': errors.content }"
@@ -161,6 +339,29 @@
         </div>
       </div>
     </div>
+
+    <!-- Language Selector Modal -->
+    <div v-if="showLanguageModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]" @click.self="showLanguageModal = false">
+      <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4 relative">
+        <h3 class="text-xl font-bold mb-4">选择代码语言</h3>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">编程语言</label>
+          <select v-model="codeLanguage" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
+            <option v-for="lang in availableLanguages" :key="lang.value" :value="lang.value">
+              {{ lang.label }}
+            </option>
+          </select>
+        </div>
+        <div class="flex space-x-3">
+          <button @click="insertCodeBlock" class="flex-1 btn-primary">
+            插入代码块
+          </button>
+          <button @click="showLanguageModal = false" class="flex-1 btn-secondary">
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -168,8 +369,62 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
+import hljs from 'highlight.js/lib/core'
+// 导入常用语言
+import javascript from 'highlight.js/lib/languages/javascript'
+import python from 'highlight.js/lib/languages/python'
+import java from 'highlight.js/lib/languages/java'
+import cpp from 'highlight.js/lib/languages/cpp'
+import css from 'highlight.js/lib/languages/css'
+import html from 'highlight.js/lib/languages/xml'
+import json from 'highlight.js/lib/languages/json'
+import bash from 'highlight.js/lib/languages/bash'
+import sql from 'highlight.js/lib/languages/sql'
+import go from 'highlight.js/lib/languages/go'
+import rust from 'highlight.js/lib/languages/rust'
+import typescript from 'highlight.js/lib/languages/typescript'
+import 'highlight.js/styles/atom-one-dark.css'
+
 import Header from '@/components/Header.vue'
 import { getPostById, createPost, updatePost } from '@/api/posts'
+
+// 注册语言
+hljs.registerLanguage('javascript', javascript)
+hljs.registerLanguage('js', javascript)
+hljs.registerLanguage('python', python)
+hljs.registerLanguage('py', python)
+hljs.registerLanguage('java', java)
+hljs.registerLanguage('cpp', cpp)
+hljs.registerLanguage('c++', cpp)
+hljs.registerLanguage('css', css)
+hljs.registerLanguage('html', html)
+hljs.registerLanguage('xml', html)
+hljs.registerLanguage('json', json)
+hljs.registerLanguage('bash', bash)
+hljs.registerLanguage('sh', bash)
+hljs.registerLanguage('sql', sql)
+hljs.registerLanguage('go', go)
+hljs.registerLanguage('golang', go)
+hljs.registerLanguage('rust', rust)
+hljs.registerLanguage('typescript', typescript)
+hljs.registerLanguage('ts', typescript)
+
+// 配置 marked 使用 highlight.js
+marked.setOptions({
+  highlight: function(code, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return hljs.highlight(code, { language: lang }).value
+      } catch (err) {
+        console.error('Highlight error:', err)
+      }
+    }
+    // 自动检测语言
+    return hljs.highlightAuto(code).value
+  },
+  breaks: true,
+  gfm: true
+})
 
 export default {
   name: 'PostEdit',
@@ -181,6 +436,35 @@ export default {
     const router = useRouter()
 
     const loading = ref(false)
+    const contentTextarea = ref(null)
+    const showLanguageModal = ref(false)
+    const codeLanguage = ref('javascript')
+    const availableLanguages = [
+      { value: 'javascript', label: 'JavaScript' },
+      { value: 'typescript', label: 'TypeScript' },
+      { value: 'python', label: 'Python' },
+      { value: 'java', label: 'Java' },
+      { value: 'cpp', label: 'C++' },
+      { value: 'c', label: 'C' },
+      { value: 'csharp', label: 'C#' },
+      { value: 'go', label: 'Go' },
+      { value: 'rust', label: 'Rust' },
+      { value: 'php', label: 'PHP' },
+      { value: 'ruby', label: 'Ruby' },
+      { value: 'swift', label: 'Swift' },
+      { value: 'kotlin', label: 'Kotlin' },
+      { value: 'html', label: 'HTML' },
+      { value: 'css', label: 'CSS' },
+      { value: 'scss', label: 'SCSS' },
+      { value: 'json', label: 'JSON' },
+      { value: 'xml', label: 'XML' },
+      { value: 'sql', label: 'SQL' },
+      { value: 'bash', label: 'Bash/Shell' },
+      { value: 'powershell', label: 'PowerShell' },
+      { value: 'yaml', label: 'YAML' },
+      { value: 'markdown', label: 'Markdown' },
+      { value: 'plaintext', label: 'Plain Text' }
+    ]
 
     const formData = reactive({
       title: '',
@@ -349,6 +633,434 @@ export default {
       loadPost()
     })
 
+    // Markdown格式化插入函数
+    const insertMarkdown = (type) => {
+      const textarea = contentTextarea.value
+      if (!textarea) return
+
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const selectedText = formData.content.substring(start, end)
+      const beforeText = formData.content.substring(0, start)
+      const afterText = formData.content.substring(end)
+
+      let insertText = ''
+      let cursorOffset = 0
+
+      switch (type) {
+        case 'heading1':
+          insertText = `# ${selectedText || '标题 1'}`
+          cursorOffset = selectedText ? insertText.length : 2
+          break
+        case 'heading2':
+          insertText = `## ${selectedText || '标题 2'}`
+          cursorOffset = selectedText ? insertText.length : 3
+          break
+        case 'heading3':
+          insertText = `### ${selectedText || '标题 3'}`
+          cursorOffset = selectedText ? insertText.length : 4
+          break
+        case 'bold':
+          insertText = `**${selectedText || '粗体文本'}**`
+          cursorOffset = selectedText ? insertText.length : insertText.length - 2
+          break
+        case 'italic':
+          insertText = `*${selectedText || '斜体文本'}*`
+          cursorOffset = selectedText ? insertText.length : insertText.length - 1
+          break
+        case 'strikethrough':
+          insertText = `~~${selectedText || '删除线文本'}~~`
+          cursorOffset = selectedText ? insertText.length : insertText.length - 2
+          break
+        case 'code':
+          insertText = `\`${selectedText || '代码'}\``
+          cursorOffset = selectedText ? insertText.length : insertText.length - 1
+          break
+        case 'ul':
+          insertText = selectedText ? `- ${selectedText}` : '- 列表项'
+          cursorOffset = insertText.length
+          break
+        case 'ol':
+          insertText = selectedText ? `1. ${selectedText}` : '1. 列表项'
+          cursorOffset = insertText.length
+          break
+        case 'tasklist':
+          insertText = selectedText ? `- [ ] ${selectedText}` : '- [ ] 任务项'
+          cursorOffset = insertText.length
+          break
+        case 'quote':
+          insertText = selectedText ? `> ${selectedText}` : '> 引用内容'
+          cursorOffset = insertText.length
+          break
+        case 'link':
+          insertText = `[${selectedText || '链接文本'}](url)`
+          cursorOffset = selectedText ? insertText.length - 4 : insertText.length - 5
+          break
+        case 'image':
+          insertText = `![${selectedText || '图片描述'}](图片URL)`
+          cursorOffset = selectedText ? insertText.length - 7 : insertText.length - 9
+          break
+        case 'codeblock':
+          // 显示语言选择器
+          showLanguageModal.value = true
+          return // 不直接插入，等用户选择语言
+        case 'table':
+          insertText = '| 列1 | 列2 | 列3 |\n| --- | --- | --- |\n| 内容 | 内容 | 内容 |'
+          cursorOffset = 2
+          break
+        case 'hr':
+          insertText = '\n---\n'
+          cursorOffset = insertText.length
+          break
+        default:
+          return
+      }
+
+      formData.content = beforeText + insertText + afterText
+      
+      // 等待下一个tick后设置光标位置
+      setTimeout(() => {
+        textarea.focus()
+        textarea.setSelectionRange(start + cursorOffset, start + cursorOffset)
+      }, 0)
+    }
+
+    // 插入代码块（带语言）
+    const insertCodeBlock = () => {
+      const textarea = contentTextarea.value
+      if (!textarea) return
+
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const selectedText = formData.content.substring(start, end)
+      const beforeText = formData.content.substring(0, start)
+      const afterText = formData.content.substring(end)
+
+      const insertText = selectedText 
+        ? `${'```'}${codeLanguage.value}\n${selectedText}\n${'```'}` 
+        : `${'```'}${codeLanguage.value}\n// ${availableLanguages.find(l => l.value === codeLanguage.value)?.label || '代码'}\n${'```'}`
+      
+      const cursorOffset = selectedText ? insertText.length - 4 : insertText.length - 4
+
+      formData.content = beforeText + insertText + afterText
+      
+      setTimeout(() => {
+        textarea.focus()
+        textarea.setSelectionRange(start + cursorOffset, start + cursorOffset)
+      }, 0)
+
+      // 关闭模态框
+      showLanguageModal.value = false
+    }
+
+    // 键盘快捷键处理
+    const handleKeydown = (e) => {
+      const textarea = contentTextarea.value
+      if (!textarea) return
+
+      // Enter键处理：自动延续列表、引用等
+      if (e.key === 'Enter' && formData.contentType === 'MARKDOWN') {
+        const start = textarea.selectionStart
+        const beforeCursor = formData.content.substring(0, start)
+        const afterCursor = formData.content.substring(start)
+        
+        // 找到当前行
+        const lines = beforeCursor.split('\n')
+        const currentLine = lines[lines.length - 1]
+        
+        // 检查是否是任务列表（必须在无序列表之前检查）
+        const taskMatch = currentLine.match(/^(\s*)-\s+\[([ xX])\]\s+(.*)$/)
+        if (taskMatch) {
+          e.preventDefault()
+          const indent = taskMatch[1]
+          const content = taskMatch[3]
+          
+          // 如果内容为空，退出列表
+          if (!content.trim()) {
+            formData.content = beforeCursor.slice(0, -currentLine.length) + afterCursor
+            setTimeout(() => {
+              textarea.setSelectionRange(start - currentLine.length, start - currentLine.length)
+            }, 0)
+          } else {
+            // 继续任务列表
+            formData.content = beforeCursor + '\n' + indent + '- [ ] ' + afterCursor
+            setTimeout(() => {
+              textarea.setSelectionRange(start + indent.length + 6, start + indent.length + 6)
+            }, 0)
+          }
+          return
+        }
+        
+        // 检查是否是无序列表
+        const ulMatch = currentLine.match(/^(\s*)-\s+(.*)$/)
+        if (ulMatch) {
+          e.preventDefault()
+          const indent = ulMatch[1]
+          const content = ulMatch[2]
+          
+          // 如果内容为空，退出列表
+          if (!content.trim()) {
+            formData.content = beforeCursor.slice(0, -currentLine.length) + afterCursor
+            setTimeout(() => {
+              textarea.setSelectionRange(start - currentLine.length, start - currentLine.length)
+            }, 0)
+          } else {
+            // 继续列表
+            formData.content = beforeCursor + '\n' + indent + '- ' + afterCursor
+            setTimeout(() => {
+              textarea.setSelectionRange(start + indent.length + 3, start + indent.length + 3)
+            }, 0)
+          }
+          return
+        }
+        
+        // 检查是否是有序列表
+        const olMatch = currentLine.match(/^(\s*)(\d+)\.\s+(.*)$/)
+        if (olMatch) {
+          e.preventDefault()
+          const indent = olMatch[1]
+          const num = parseInt(olMatch[2])
+          const content = olMatch[3]
+          
+          // 如果内容为空，退出列表
+          if (!content.trim()) {
+            formData.content = beforeCursor.slice(0, -currentLine.length) + afterCursor
+            setTimeout(() => {
+              textarea.setSelectionRange(start - currentLine.length, start - currentLine.length)
+            }, 0)
+          } else {
+            // 继续列表，序号自增
+            formData.content = beforeCursor + '\n' + indent + (num + 1) + '. ' + afterCursor
+            setTimeout(() => {
+              const newPos = start + indent.length + (num + 1).toString().length + 3
+              textarea.setSelectionRange(newPos, newPos)
+            }, 0)
+          }
+          return
+        }
+        
+        // 检查是否是引用
+        const quoteMatch = currentLine.match(/^(>\s*)(.*)$/)
+        if (quoteMatch) {
+          e.preventDefault()
+          const content = quoteMatch[2]
+          
+          // 如果内容为空，检查前一行是否也是空引用
+          if (!content.trim()) {
+            // 检查前一行是否也是空的引用（> 开头但无内容）
+            if (lines.length >= 2) {
+              const prevLine = lines[lines.length - 2]
+              const prevQuoteMatch = prevLine.match(/^>\s*$/)
+              if (prevQuoteMatch) {
+                // 前一行也是空引用，退出引用模式
+                formData.content = beforeCursor.slice(0, -currentLine.length) + afterCursor
+                setTimeout(() => {
+                  textarea.setSelectionRange(start - currentLine.length, start - currentLine.length)
+                }, 0)
+                return
+              }
+            }
+            // 只有一个空引用，继续引用（允许空行）
+            formData.content = beforeCursor + '\n> ' + afterCursor
+            setTimeout(() => {
+              textarea.setSelectionRange(start + 3, start + 3)
+            }, 0)
+          } else {
+            // 有内容，继续引用
+            formData.content = beforeCursor + '\n> ' + afterCursor
+            setTimeout(() => {
+              textarea.setSelectionRange(start + 3, start + 3)
+            }, 0)
+          }
+          return
+        }
+      }
+      
+      // Tab键处理：插入两个空格
+      if (e.key === 'Tab') {
+        e.preventDefault()
+        const start = textarea.selectionStart
+        const end = textarea.selectionEnd
+        const beforeText = formData.content.substring(0, start)
+        const afterText = formData.content.substring(end)
+        
+        formData.content = beforeText + '  ' + afterText
+        
+        setTimeout(() => {
+          textarea.setSelectionRange(start + 2, start + 2)
+        }, 0)
+        return
+      }
+
+      // Ctrl/Cmd + 快捷键
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key.toLowerCase()) {
+          case 'b':
+            e.preventDefault()
+            if (formData.contentType === 'MARKDOWN') {
+              insertMarkdown('bold')
+            } else {
+              insertHTML('strong')
+            }
+            break
+          case 'i':
+            e.preventDefault()
+            if (formData.contentType === 'MARKDOWN') {
+              insertMarkdown('italic')
+            } else {
+              insertHTML('em')
+            }
+            break
+          case 'k':
+            e.preventDefault()
+            if (formData.contentType === 'MARKDOWN') {
+              insertMarkdown('link')
+            } else {
+              insertHTML('a')
+            }
+            break
+          case '`':
+            e.preventDefault()
+            if (formData.contentType === 'MARKDOWN') {
+              insertMarkdown('code')
+            }
+            break
+          case '1':
+            e.preventDefault()
+            if (formData.contentType === 'MARKDOWN') {
+              insertMarkdown('heading1')
+            } else {
+              insertHTML('h1')
+            }
+            break
+          case '2':
+            e.preventDefault()
+            if (formData.contentType === 'MARKDOWN') {
+              insertMarkdown('heading2')
+            } else {
+              insertHTML('h2')
+            }
+            break
+          case '3':
+            e.preventDefault()
+            if (formData.contentType === 'MARKDOWN') {
+              insertMarkdown('heading3')
+            } else {
+              insertHTML('h3')
+            }
+            break
+        }
+      }
+    }
+
+    // HTML格式化插入函数
+    const insertHTML = (tag) => {
+      const textarea = contentTextarea.value
+      if (!textarea) return
+
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const selectedText = formData.content.substring(start, end)
+      const beforeText = formData.content.substring(0, start)
+      const afterText = formData.content.substring(end)
+
+      let insertText = ''
+      let cursorOffset = 0
+
+      switch (tag) {
+        case 'h1':
+        case 'h2':
+        case 'h3':
+        case 'h4':
+        case 'h5':
+        case 'h6':
+          insertText = `<${tag}>${selectedText || '标题'}</${tag}>`
+          cursorOffset = selectedText ? insertText.length : tag.length + 2
+          break
+        case 'strong':
+          insertText = `<strong>${selectedText || '粗体文本'}</strong>`
+          cursorOffset = selectedText ? insertText.length : 8
+          break
+        case 'em':
+          insertText = `<em>${selectedText || '斜体文本'}</em>`
+          cursorOffset = selectedText ? insertText.length : 4
+          break
+        case 'u':
+          insertText = `<u>${selectedText || '下划线文本'}</u>`
+          cursorOffset = selectedText ? insertText.length : 3
+          break
+        case 'code':
+          insertText = `<code>${selectedText || '代码'}</code>`
+          cursorOffset = selectedText ? insertText.length : 6
+          break
+        case 'p':
+          insertText = `<p>${selectedText || '段落内容'}</p>`
+          cursorOffset = selectedText ? insertText.length : 3
+          break
+        case 'blockquote':
+          insertText = `<blockquote>${selectedText || '引用内容'}</blockquote>`
+          cursorOffset = selectedText ? insertText.length : 12
+          break
+        case 'ul':
+          insertText = '<ul>\n  <li>列表项 1</li>\n  <li>列表项 2</li>\n</ul>'
+          cursorOffset = 11
+          break
+        case 'ol':
+          insertText = '<ol>\n  <li>列表项 1</li>\n  <li>列表项 2</li>\n</ol>'
+          cursorOffset = 11
+          break
+        case 'a':
+          insertText = `<a href="url">${selectedText || '链接文本'}</a>`
+          cursorOffset = selectedText ? 9 : 9
+          break
+        case 'img':
+          insertText = '<img src="图片URL" alt="图片描述" />'
+          cursorOffset = 10
+          break
+        case 'pre':
+          insertText = '<pre><code>\n代码内容\n</code></pre>'
+          cursorOffset = 12
+          break
+        case 'table':
+          insertText = `<table>
+  <thead>
+    <tr>
+      <th>列1</th>
+      <th>列2</th>
+      <th>列3</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>内容</td>
+      <td>内容</td>
+      <td>内容</td>
+    </tr>
+  </tbody>
+</table>`
+          cursorOffset = 30
+          break
+        case 'div':
+          insertText = `<div>${selectedText || '内容'}</div>`
+          cursorOffset = selectedText ? insertText.length : 5
+          break
+        case 'hr':
+          insertText = '<hr />'
+          cursorOffset = insertText.length
+          break
+        default:
+          return
+      }
+
+      formData.content = beforeText + insertText + afterText
+      
+      // 等待下一个tick后设置光标位置
+      setTimeout(() => {
+        textarea.focus()
+        textarea.setSelectionRange(start + cursorOffset, start + cursorOffset)
+      }, 0)
+    }
+
     return {
       loading,
       formData,
@@ -360,7 +1072,15 @@ export default {
       publishButtonText,
       previewContent,
       saveDraft,
-      handlePublish
+      handlePublish,
+      contentTextarea,
+      insertMarkdown,
+      insertHTML,
+      handleKeydown,
+      showLanguageModal,
+      codeLanguage,
+      availableLanguages,
+      insertCodeBlock
     }
   }
 }
@@ -369,5 +1089,18 @@ export default {
 <style scoped>
 textarea {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.toolbar-btn {
+  @apply px-2.5 py-1.5 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 
+         transition-colors duration-150 flex items-center justify-center min-w-[32px];
+}
+
+.toolbar-btn:active {
+  @apply bg-gray-200;
+}
+
+.toolbar-btn:focus {
+  @apply outline-none ring-2 ring-primary-500 ring-opacity-50;
 }
 </style>
