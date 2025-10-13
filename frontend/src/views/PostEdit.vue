@@ -4,7 +4,6 @@
 
     <div class="pt-20 pb-12">
       <div class="container mx-auto px-4">
-        <!-- Page Header -->
         <div class="max-w-7xl mx-auto mb-6">
           <div class="flex items-center justify-between">
             <div>
@@ -24,12 +23,9 @@
           </div>
         </div>
 
-        <!-- Editor Layout -->
         <div class="max-w-7xl mx-auto">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Editor Panel -->
             <div class="space-y-4">
-              <!-- Title Input -->
               <div class="card p-6">
                 <input
                     v-model="formData.title"
@@ -41,7 +37,6 @@
                 <p v-if="errors.title" class="mt-2 text-sm text-red-600">{{ errors.title }}</p>
               </div>
 
-              <!-- Content Type Selector -->
               <div class="card p-6">
                 <label class="block text-sm font-medium text-gray-700 mb-3">
                   内容类型
@@ -79,7 +74,6 @@
                 </p>
               </div>
 
-              <!-- Content Editor -->
               <div class="card p-6">
                 <div class="mb-4 flex items-center justify-between border-b border-gray-200 pb-3">
                   <span class="text-sm font-medium text-gray-700">
@@ -90,9 +84,7 @@
                   </div>
                 </div>
 
-                <!-- Formatting Toolbar for Markdown -->
                 <div v-if="formData.contentType === 'MARKDOWN'" class="mb-3 flex flex-wrap gap-1 pb-3 border-b border-gray-100">
-                  <!-- Headings -->
                   <button @click="insertMarkdown('heading1')" type="button" class="toolbar-btn" title="标题 1 (Ctrl+1)">
                     <span class="font-bold text-lg">H1</span>
                   </button>
@@ -102,10 +94,9 @@
                   <button @click="insertMarkdown('heading3')" type="button" class="toolbar-btn" title="标题 3 (Ctrl+3)">
                     <span class="font-bold text-sm">H3</span>
                   </button>
-                  
+
                   <div class="w-px h-6 bg-gray-300 mx-1"></div>
-                  
-                  <!-- Text Formatting -->
+
                   <button @click="insertMarkdown('bold')" type="button" class="toolbar-btn" title="粗体 (Ctrl+B)">
                     <span class="font-bold">B</span>
                   </button>
@@ -118,10 +109,9 @@
                   <button @click="insertMarkdown('code')" type="button" class="toolbar-btn" title="行内代码 (Ctrl+`)">
                     <span class="font-mono text-xs">&lt;/&gt;</span>
                   </button>
-                  
+
                   <div class="w-px h-6 bg-gray-300 mx-1"></div>
-                  
-                  <!-- Lists -->
+
                   <button @click="insertMarkdown('ul')" type="button" class="toolbar-btn" title="无序列表">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -142,10 +132,9 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                     </svg>
                   </button>
-                  
+
                   <div class="w-px h-6 bg-gray-300 mx-1"></div>
-                  
-                  <!-- Links and Images -->
+
                   <button @click="insertMarkdown('link')" type="button" class="toolbar-btn" title="链接 (Ctrl+K)">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -161,10 +150,9 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                     </svg>
                   </button>
-                  
+
                   <div class="w-px h-6 bg-gray-300 mx-1"></div>
-                  
-                  <!-- Table -->
+
                   <button @click="insertMarkdown('table')" type="button" class="toolbar-btn" title="表格">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -177,9 +165,7 @@
                   </button>
                 </div>
 
-                <!-- Formatting Toolbar for HTML -->
                 <div v-if="formData.contentType === 'HTML'" class="mb-3 flex flex-wrap gap-1 pb-3 border-b border-gray-100">
-                  <!-- Headings -->
                   <button @click="insertHTML('h1')" type="button" class="toolbar-btn" title="标题 1">
                     <span class="font-bold text-lg">H1</span>
                   </button>
@@ -189,10 +175,9 @@
                   <button @click="insertHTML('h3')" type="button" class="toolbar-btn" title="标题 3">
                     <span class="font-bold text-sm">H3</span>
                   </button>
-                  
+
                   <div class="w-px h-6 bg-gray-300 mx-1"></div>
-                  
-                  <!-- Text Formatting -->
+
                   <button @click="insertHTML('strong')" type="button" class="toolbar-btn" title="粗体">
                     <span class="font-bold">B</span>
                   </button>
@@ -205,10 +190,9 @@
                   <button @click="insertHTML('code')" type="button" class="toolbar-btn" title="代码">
                     <span class="font-mono text-xs">&lt;/&gt;</span>
                   </button>
-                  
+
                   <div class="w-px h-6 bg-gray-300 mx-1"></div>
-                  
-                  <!-- Lists and Structure -->
+
                   <button @click="insertHTML('ul')" type="button" class="toolbar-btn" title="无序列表">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -227,10 +211,9 @@
                   <button @click="insertHTML('p')" type="button" class="toolbar-btn" title="段落">
                     <span class="text-xs">P</span>
                   </button>
-                  
+
                   <div class="w-px h-6 bg-gray-300 mx-1"></div>
-                  
-                  <!-- Links and Media -->
+
                   <button @click="insertHTML('a')" type="button" class="toolbar-btn" title="链接">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -246,10 +229,9 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                     </svg>
                   </button>
-                  
+
                   <div class="w-px h-6 bg-gray-300 mx-1"></div>
-                  
-                  <!-- Table and Division -->
+
                   <button @click="insertHTML('table')" type="button" class="toolbar-btn" title="表格">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -277,7 +259,6 @@
               </div>
             </div>
 
-            <!-- Preview Panel -->
             <div class="lg:sticky lg:top-24 h-fit">
               <div class="card p-6">
                 <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
@@ -285,19 +266,16 @@
                   <span class="text-sm text-gray-500">实时预览</span>
                 </div>
 
-                <!-- Preview Title -->
                 <h1 class="text-3xl font-bold text-gray-900 mb-6">
                   {{ formData.title || '无标题' }}
                 </h1>
 
-                <!-- Preview Content -->
                 <div
                     v-if="formData.content"
                     class="markdown-body prose max-w-none"
                     v-html="previewContent"
                 ></div>
 
-                <!-- Empty Preview -->
                 <div v-else class="text-center py-12 text-gray-400">
                   <svg class="w-16 h-16 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -307,9 +285,7 @@
                 </div>
               </div>
 
-              <!-- Action Buttons -->
               <div class="mt-4 space-y-3">
-                <!-- 发布/更新按钮 -->
                 <button
                     @click="handlePublish"
                     :disabled="loading"
@@ -322,7 +298,6 @@
                   <span>{{ publishButtonText }}</span>
                 </button>
 
-                <!-- 保存草稿按钮 -->
                 <button
                     @click="saveDraft"
                     :disabled="loading || (!formData.title && !formData.content)"
@@ -340,8 +315,7 @@
       </div>
     </div>
 
-    <!-- Language Selector Modal -->
-    <div v-if="showLanguageModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]" @click.self="showLanguageModal = false">
+    <div v-if="showLanguageModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center z-[9999] pt-32" @click.self="showLanguageModal = false">
       <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4 relative">
         <h3 class="text-xl font-bold mb-4">选择代码语言</h3>
         <div class="mb-4">
@@ -717,7 +691,7 @@ export default {
       }
 
       formData.content = beforeText + insertText + afterText
-      
+
       // 等待下一个tick后设置光标位置
       setTimeout(() => {
         textarea.focus()
@@ -736,14 +710,14 @@ export default {
       const beforeText = formData.content.substring(0, start)
       const afterText = formData.content.substring(end)
 
-      const insertText = selectedText 
-        ? `${'```'}${codeLanguage.value}\n${selectedText}\n${'```'}` 
-        : `${'```'}${codeLanguage.value}\n// ${availableLanguages.find(l => l.value === codeLanguage.value)?.label || '代码'}\n${'```'}`
-      
+      const insertText = selectedText
+          ? `${'```'}${codeLanguage.value}\n${selectedText}\n${'```'}`
+          : `${'```'}${codeLanguage.value}\n// ${availableLanguages.find(l => l.value === codeLanguage.value)?.label || '代码'}\n${'```'}`
+
       const cursorOffset = selectedText ? insertText.length - 4 : insertText.length - 4
 
       formData.content = beforeText + insertText + afterText
-      
+
       setTimeout(() => {
         textarea.focus()
         textarea.setSelectionRange(start + cursorOffset, start + cursorOffset)
@@ -763,18 +737,18 @@ export default {
         const start = textarea.selectionStart
         const beforeCursor = formData.content.substring(0, start)
         const afterCursor = formData.content.substring(start)
-        
+
         // 找到当前行
         const lines = beforeCursor.split('\n')
         const currentLine = lines[lines.length - 1]
-        
+
         // 检查是否是任务列表（必须在无序列表之前检查）
         const taskMatch = currentLine.match(/^(\s*)-\s+\[([ xX])\]\s+(.*)$/)
         if (taskMatch) {
           e.preventDefault()
           const indent = taskMatch[1]
           const content = taskMatch[3]
-          
+
           // 如果内容为空，退出列表
           if (!content.trim()) {
             formData.content = beforeCursor.slice(0, -currentLine.length) + afterCursor
@@ -790,14 +764,14 @@ export default {
           }
           return
         }
-        
+
         // 检查是否是无序列表
         const ulMatch = currentLine.match(/^(\s*)-\s+(.*)$/)
         if (ulMatch) {
           e.preventDefault()
           const indent = ulMatch[1]
           const content = ulMatch[2]
-          
+
           // 如果内容为空，退出列表
           if (!content.trim()) {
             formData.content = beforeCursor.slice(0, -currentLine.length) + afterCursor
@@ -813,7 +787,7 @@ export default {
           }
           return
         }
-        
+
         // 检查是否是有序列表
         const olMatch = currentLine.match(/^(\s*)(\d+)\.\s+(.*)$/)
         if (olMatch) {
@@ -821,7 +795,7 @@ export default {
           const indent = olMatch[1]
           const num = parseInt(olMatch[2])
           const content = olMatch[3]
-          
+
           // 如果内容为空，退出列表
           if (!content.trim()) {
             formData.content = beforeCursor.slice(0, -currentLine.length) + afterCursor
@@ -838,13 +812,13 @@ export default {
           }
           return
         }
-        
+
         // 检查是否是引用
         const quoteMatch = currentLine.match(/^(>\s*)(.*)$/)
         if (quoteMatch) {
           e.preventDefault()
           const content = quoteMatch[2]
-          
+
           // 如果内容为空，检查前一行是否也是空引用
           if (!content.trim()) {
             // 检查前一行是否也是空的引用（> 开头但无内容）
@@ -875,7 +849,7 @@ export default {
           return
         }
       }
-      
+
       // Tab键处理：插入两个空格
       if (e.key === 'Tab') {
         e.preventDefault()
@@ -883,9 +857,9 @@ export default {
         const end = textarea.selectionEnd
         const beforeText = formData.content.substring(0, start)
         const afterText = formData.content.substring(end)
-        
+
         formData.content = beforeText + '  ' + afterText
-        
+
         setTimeout(() => {
           textarea.setSelectionRange(start + 2, start + 2)
         }, 0)
@@ -1053,7 +1027,7 @@ export default {
       }
 
       formData.content = beforeText + insertText + afterText
-      
+
       // 等待下一个tick后设置光标位置
       setTimeout(() => {
         textarea.focus()
@@ -1092,8 +1066,8 @@ textarea {
 }
 
 .toolbar-btn {
-  @apply px-2.5 py-1.5 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 
-         transition-colors duration-150 flex items-center justify-center min-w-[32px];
+  @apply px-2.5 py-1.5 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100
+  transition-colors duration-150 flex items-center justify-center min-w-[32px];
 }
 
 .toolbar-btn:active {
