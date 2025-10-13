@@ -6,15 +6,24 @@
 
 This update significantly improves the Markdown and HTML editor writing experience, inspired by popular note-taking applications like Notion, Typora, and Obsidian.
 
-## 最新更新 (2025-10-12) / Latest Updates
+## 最新更新 (2025-10-13) / Latest Updates
 
-### 新增功能 / New Features
+### Bug 修复 / Bug Fixes
 
-1. **HTML 编辑器工具栏** - 为 HTML 模式添加了完整的格式化工具栏
-2. **列表自动延续** - 有序列表、无序列表和任务列表按 Enter 自动创建下一项
-3. **引用块智能处理** - 按 Enter 自动延续引用，空行退出
-4. **任务列表支持** - 新增任务列表按钮和自动延续功能
-5. **表格边框优化** - 表格预览显示清晰的边框和样式
+1. ✅ **有序列表序号显示** - 修复预览中有序列表不显示序号的问题，现在正确显示 1. 2. 3. ...
+2. ✅ **代码语言选择器定位** - 修复模态框显示位置问题，现在正确居中显示
+3. ✅ **任务列表自动延续** - 修复只自增 `-` 的 bug，现在正确自增 `- [ ]`
+4. ✅ **引用块换行** - 优化引用块的 Enter 键行为，支持多行引用
+
+### 新增功能 / New Features (2025-10-12)
+
+1. **代码语言选择器** - 点击代码块按钮弹出语言选择器，支持 24 种编程语言
+2. **代码语法高亮** - 集成 highlight.js，自动高亮代码块，使用 Atom One Dark 主题
+3. **HTML 编辑器工具栏** - 为 HTML 模式添加了完整的格式化工具栏
+4. **列表自动延续** - 有序列表、无序列表和任务列表按 Enter 自动创建下一项
+5. **引用块智能处理** - 按 Enter 自动延续引用，连续两次空引用退出
+6. **任务列表支持** - 新增任务列表按钮和自动延续功能
+7. **表格边框优化** - 表格预览显示清晰的边框和样式
 
 ## 主要功能 / Key Features
 
@@ -50,7 +59,11 @@ This update significantly improves the Markdown and HTML editor writing experien
 **插入元素 / Insert Elements**
 - **链接**: 插入链接 `[文本](url)` (Ctrl+K)
 - **图片**: 插入图片 `![描述](url)`
-- **代码块**: 插入代码块 ` ```language\n代码\n``` `
+- **代码块**: 插入代码块并选择语言 ✨ NEW
+  - 点击代码块按钮弹出语言选择器
+  - 支持 24 种编程语言
+  - 自动语法高亮（Atom One Dark 主题）
+  - 支持语言：JavaScript, TypeScript, Python, Java, C++, Go, Rust, PHP, Ruby, Swift, Kotlin, HTML, CSS, JSON, SQL, Bash 等
 - **表格**: 插入表格模板
 - **分隔线**: 插入水平分隔线 `---`
 
@@ -212,7 +225,42 @@ const insertHTML = (tag) => {
 .markdown-body table tr:hover {
   @apply bg-gray-50;
 }
+
+/* 有序列表序号显示修复 */
+.markdown-body ol {
+  @apply ml-6 mb-4;
+  list-style-type: decimal;  /* 显示数字序号 */
+}
+
+.markdown-body ul {
+  @apply ml-6 mb-4;
+  list-style-type: disc;  /* 显示圆点 */
+}
+
+.markdown-body li {
+  @apply mb-2;
+  display: list-item;  /* 确保列表项正确显示 */
+}
 ```
+
+**代码语言选择器模态框：**
+```vue
+<div v-if="showLanguageModal" 
+     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]"
+     @click.self="showLanguageModal = false">
+  <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4 relative">
+    <!-- 语言选择下拉框 -->
+    <select v-model="codeLanguage" class="w-full px-3 py-2 border rounded-lg">
+      <option v-for="lang in availableLanguages" :value="lang.value">
+        {{ lang.label }}
+      </option>
+    </select>
+  </div>
+</div>
+```
+- 使用 `z-[9999]` 确保模态框始终在最上层
+- `fixed inset-0` 确保覆盖整个视口
+- `flex items-center justify-center` 确保内容居中显示
 
 ## 兼容性 / Compatibility
 
@@ -230,11 +278,19 @@ const insertHTML = (tag) => {
 - [x] 键盘快捷键（Markdown 和 HTML）
 - [x] 选中文本格式化
 - [x] Tab 键缩进
+- [x] **有序列表序号显示修复** ✅ FIXED
 - [x] 有序列表 Enter 键序号自增 ✨ NEW
 - [x] 无序列表 Enter 键自动延续 ✨ NEW
-- [x] 任务列表 Enter 键自动延续 ✨ NEW
+- [x] **任务列表 Enter 键正确自增 `- [ ]`** ✅ FIXED
 - [x] 引用块 Enter 键自动延续 ✨ NEW
 - [x] 空行 Enter 键退出列表/引用 ✨ NEW
+- [x] **代码语言选择器居中显示** ✅ FIXED
+- [x] 代码语法高亮显示 ✨ NEW
+- [x] 光标智能定位
+- [x] 实时预览更新
+- [x] 表格边框显示 ✨ NEW
+- [x] 字数统计
+- [x] Markdown/HTML 模式切换
 - [x] 光标智能定位
 - [x] 实时预览更新
 - [x] 表格边框显示 ✨ NEW

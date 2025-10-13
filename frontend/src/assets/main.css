@@ -47,13 +47,19 @@
     @apply border-l-4 border-primary-500 pl-4 italic text-gray-600 my-4;
   }
 
-  .markdown-body ul,
+  .markdown-body ul {
+    @apply ml-6 mb-4;
+    list-style-type: disc;
+  }
+
   .markdown-body ol {
     @apply ml-6 mb-4;
+    list-style-type: decimal;
   }
 
   .markdown-body li {
     @apply mb-2;
+    display: list-item;
   }
 
   .markdown-body a {
