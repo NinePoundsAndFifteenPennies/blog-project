@@ -6,7 +6,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import com.lost.blog.dto.JwtAuthenticationResponse;
 import com.lost.blog.dto.LoginRequest;
 import com.lost.blog.dto.UserRegistrationRequest;
+import com.lost.blog.dto.UserResponse;
 import com.lost.blog.model.User;
+import com.lost.blog.mapper.UserMapper;
 import com.lost.blog.security.JwtTokenProvider;
 import com.lost.blog.service.UserService;
 import jakarta.validation.Valid;
@@ -22,6 +24,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -29,14 +33,17 @@ public class UserController {
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
+    private final UserMapper userMapper;
 
     @Autowired
     public UserController(UserService userService,
                           AuthenticationManager authenticationManager,
-                          JwtTokenProvider tokenProvider) {
+                          JwtTokenProvider tokenProvider,
+                          UserMapper userMapper) {
         this.userService = userService;
         this.authenticationManager = authenticationManager;
         this.tokenProvider = tokenProvider;
+        this.userMapper = userMapper;
     }
 
     @PostMapping("/register")
@@ -72,8 +79,10 @@ public class UserController {
         if (currentUser == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未登录");
         }
-        // 如果你想返回更多用户信息，可以返回自定义 DTO
-        return ResponseEntity.ok("当前登录用户是: " + currentUser.getUsername());
+        // 获取完整的用户信息
+        User user = userService.findByUsername(currentUser.getUsername());
+        UserResponse userResponse = userMapper.toResponse(user);
+        return ResponseEntity.ok(userResponse);
     }
 
     // -------- 刷新Token --------
@@ -91,5 +100,24 @@ public class UserController {
         boolean rememberMe = refreshRequest != null && refreshRequest.isRememberMe();
         String jwt = tokenProvider.generateToken(authentication, rememberMe);
         return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
+    }
+    
+    // -------- 更新用户头像 --------
+    @PostMapping("/me/avatar")
+    public ResponseEntity<?> updateAvatar(@AuthenticationPrincipal UserDetails currentUser,
+                                         @RequestBody Map<String, String> request) {
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未登录");
+        }
+        
+        String avatarUrl = request.get("avatarUrl");
+        if (avatarUrl == null || avatarUrl.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("头像URL不能为空");
+        }
+        
+        // 更新用户头像
+        User updatedUser = userService.updateAvatar(currentUser.getUsername(), avatarUrl);
+        UserResponse userResponse = userMapper.toResponse(updatedUser);
+        return ResponseEntity.ok(userResponse);
     }
 }
