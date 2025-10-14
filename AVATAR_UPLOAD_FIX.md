@@ -35,9 +35,14 @@ The avatarUrl was always returning null because:
 ### 5. Controllers
 
 #### FileController.java
-Implemented the file upload endpoint:
+Implemented the file upload endpoint with validations:
 - **POST /api/files/upload/avatar**
 - Accepts multipart file upload
+- **Image format validation**: Only allows JPG and PNG files
+- **File size validation**: Maximum 5MB
+- **Image dimension validation**: 
+  - Minimum: 50x50 pixels
+  - Maximum: 2000x2000 pixels
 - Generates unique filename using UUID
 - Saves file to `uploads/avatars/` directory
 - Returns JSON with file URL: `{"url": "/uploads/avatars/{filename}"}`
@@ -47,6 +52,7 @@ Updated with two key changes:
 - **GET /api/users/me** - Now returns full UserResponse DTO with avatarUrl
 - **POST /api/users/me/avatar** - New endpoint to save avatar URL
   - Accepts JSON: `{"avatarUrl": "url"}`
+  - Uses `@NotBlank` validation with explicit `@JsonProperty` mapping
   - Validates and saves avatar URL to database
   - Returns updated UserResponse
 

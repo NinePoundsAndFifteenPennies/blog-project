@@ -1,10 +1,12 @@
 package com.lost.blog.dto;
 
-import jakarta.validation.constraints.NotEmpty;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotBlank;
 
 public class AvatarUrlRequest {
     
-    @NotEmpty(message = "头像URL不能为空")
+    @NotBlank(message = "头像URL不能为空")
+    @JsonProperty("avatarUrl")
     private String avatarUrl;
 
     public AvatarUrlRequest() {

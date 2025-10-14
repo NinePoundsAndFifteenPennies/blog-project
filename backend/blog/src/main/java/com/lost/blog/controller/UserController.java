@@ -1,5 +1,7 @@
 package com.lost.blog.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
@@ -89,11 +93,16 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未登录");
         }
         
+        logger.info("Received avatar URL: {}", avatarUrlRequest.getAvatarUrl());
+        logger.info("Current user: {}", currentUser.getUsername());
+        
         // 更新用户头像
         User updatedUser = userService.updateUserAvatar(
                 currentUser.getUsername(), 
                 avatarUrlRequest.getAvatarUrl()
         );
+        
+        logger.info("Avatar updated successfully for user: {}", currentUser.getUsername());
         
         UserResponse userResponse = UserMapper.toUserResponse(updatedUser);
         return ResponseEntity.ok(userResponse);
