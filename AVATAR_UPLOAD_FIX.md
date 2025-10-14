@@ -2,137 +2,119 @@
 
 ## Problem Analysis
 
-The issue was that the avatar upload functionality was mentioned in testing but not actually implemented in the codebase. The user reported:
-1. `POST /api/files/upload/avatar` - should upload and return avatar URL
-2. `POST /api/users/me/avatar` - should save the URL to the database
-3. `GET /api/users/me` - should return user info with avatarUrl
+The avatar upload functionality was not implemented. The user needed:
+1. `POST /api/files/upload/avatar` - upload and return avatar URL
+2. `POST /api/users/me/avatar` - save the URL to the database
+3. `GET /api/users/me` - return user info with avatarUrl
 
-The avatarUrl was always returning null because:
-- The User entity didn't have an `avatarUrl` field
-- The file upload endpoint didn't exist
-- The save avatar endpoint didn't exist
-- The getCurrentUser endpoint wasn't returning full user information
+## Solution Implemented
 
-## Changes Made
-
-### 1. User Entity Model (User.java)
+### 1. Database Layer (User.java)
 - Added `avatarUrl` field with `@Column(name = "avatar_url")`
-- Added getter and setter methods for avatarUrl
+- Added getter and setter methods
 
-### 2. DTOs
-- **AvatarUrlRequest.java** - New DTO for receiving avatar URL in POST request
-- **UserResponse.java** - Updated to include all user fields (id, username, email, avatarUrl)
-
-### 3. Mapper
-- **UserMapper.java** - Added `toUserResponse()` method to convert User entity to UserResponse DTO
-
-### 4. Service Layer
-- **UserService.java** - Added interface methods:
-  - `updateUserAvatar(String username, String avatarUrl)`
-  - `findByUsername(String username)`
-- **UserServiceImpl.java** - Implemented the new methods
-
-### 5. Controllers
-
-#### FileController.java
-Implemented the file upload endpoint with validations:
+### 2. File Upload Endpoint (FileController.java)
 - **POST /api/files/upload/avatar**
-- Accepts multipart file upload
-- **Image format validation**: Only allows JPG and PNG files
-- **File size validation**: Maximum 5MB
-- **Image dimension validation**: 
-  - Minimum: 50x50 pixels
-  - Maximum: 2000x2000 pixels
-- Generates unique filename using UUID
-- Saves file to `uploads/avatars/` directory
-- Returns JSON with file URL: `{"url": "/uploads/avatars/{filename}"}`
+- Image format validation: Only JPG and PNG
+- File size validation: Maximum 5MB
+- Image dimension validation: 50x50 to 2000x2000 pixels
+- Generates unique UUID-based filename
+- Saves to `uploads/avatars/` directory
+- Returns JSON: `{"avatarUrl": "/uploads/avatars/{filename}"}`
 
-#### UserController.java
-Updated with two key changes:
-- **GET /api/users/me** - Now returns full UserResponse DTO with avatarUrl
-- **POST /api/users/me/avatar** - New endpoint to save avatar URL
-  - Accepts JSON: `{"avatarUrl": "url"}`
-  - Uses `@NotBlank` validation with explicit `@JsonProperty` mapping
-  - Validates and saves avatar URL to database
-  - Returns updated UserResponse
+**Important:** Response field is `avatarUrl` (not `url`) to match the save endpoint's expected input.
 
-### 6. Configuration
+### 3. Save Avatar Endpoint (UserController.java)
+- **POST /api/users/me/avatar**
+- Accepts JSON: `{"avatarUrl": "url"}`
+- Uses `@NotBlank` and `@JsonProperty("avatarUrl")` for proper validation
+- Saves URL to database via `UserService.updateUserAvatar()`
+- Returns updated UserResponse DTO
 
-#### WebConfig.java
-- Configured static resource handler to serve uploaded files
-- Maps `/uploads/**` URLs to `file:uploads/` directory
+### 4. Get User Info (UserController.java)
+- **GET /api/users/me**
+- Returns complete UserResponse DTO including avatarUrl
 
-#### application.properties
-Added file upload settings:
-```properties
-spring.servlet.multipart.enabled=true
-spring.servlet.multipart.max-file-size=10MB
-spring.servlet.multipart.max-request-size=10MB
-```
+### 5. Service Layer
+- Added `updateUserAvatar(username, avatarUrl)` method
+- Added `findByUsername(username)` method
 
-## How to Test
+### 6. DTOs and Mappers
+- **AvatarUrlRequest** - Request validation with proper JSON mapping
+- **UserResponse** - Complete user info including avatarUrl
+- **UserMapper** - Entity to DTO conversion
+
+### 7. Configuration
+- **WebConfig** - Static file serving for `/uploads/**`
+- **application.properties** - File upload settings (max 10MB)
+
+## Testing Workflow
 
 ### Step 1: Upload Avatar
-```
+```http
 POST http://localhost:8080/api/files/upload/avatar
 Authorization: Bearer {token}
 Content-Type: multipart/form-data
 
-Body: form-data
-- key: file
-- type: File
-- value: {select an image file}
+Body: file (JPG/PNG, max 5MB, 50x50 to 2000x2000 pixels)
 
-Expected Response:
+Response:
 {
-    "url": "/uploads/avatars/{uuid}.{ext}"
+    "avatarUrl": "/uploads/avatars/{uuid}.jpg"
 }
 ```
 
 ### Step 2: Save Avatar URL
-```
+```http
 POST http://localhost:8080/api/users/me/avatar
 Authorization: Bearer {token}
 Content-Type: application/json
 
 Body:
 {
-    "avatarUrl": "/uploads/avatars/{uuid}.{ext}"
+    "avatarUrl": "/uploads/avatars/{uuid}.jpg"
 }
 
-Expected Response:
+Response:
 {
     "id": 2,
     "username": "seconduser",
     "email": "seconduser@lost.com",
-    "avatarUrl": "/uploads/avatars/{uuid}.{ext}"
+    "avatarUrl": "/uploads/avatars/{uuid}.jpg"
 }
 ```
 
 ### Step 3: Verify
-```
+```http
 GET http://localhost:8080/api/users/me
 Authorization: Bearer {token}
 
-Expected Response:
+Response:
 {
     "id": 2,
     "username": "seconduser",
     "email": "seconduser@lost.com",
-    "avatarUrl": "/uploads/avatars/{uuid}.{ext}"
+    "avatarUrl": "/uploads/avatars/{uuid}.jpg"
 }
 ```
 
-## Key Fix
-The main issue was in the POST /api/users/me/avatar endpoint. The bug was that this endpoint didn't exist at all. Now it:
-1. Receives the avatarUrl from the request body
-2. Calls `userService.updateUserAvatar()` to save it to the database
-3. Returns the updated user information including the avatarUrl
+## Key Technical Details
 
-The database will automatically create the `avatar_url` column in the `users` table when the application starts (thanks to `spring.jpa.hibernate.ddl-auto=update`).
+- **Upload validation**: Format (JPG/PNG), size (max 5MB), dimensions (50x50 to 2000x2000px)
+- **Unique filenames**: UUID-based to prevent conflicts
+- **Consistent field naming**: Both upload and save endpoints use `avatarUrl`
+- **JWT authentication**: Required for all endpoints
+- **JPA auto-update**: Database schema updates automatically with `ddl-auto=update`
 
-## Notes
-- The `uploads/` directory will be created automatically when first file is uploaded
-- Files are stored with UUID names to prevent conflicts
-- The static file serving allows accessing uploaded files via browser
-- All endpoints require JWT authentication (Bearer token)
+## Files Modified
+
+1. `backend/blog/src/main/java/com/lost/blog/model/User.java`
+2. `backend/blog/src/main/java/com/lost/blog/dto/AvatarUrlRequest.java`
+3. `backend/blog/src/main/java/com/lost/blog/dto/UserResponse.java`
+4. `backend/blog/src/main/java/com/lost/blog/mapper/UserMapper.java`
+5. `backend/blog/src/main/java/com/lost/blog/service/UserService.java`
+6. `backend/blog/src/main/java/com/lost/blog/service/UserServiceImpl.java`
+7. `backend/blog/src/main/java/com/lost/blog/controller/FileController.java`
+8. `backend/blog/src/main/java/com/lost/blog/controller/UserController.java`
+9. `backend/blog/src/main/java/com/lost/blog/config/WebConfig.java`
+10. `backend/blog/src/main/resources/application.properties`

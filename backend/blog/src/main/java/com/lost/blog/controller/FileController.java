@@ -106,7 +106,7 @@ public class FileController {
 
             // 9. 返回文件URL
             Map<String, String> response = new HashMap<>();
-            response.put("url", fileUrl);
+            response.put("avatarUrl", fileUrl);
             return ResponseEntity.ok(response);
 
         } catch (IOException e) {
