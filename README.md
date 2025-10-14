@@ -47,6 +47,7 @@
 | 控制层 (Controller) | **controller/** | 处理 API 请求，负责调用服务层并返回响应 |
 | 控制器 | └── UserController.java | 提供用户注册、登录、获取信息的 API |
 | 控制器 | └── PostController.java | 提供文章 CRUD API |
+| 控制器 | └── FileController.java | 提供头像上传和更新 API |
 | 数据传输对象 | **dto/** | 定义请求和响应的数据模型 |
 | DTO | └── UserRegistrationRequest.java | 用户注册请求体 |
 | DTO | └── LoginRequest.java | 用户登录请求体 |
@@ -76,6 +77,8 @@
 | 实现类 | └── UserServiceImpl.java | 用户服务实现 |
 | 接口 | └── PostService.java | 文章服务接口 |
 | 实现类 | └── PostServiceImpl.java | 文章服务实现 |
+| 接口 | └── FileService.java | 文件服务接口 |
+| 实现类 | └── FileServiceImpl.java | 文件服务实现（头像上传、更新、删除） |
 | 配置文件 | **resources/** | 存放应用的资源文件 |
 | 配置文件 | └── application.properties | 应用配置（数据库、JWT密钥等） |
 
@@ -99,6 +102,10 @@
 | 获取单篇文章 | `GET` | `/api/posts/{id}` | **公开** | 根据ID获取文章详情。 |
 | 更新文章 | `PUT` | `/api/posts/{id}` | **需要** | 更新一篇文章，仅作者可操作。请求体: `{ title, content, contentType }` |
 | 删除文章 | `DELETE` | `/api/posts/{id}`| **需要** | 删除一篇文章，仅作者可操作。返回: `"文章删除成功"` |
+| **头像上传** |
+| 上传头像 | `POST` | `/api/files/upload/avatar` | **需要** | 首次上传用户头像。仅当用户没有头像时可用。请求: `multipart/form-data`，参数: `file` |
+| 更新头像 | `PUT` | `/api/files/update/avatar` | **需要** | 更新用户头像。自动删除旧头像文件并保存新头像。请求: `multipart/form-data`，参数: `file` |
+| 保存头像URL | `POST` | `/api/users/me/avatar` | **需要** | 将头像URL保存到用户信息。请求体: `{ "avatarUrl": "/uploads/{userId}/avatars/{filename}" }` |
 
 ---
 
@@ -207,3 +214,100 @@ app.jwt.remember-me-expiration-ms=2592000000  # 记住我30天
   - 智能文本处理和光标定位
   - Tab 键缩进支持
   - 详见 [EDITOR_IMPROVEMENTS.md](./EDITOR_IMPROVEMENTS.md)
+
+**最近完成 (2025-10-14)**：
+- ✅ **优化头像上传系统** - 完善了用户头像上传和管理功能
+  - 按用户分类的文件结构：`uploads/{userId}/avatars/`
+  - 首次上传限制：防止重复上传浪费空间
+  - 头像更新接口：自动删除旧头像并保存新头像
+  - 增强的错误处理：明确的身份验证和文件验证错误提示
+  - 文件验证：支持JPG/PNG，大小限制5MB，尺寸50x50至2000x2000像素
+
+---
+
+## 头像上传使用说明
+
+### 文件存储结构
+
+用户上传的文件按用户ID组织，结构如下：
+```
+uploads/
+  ├── {userId1}/
+  │   └── avatars/
+  │       └── {uuid}.jpg
+  ├── {userId2}/
+  │   └── avatars/
+  │       └── {uuid}.png
+  └── ...
+```
+
+这种结构的优点：
+- 每个用户的文件独立存储，便于管理
+- 可扩展支持其他类型文件（如文章图片等）
+- 删除用户时可以整体清理其文件目录
+
+### 头像上传工作流程
+
+#### 1. 首次上传头像
+```http
+POST /api/files/upload/avatar
+Authorization: Bearer {token}
+Content-Type: multipart/form-data
+
+文件参数: file (JPG/PNG，最大5MB，50x50至2000x2000像素)
+
+成功响应:
+{
+  "avatarUrl": "/uploads/{userId}/avatars/{uuid}.jpg"
+}
+
+失败响应（已有头像）:
+"用户已有头像，请使用更新接口替换头像"
+```
+
+#### 2. 更新头像
+```http
+PUT /api/files/update/avatar
+Authorization: Bearer {token}
+Content-Type: multipart/form-data
+
+文件参数: file (JPG/PNG，最大5MB，50x50至2000x2000像素)
+
+成功响应:
+{
+  "avatarUrl": "/uploads/{userId}/avatars/{new-uuid}.jpg"
+}
+
+说明: 旧头像文件会被自动删除
+```
+
+#### 3. 保存头像URL到用户信息
+```http
+POST /api/users/me/avatar
+Authorization: Bearer {token}
+Content-Type: application/json
+
+请求体:
+{
+  "avatarUrl": "/uploads/{userId}/avatars/{uuid}.jpg"
+}
+
+响应:
+{
+  "id": 1,
+  "username": "username",
+  "email": "email@example.com",
+  "avatarUrl": "/uploads/{userId}/avatars/{uuid}.jpg"
+}
+```
+
+### 错误处理
+
+系统提供明确的错误提示：
+
+- **未登录或token无效**: `"未登录或token无效，请先登录"`
+- **文件为空**: `"文件不能为空"`
+- **文件过大**: `"文件大小不能超过5MB"`
+- **格式不支持**: `"只支持JPG和PNG格式的图片"`
+- **尺寸不符**: `"图片尺寸太小/太大，最小/最大尺寸为50x50/2000x2000像素"`
+- **已有头像**: `"用户已有头像，请使用更新接口替换头像"`
