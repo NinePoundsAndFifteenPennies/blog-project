@@ -1,112 +1,112 @@
-# Avatar Upload Bug Fix - Implementation Summary
+# 头像上传错误修复 - 实现摘要
 
-## Problem Analysis
+## 问题分析
 
-The avatar upload functionality was not implemented. The user needed:
-1. `POST /api/files/upload/avatar` - upload and return avatar URL
-2. `POST /api/users/me/avatar` - save the URL to the database
-3. `GET /api/users/me` - return user info with avatarUrl
+头像上传功能尚未实现。用户所需：
+1. `POST /api/files/upload/avatar` - 上传并返回头像 URL
+2. `POST /api/users/me/avatar` - 将 URL 保存到数据库
+3. `GET /api/users/me` - 返回包含 avatarUrl 的用户信息
 
-## Solution Implemented
+## 已实现的解决方案
 
-### 1. Database Layer (User.java)
-- Added `avatarUrl` field with `@Column(name = "avatar_url")`
-- Added getter and setter methods
+### 1. 数据库层 (User.java)
+- 使用 `@Column(name = "avatar_url")` 添加 `avatarUrl` 字段
+- 添加 getter 和 setter 方法
 
-### 2. File Upload Endpoint (FileController.java)
+### 2. 文件上传端点 (FileController.java)
 - **POST /api/files/upload/avatar**
-- Image format validation: Only JPG and PNG
-- File size validation: Maximum 5MB
-- Image dimension validation: 50x50 to 2000x2000 pixels
-- Generates unique UUID-based filename
-- Saves to `uploads/avatars/` directory
-- Returns JSON: `{"avatarUrl": "/uploads/avatars/{filename}"}`
+- 图片格式验证：仅限 JPG 和 PNG
+- 文件大小验证：最大 5MB
+- 图片尺寸验证：50x50 到 2000x2000 像素
+- 生成基于 UUID 的唯一文件名
+- 保存到 `uploads/avatars/` 目录
+- 返回 JSON： `{"avatarUrl": "/uploads/avatars/{filename}"}`
 
-**Important:** Response field is `avatarUrl` (not `url`) to match the save endpoint's expected input.
+**重要提示：**响应字段为 `avatarUrl`（而非 `url`），以匹配保存端点的预期输入。
 
-### 3. Save Avatar Endpoint (UserController.java)
+### 3. 保存头像端点 (UserController.java)
 - **POST /api/users/me/avatar**
-- Accepts JSON: `{"avatarUrl": "url"}`
-- Uses `@NotBlank` and `@JsonProperty("avatarUrl")` for proper validation
-- Saves URL to database via `UserService.updateUserAvatar()`
-- Returns updated UserResponse DTO
+- 接受 JSON: `{"avatarUrl": "url"}`
+- 使用 `@NotBlank` 和 `@JsonProperty("avatarUrl")` 进行正确验证
+- 通过 `UserService.updateUserAvatar()` 将 URL 保存到数据库
+- 返回更新后的 UserResponse DTO
 
-### 4. Get User Info (UserController.java)
+### 4. 获取用户信息 (UserController.java)
 - **GET /api/users/me**
-- Returns complete UserResponse DTO including avatarUrl
+- 返回包含 avatarUrl 的完整 UserResponse DTO
 
-### 5. Service Layer
-- Added `updateUserAvatar(username, avatarUrl)` method
-- Added `findByUsername(username)` method
+### 5. 服务层
+- 添加 `updateUserAvatar(username, avatarUrl)` 方法
+- 添加 `findByUsername(username)` 方法
 
-### 6. DTOs and Mappers
-- **AvatarUrlRequest** - Request validation with proper JSON mapping
-- **UserResponse** - Complete user info including avatarUrl
-- **UserMapper** - Entity to DTO conversion
+### 6. DTO 和映射器
+- **AvatarUrlRequest** - 使用正确的 JSON 映射进行请求验证
+- **UserResponse** - 完整的用户信息，包括avatarUrl
+- **UserMapper** - 实体到 DTO 的转换
 
-### 7. Configuration
-- **WebConfig** - Static file serving for `/uploads/**`
-- **application.properties** - File upload settings (max 10MB)
+### 7. 配置
+- **WebConfig** - `/uploads/**` 的静态文件服务
+- **application.properties** - 文件上传设置（最大 10MB）
 
-## Testing Workflow
+## 测试工作流程
 
-### Step 1: Upload Avatar
+### 步骤 1：上传头像
 ```http
 POST http://localhost:8080/api/files/upload/avatar
-Authorization: Bearer {token}
-Content-Type: multipart/form-data
+授权：Bearer {token}
+Content-Type：multipart/form-data
 
-Body: file (JPG/PNG, max 5MB, 50x50 to 2000x2000 pixels)
+正文：文件（JPG/PNG，最大 5MB，50x50 到 2000x2000 像素）
 
-Response:
+响应：
 {
-    "avatarUrl": "/uploads/avatars/{uuid}.jpg"
+"avatarUrl": "/uploads/avatars/{uuid}.jpg"
 }
 ```
 
-### Step 2: Save Avatar URL
+### 步骤 2：保存头像 URL
 ```http
 POST http://localhost:8080/api/users/me/avatar
-Authorization: Bearer {token}
-Content-Type: application/json
+授权：Bearer {token}
+内容类型：application/json
 
-Body:
+正文：
 {
-    "avatarUrl": "/uploads/avatars/{uuid}.jpg"
+"avatarUrl": "/uploads/avatars/{uuid}.jpg"
 }
 
-Response:
+响应：
 {
-    "id": 2,
-    "username": "seconduser",
-    "email": "seconduser@lost.com",
-    "avatarUrl": "/uploads/avatars/{uuid}.jpg"
+"id": 2,
+"username": "seconduser",
+"email": "seconduser@lost.com",
+"avatarUrl": "/uploads/avatars/{uuid}.jpg"
 }
 ```
 
-### Step 3: Verify
+### 步骤 3：验证
 ```http
 GET http://localhost:8080/api/users/me
-Authorization: Bearer {token}
+授权：Bearer {token}
 
-Response:
+响应：
 {
-    "id": 2,
-    "username": "seconduser",
-    "email": "seconduser@lost.com",
-    "avatarUrl": "/uploads/avatars/{uuid}.jpg"
+"id": 2,
+"username": "seconduser",
+"email": "seconduser@lost.com",
+"avatarUrl": "/uploads/avatars/{uuid}.jpg"
 }
 ```
 
-## Key Technical Details
+## 关键技术细节
 
-- **Upload validation**: Format (JPG/PNG), size (max 5MB), dimensions (50x50 to 2000x2000px)
-- **Unique filenames**: UUID-based to prevent conflicts
-- **Consistent field naming**: Both upload and save endpoints use `avatarUrl`
-- **JWT authentication**: Required for all endpoints
-- **JPA auto-update**: Database schema updates automatically with `ddl-auto=update`
+- **上传验证**：格式 (JPG/PNG)、大小（最大 5MB）、尺寸（50x50 至 2000x2000px）
+- **唯一文件名**：基于 UUID 以防止冲突
+- **一致的字段命名**：上传和保存端点均使用 `avatarUrl`
+- **JWT 身份验证**：所有端点均必需
+- **JPA 自动更新**：使用 `ddl-auto=update` 自动更新数据库架构
 
-## Files Modified
+## 修改的文件
 
 1. `backend/blog/src/main/java/com/lost/blog/model/User.java`
 2. `backend/blog/src/main/java/com/lost/blog/dto/AvatarUrlRequest.java`
