@@ -38,4 +38,18 @@ public class UserServiceImpl implements UserService {
 
         return userRepository.save(user);
     }
+    
+    @Override
+    public User updateUserAvatar(String username, String avatarUrl) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+        user.setAvatarUrl(avatarUrl);
+        return userRepository.save(user);
+    }
+    
+    @Override
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+    }
 }

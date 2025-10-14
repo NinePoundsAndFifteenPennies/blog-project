@@ -3,9 +3,12 @@ package com.lost.blog.controller;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import com.lost.blog.dto.AvatarUrlRequest;
 import com.lost.blog.dto.JwtAuthenticationResponse;
 import com.lost.blog.dto.LoginRequest;
 import com.lost.blog.dto.UserRegistrationRequest;
+import com.lost.blog.dto.UserResponse;
+import com.lost.blog.mapper.UserMapper;
 import com.lost.blog.model.User;
 import com.lost.blog.security.JwtTokenProvider;
 import com.lost.blog.service.UserService;
@@ -66,14 +69,34 @@ public class UserController {
         return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
     }
 
-    // -------- 把 getCurrentUser 放到类的内部（非常关键） --------
+    // -------- 获取当前用户信息 --------
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal UserDetails currentUser) {
         if (currentUser == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未登录");
         }
-        // 如果你想返回更多用户信息，可以返回自定义 DTO
-        return ResponseEntity.ok("当前登录用户是: " + currentUser.getUsername());
+        // 返回完整的用户信息
+        User user = userService.findByUsername(currentUser.getUsername());
+        UserResponse userResponse = UserMapper.toUserResponse(user);
+        return ResponseEntity.ok(userResponse);
+    }
+
+    // -------- 保存用户头像 --------
+    @PostMapping("/me/avatar")
+    public ResponseEntity<?> saveUserAvatar(@AuthenticationPrincipal UserDetails currentUser,
+                                           @Valid @RequestBody AvatarUrlRequest avatarUrlRequest) {
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未登录");
+        }
+        
+        // 更新用户头像
+        User updatedUser = userService.updateUserAvatar(
+                currentUser.getUsername(), 
+                avatarUrlRequest.getAvatarUrl()
+        );
+        
+        UserResponse userResponse = UserMapper.toUserResponse(updatedUser);
+        return ResponseEntity.ok(userResponse);
     }
 
     // -------- 刷新Token --------
