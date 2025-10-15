@@ -63,10 +63,10 @@
                 class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold overflow-hidden bg-gradient-primary"
               >
                 <img 
-                  v-if="currentUser?.avatarUrl && !avatarLoadError" 
-                  :src="currentUser.avatarUrl" 
+                  v-if="userAvatarUrl && !avatarLoadError" 
+                  :src="userAvatarUrl" 
                   :alt="currentUser.username"
-                  :key="currentUser.avatarUrl"
+                  :key="userAvatarUrl"
                   class="w-full h-full object-cover"
                   @error="handleAvatarError"
                   @load="handleAvatarLoad"
@@ -189,6 +189,7 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
+import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'Header',
@@ -207,6 +208,7 @@ export default {
     const userInitial = computed(() => {
       return currentUser.value?.username?.charAt(0).toUpperCase() || 'U'
     })
+    const userAvatarUrl = computed(() => getFullAvatarUrl(currentUser.value?.avatarUrl))
 
     // 处理搜索
     const handleSearch = () => {
@@ -264,6 +266,7 @@ export default {
       isLoggedIn,
       currentUser,
       userInitial,
+      userAvatarUrl,
       avatarLoadError,
       handleSearch,
       handleLogout,

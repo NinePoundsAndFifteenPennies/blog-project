@@ -21,6 +21,7 @@ public class PostMapper {
         postResponse.setPublishedAt(post.getPublishedAt());  // 新增
         postResponse.setDraft(post.getDraft());  // 新增
         postResponse.setAuthorUsername(post.getUser().getUsername());
+        postResponse.setAuthorAvatarUrl(post.getUser().getAvatarUrl());  // 新增：作者头像URL
         return postResponse;
     }
 }

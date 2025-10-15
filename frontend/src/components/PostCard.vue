@@ -34,14 +34,15 @@
         <!-- 作者信息 -->
         <div class="flex items-center space-x-3">
           <div 
-            class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden"
-            :class="post.author?.avatarUrl ? '' : 'bg-gradient-primary'"
+            class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-gradient-primary"
           >
             <img 
-              v-if="post.author?.avatarUrl" 
+              v-if="post.author?.avatarUrl && !avatarLoadError" 
               :src="post.author.avatarUrl" 
               :alt="post.author.username"
               class="w-full h-full object-cover"
+              @error="handleAvatarError"
+              @load="handleAvatarLoad"
             />
             <span v-else>{{ authorInitial }}</span>
           </div>
@@ -83,7 +84,7 @@
 </template>
 
 <script>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 export default {
@@ -96,11 +97,20 @@ export default {
   },
   setup(props) {
     const router = useRouter()
+    const avatarLoadError = ref(false)
 
     const authorInitial = computed(() => {
       const name = props.post.author?.username || ''
       return name ? name.charAt(0).toUpperCase() : 'A'
     })
+
+    const handleAvatarError = () => {
+      avatarLoadError.value = true
+    }
+
+    const handleAvatarLoad = () => {
+      avatarLoadError.value = false
+    }
 
     const formatDate = (dateString) => {
       if (!dateString) return ''
@@ -151,11 +161,14 @@ export default {
 
     return {
       authorInitial,
+      avatarLoadError,
       formatDate,
       displayDate,
       dateLabel,
       titleAttr,
-      goToDetail
+      goToDetail,
+      handleAvatarError,
+      handleAvatarLoad
     }
   }
 }

@@ -16,10 +16,10 @@
                   @click="triggerFileInput"
                 >
                   <img 
-                    v-if="currentUser?.avatarUrl && !avatarLoadError" 
-                    :src="currentUser.avatarUrl" 
+                    v-if="userAvatarUrl && !avatarLoadError" 
+                    :src="userAvatarUrl" 
                     :alt="currentUser.username"
-                    :key="currentUser.avatarUrl"
+                    :key="userAvatarUrl"
                     class="w-full h-full object-cover"
                     @error="handleAvatarError"
                     @load="handleAvatarLoad"
@@ -235,6 +235,7 @@ import { useStore } from 'vuex'
 import Header from '@/components/Header.vue'
 import { getMyPosts, deletePost } from '@/api/posts'
 import { uploadAvatar, updateAvatar, saveUserAvatar } from '@/api/files'
+import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'Profile',
@@ -250,6 +251,7 @@ export default {
 
     const currentUser = computed(() => store.getters.currentUser)
     const userInitial = computed(() => currentUser.value?.username?.charAt(0).toUpperCase() || 'U')
+    const userAvatarUrl = computed(() => getFullAvatarUrl(currentUser.value?.avatarUrl))
 
     const userStats = reactive({ posts: 0, drafts: 0 })
 
@@ -379,7 +381,8 @@ export default {
       posts, 
       userStats, 
       currentUser, 
-      userInitial, 
+      userInitial,
+      userAvatarUrl,
       formatDate, 
       handleDelete, 
       activeTab, 
