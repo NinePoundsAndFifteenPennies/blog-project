@@ -33,14 +33,15 @@
             <div class="card p-6 md:p-8 flex items-center justify-between flex-wrap gap-4 backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.1s;">
               <div class="flex items-center space-x-4">
                 <div 
-                  class="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg ring-4 ring-white overflow-hidden"
-                  :class="post.author?.avatarUrl ? '' : 'bg-gradient-primary'"
+                  class="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg ring-4 ring-white overflow-hidden bg-gradient-primary"
                 >
                   <img 
-                    v-if="post.author?.avatarUrl" 
-                    :src="post.author.avatarUrl" 
+                    v-if="authorAvatarUrl && !avatarLoadError" 
+                    :src="authorAvatarUrl" 
                     :alt="post.author.username || '匿名'"
                     class="w-full h-full object-cover"
+                    @error="handleAvatarError"
+                    @load="handleAvatarLoad"
                   />
                   <span v-else>{{ authorInitial }}</span>
                 </div>
@@ -172,6 +173,7 @@ import { useStore } from 'vuex'
 import { marked } from 'marked'
 import Header from '@/components/Header.vue'
 import { getPostById, deletePost } from '@/api/posts'
+import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'PostDetail',
@@ -186,6 +188,7 @@ export default {
     const loading = ref(true)
     const post = ref(null)
     const showBackToTop = ref(false)
+    const avatarLoadError = ref(false)
 
     const currentUser = computed(() => store.getters.currentUser)
     const isAuthor = computed(() => {
@@ -195,6 +198,17 @@ export default {
     const authorInitial = computed(() => {
       return post.value?.authorUsername?.charAt(0).toUpperCase() || 'A'
     })
+
+    const authorAvatarUrl = computed(() => getFullAvatarUrl(post.value?.author?.avatarUrl))
+
+    // 处理头像加载错误
+    const handleAvatarError = () => {
+      avatarLoadError.value = true
+    }
+
+    const handleAvatarLoad = () => {
+      avatarLoadError.value = false
+    }
 
     // Markdown渲染
     const renderedContent = computed(() => {
@@ -228,7 +242,8 @@ export default {
           content: response.content,
           authorUsername: response.authorUsername,
           author: {
-            username: response.authorUsername
+            username: response.authorUsername,
+            avatarUrl: response.authorAvatarUrl  // 使用后端返回的作者头像
           },
           createdAt: response.createdAt,
           updatedAt: response.updatedAt
@@ -279,11 +294,15 @@ export default {
       post,
       isAuthor,
       authorInitial,
+      authorAvatarUrl,
+      avatarLoadError,
       renderedContent,
       showBackToTop,
       formatDate,
       handleDelete,
-      scrollToTop
+      scrollToTop,
+      handleAvatarError,
+      handleAvatarLoad
     }
   }
 }

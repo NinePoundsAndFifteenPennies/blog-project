@@ -12,21 +12,24 @@
               <div class="relative group">
                 <!-- Avatar Image or Initial -->
                 <div 
-                  class="w-32 h-32 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-glow-lg ring-8 ring-white transform hover:scale-110 transition-transform duration-300 cursor-pointer overflow-hidden"
-                  :class="currentUser?.avatarUrl ? '' : 'bg-gradient-primary'"
+                  class="w-32 h-32 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-glow-lg ring-8 ring-white transform hover:scale-110 transition-transform duration-300 cursor-pointer overflow-hidden bg-gradient-primary"
                   @click="triggerFileInput"
                 >
                   <img 
-                    v-if="currentUser?.avatarUrl" 
-                    :src="currentUser.avatarUrl" 
+                    v-if="userAvatarUrl && !avatarLoadError" 
+                    :src="userAvatarUrl" 
                     :alt="currentUser.username"
+                    :key="userAvatarUrl"
                     class="w-full h-full object-cover"
+                    @error="handleAvatarError"
+                    @load="handleAvatarLoad"
                   />
                   <span v-else>{{ userInitial }}</span>
                 </div>
                 
                 <!-- Upload Overlay -->
                 <div 
+                  v-if="!uploadingAvatar"
                   class="absolute inset-0 w-32 h-32 rounded-full bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
                   @click="triggerFileInput"
                 >
@@ -34,6 +37,14 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
+                </div>
+
+                <!-- Uploading Indicator -->
+                <div 
+                  v-if="uploadingAvatar"
+                  class="absolute inset-0 w-32 h-32 rounded-full bg-black bg-opacity-70 flex items-center justify-center"
+                >
+                  <div class="animate-spin rounded-full w-10 h-10 border-4 border-gray-400 border-t-white"></div>
                 </div>
 
                 <!-- Hidden File Input -->
@@ -45,7 +56,8 @@
                   @change="handleFileSelect"
                 />
 
-                <div class="absolute -bottom-2 -right-2 w-12 h-12 bg-green-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
+                <!-- Only show checkmark badge if avatar exists -->
+                <div v-if="currentUser?.avatarUrl" class="absolute -bottom-2 -right-2 w-12 h-12 bg-green-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
                   <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
@@ -223,6 +235,7 @@ import { useStore } from 'vuex'
 import Header from '@/components/Header.vue'
 import { getMyPosts, deletePost } from '@/api/posts'
 import { uploadAvatar, updateAvatar, saveUserAvatar } from '@/api/files'
+import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'Profile',
@@ -234,9 +247,11 @@ export default {
     const activeTab = ref('posts')
     const fileInput = ref(null)
     const uploadingAvatar = ref(false)
+    const avatarLoadError = ref(false)
 
     const currentUser = computed(() => store.getters.currentUser)
     const userInitial = computed(() => currentUser.value?.username?.charAt(0).toUpperCase() || 'U')
+    const userAvatarUrl = computed(() => getFullAvatarUrl(currentUser.value?.avatarUrl))
 
     const userStats = reactive({ posts: 0, drafts: 0 })
 
@@ -287,6 +302,16 @@ export default {
       }
     }
 
+    const handleAvatarError = () => {
+      // If image fails to load, show the initial instead
+      avatarLoadError.value = true
+    }
+
+    const handleAvatarLoad = () => {
+      // Reset error state when image loads successfully
+      avatarLoadError.value = false
+    }
+
     const validateImageFile = (file) => {
       // 检查文件类型
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png']
@@ -310,6 +335,7 @@ export default {
         validateImageFile(file)
 
         uploadingAvatar.value = true
+        avatarLoadError.value = false // Reset error state when uploading new avatar
 
         // 判断用户是否已有头像，使用不同的接口
         let avatarUrl
@@ -326,6 +352,9 @@ export default {
 
         // 更新Vuex store中的用户头像
         store.commit('UPDATE_USER_AVATAR', avatarUrl)
+
+        // 重新获取用户信息以确保状态同步
+        await store.dispatch('fetchCurrentUser')
 
         alert('头像更新成功！')
       } catch (error) {
@@ -352,15 +381,19 @@ export default {
       posts, 
       userStats, 
       currentUser, 
-      userInitial, 
+      userInitial,
+      userAvatarUrl,
       formatDate, 
       handleDelete, 
       activeTab, 
       visibleList,
       fileInput,
       uploadingAvatar,
+      avatarLoadError,
       triggerFileInput,
-      handleFileSelect
+      handleFileSelect,
+      handleAvatarError,
+      handleAvatarLoad
     }
   }
 }

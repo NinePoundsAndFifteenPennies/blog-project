@@ -135,11 +135,11 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
-import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import PostCard from '@/components/PostCard.vue'
 import Pagination from '@/components/Pagination.vue'
 import { getPosts } from '@/api/posts'
+import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'Home',
@@ -150,7 +150,6 @@ export default {
   },
   setup() {
     const store = useStore()
-    const router = useRouter()
 
     const loading = ref(false)
     const posts = ref([])
@@ -181,7 +180,8 @@ export default {
           content: post.content,
           summary: post.content ? post.content.substring(0, 150).replace(/[#*`\n]/g, '') : '',
           author: {
-            username: post.authorUsername
+            username: post.authorUsername,
+            avatarUrl: getFullAvatarUrl(post.authorAvatarUrl)  // 转换为完整URL
           },
           createdAt: post.createdAt,
           updatedAt: post.updatedAt,
