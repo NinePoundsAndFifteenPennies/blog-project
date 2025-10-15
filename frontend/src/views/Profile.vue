@@ -12,16 +12,17 @@
               <div class="relative group">
                 <!-- Avatar Image or Initial -->
                 <div 
-                  class="w-32 h-32 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-glow-lg ring-8 ring-white transform hover:scale-110 transition-transform duration-300 cursor-pointer overflow-hidden"
-                  :class="currentUser?.avatarUrl ? '' : 'bg-gradient-primary'"
+                  class="w-32 h-32 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-glow-lg ring-8 ring-white transform hover:scale-110 transition-transform duration-300 cursor-pointer overflow-hidden bg-gradient-primary"
                   @click="triggerFileInput"
                 >
                   <img 
-                    v-if="currentUser?.avatarUrl" 
+                    v-if="currentUser?.avatarUrl && !avatarLoadError" 
                     :src="currentUser.avatarUrl" 
                     :alt="currentUser.username"
                     :key="currentUser.avatarUrl"
                     class="w-full h-full object-cover"
+                    @error="handleAvatarError"
+                    @load="handleAvatarLoad"
                   />
                   <span v-else>{{ userInitial }}</span>
                 </div>
@@ -245,6 +246,7 @@ export default {
     const activeTab = ref('posts')
     const fileInput = ref(null)
     const uploadingAvatar = ref(false)
+    const avatarLoadError = ref(false)
 
     const currentUser = computed(() => store.getters.currentUser)
     const userInitial = computed(() => currentUser.value?.username?.charAt(0).toUpperCase() || 'U')
@@ -298,6 +300,16 @@ export default {
       }
     }
 
+    const handleAvatarError = () => {
+      // If image fails to load, show the initial instead
+      avatarLoadError.value = true
+    }
+
+    const handleAvatarLoad = () => {
+      // Reset error state when image loads successfully
+      avatarLoadError.value = false
+    }
+
     const validateImageFile = (file) => {
       // 检查文件类型
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png']
@@ -321,6 +333,7 @@ export default {
         validateImageFile(file)
 
         uploadingAvatar.value = true
+        avatarLoadError.value = false // Reset error state when uploading new avatar
 
         // 判断用户是否已有头像，使用不同的接口
         let avatarUrl
@@ -373,8 +386,11 @@ export default {
       visibleList,
       fileInput,
       uploadingAvatar,
+      avatarLoadError,
       triggerFileInput,
-      handleFileSelect
+      handleFileSelect,
+      handleAvatarError,
+      handleAvatarLoad
     }
   }
 }

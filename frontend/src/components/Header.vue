@@ -60,15 +60,16 @@
                 class="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200"
             >
               <div 
-                class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold overflow-hidden"
-                :class="currentUser?.avatarUrl ? '' : 'bg-gradient-primary'"
+                class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold overflow-hidden bg-gradient-primary"
               >
                 <img 
-                  v-if="currentUser?.avatarUrl" 
+                  v-if="currentUser?.avatarUrl && !avatarLoadError" 
                   :src="currentUser.avatarUrl" 
                   :alt="currentUser.username"
                   :key="currentUser.avatarUrl"
                   class="w-full h-full object-cover"
+                  @error="handleAvatarError"
+                  @load="handleAvatarLoad"
                 />
                 <span v-else>{{ userInitial }}</span>
               </div>
@@ -199,6 +200,7 @@ export default {
     const showUserMenu = ref(false)
     const showMobileMenu = ref(false)
     const searchQuery = ref('')
+    const avatarLoadError = ref(false)
 
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
     const currentUser = computed(() => store.getters.currentUser)
@@ -214,6 +216,16 @@ export default {
         searchQuery.value = ''
       }
     }
+
+    // 处理头像加载错误
+    const handleAvatarError = () => {
+      avatarLoadError.value = true
+    }
+
+    const handleAvatarLoad = () => {
+      avatarLoadError.value = false
+    }
+
     // 处理登出
     const handleLogout = () => {
       store.dispatch('logout')
@@ -252,8 +264,11 @@ export default {
       isLoggedIn,
       currentUser,
       userInitial,
+      avatarLoadError,
       handleSearch,
-      handleLogout
+      handleLogout,
+      handleAvatarError,
+      handleAvatarLoad
     }
   }
 }
