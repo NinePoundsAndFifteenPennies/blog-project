@@ -32,8 +32,17 @@
             <!-- Author Info Card -->
             <div class="card p-6 md:p-8 flex items-center justify-between flex-wrap gap-4 backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.1s;">
               <div class="flex items-center space-x-4">
-                <div class="w-14 h-14 rounded-full bg-gradient-primary flex items-center justify-center text-white font-bold text-xl shadow-lg ring-4 ring-white">
-                  {{ authorInitial }}
+                <div 
+                  class="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg ring-4 ring-white overflow-hidden"
+                  :class="post.author?.avatarUrl ? '' : 'bg-gradient-primary'"
+                >
+                  <img 
+                    v-if="post.author?.avatarUrl" 
+                    :src="post.author.avatarUrl" 
+                    :alt="post.author.username || '匿名'"
+                    class="w-full h-full object-cover"
+                  />
+                  <span v-else>{{ authorInitial }}</span>
                 </div>
                 <div>
                   <p class="font-bold text-lg text-gray-900">{{ post.author?.username || '匿名' }}</p>

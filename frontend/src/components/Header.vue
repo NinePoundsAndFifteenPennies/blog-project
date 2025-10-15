@@ -59,8 +59,17 @@
                 @click="showUserMenu = !showUserMenu"
                 class="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200"
             >
-              <div class="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center text-white font-semibold">
-                {{ userInitial }}
+              <div 
+                class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold overflow-hidden"
+                :class="currentUser?.avatarUrl ? '' : 'bg-gradient-primary'"
+              >
+                <img 
+                  v-if="currentUser?.avatarUrl" 
+                  :src="currentUser.avatarUrl" 
+                  :alt="currentUser.username"
+                  class="w-full h-full object-cover"
+                />
+                <span v-else>{{ userInitial }}</span>
               </div>
               <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
