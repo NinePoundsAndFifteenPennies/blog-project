@@ -9,10 +9,42 @@
           <div class="card p-8 mb-8 backdrop-blur-sm bg-white/90 animate-fade-in">
             <div class="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
               <!-- Avatar -->
-              <div class="relative">
-                <div class="w-32 h-32 rounded-full bg-gradient-primary flex items-center justify-center text-white text-5xl font-bold shadow-glow-lg ring-8 ring-white transform hover:scale-110 transition-transform duration-300">
-                  {{ userInitial }}
+              <div class="relative group">
+                <!-- Avatar Image or Initial -->
+                <div 
+                  class="w-32 h-32 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-glow-lg ring-8 ring-white transform hover:scale-110 transition-transform duration-300 cursor-pointer overflow-hidden"
+                  :class="currentUser?.avatarUrl ? '' : 'bg-gradient-primary'"
+                  @click="triggerFileInput"
+                >
+                  <img 
+                    v-if="currentUser?.avatarUrl" 
+                    :src="currentUser.avatarUrl" 
+                    :alt="currentUser.username"
+                    class="w-full h-full object-cover"
+                  />
+                  <span v-else>{{ userInitial }}</span>
                 </div>
+                
+                <!-- Upload Overlay -->
+                <div 
+                  class="absolute inset-0 w-32 h-32 rounded-full bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
+                  @click="triggerFileInput"
+                >
+                  <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+
+                <!-- Hidden File Input -->
+                <input 
+                  ref="fileInput"
+                  type="file" 
+                  accept="image/jpeg,image/png,image/jpg"
+                  class="hidden"
+                  @change="handleFileSelect"
+                />
+
                 <div class="absolute -bottom-2 -right-2 w-12 h-12 bg-green-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
                   <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -190,6 +222,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import Header from '@/components/Header.vue'
 import { getMyPosts, deletePost } from '@/api/posts'
+import { uploadAvatar, updateAvatar, saveUserAvatar } from '@/api/files'
 
 export default {
   name: 'Profile',
@@ -199,6 +232,8 @@ export default {
     const loading = ref(false)
     const posts = ref([])
     const activeTab = ref('posts')
+    const fileInput = ref(null)
+    const uploadingAvatar = ref(false)
 
     const currentUser = computed(() => store.getters.currentUser)
     const userInitial = computed(() => currentUser.value?.username?.charAt(0).toUpperCase() || 'U')
@@ -246,13 +281,87 @@ export default {
       }
     }
 
+    const triggerFileInput = () => {
+      if (fileInput.value) {
+        fileInput.value.click()
+      }
+    }
+
+    const validateImageFile = (file) => {
+      // 检查文件类型
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png']
+      if (!validTypes.includes(file.type)) {
+        throw new Error('只支持 JPG 和 PNG 格式的图片')
+      }
+
+      // 检查文件大小 (5MB)
+      const maxSize = 5 * 1024 * 1024
+      if (file.size > maxSize) {
+        throw new Error('图片大小不能超过 5MB')
+      }
+    }
+
+    const handleFileSelect = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      try {
+        // 验证文件
+        validateImageFile(file)
+
+        uploadingAvatar.value = true
+
+        // 判断用户是否已有头像，使用不同的接口
+        let avatarUrl
+        if (currentUser.value?.avatarUrl) {
+          // 更新头像
+          avatarUrl = await updateAvatar(file)
+        } else {
+          // 首次上传头像
+          avatarUrl = await uploadAvatar(file)
+        }
+
+        // 保存头像URL到用户信息
+        await saveUserAvatar(avatarUrl)
+
+        // 更新Vuex store中的用户头像
+        store.commit('UPDATE_USER_AVATAR', avatarUrl)
+
+        alert('头像更新成功！')
+      } catch (error) {
+        console.error('头像上传失败:', error)
+        const errorMessage = error.response?.data || error.message || '头像上传失败，请重试'
+        alert(errorMessage)
+      } finally {
+        uploadingAvatar.value = false
+        // 清空文件输入，允许重新选择相同文件
+        if (fileInput.value) {
+          fileInput.value.value = ''
+        }
+      }
+    }
+
     const visibleList = computed(() =>
         activeTab.value === 'drafts' ? posts.value.filter(p => p.draft) : posts.value.filter(p => !p.draft)
     )
 
     onMounted(loadPosts)
 
-    return { loading, posts, userStats, currentUser, userInitial, formatDate, handleDelete, activeTab, visibleList }
+    return { 
+      loading, 
+      posts, 
+      userStats, 
+      currentUser, 
+      userInitial, 
+      formatDate, 
+      handleDelete, 
+      activeTab, 
+      visibleList,
+      fileInput,
+      uploadingAvatar,
+      triggerFileInput,
+      handleFileSelect
+    }
   }
 }
 </script>

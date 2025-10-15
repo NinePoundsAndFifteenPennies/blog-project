@@ -36,6 +36,13 @@ export default createStore({
             }
         },
 
+        UPDATE_USER_AVATAR(state, avatarUrl) {
+            if (state.user) {
+                state.user.avatarUrl = avatarUrl
+                localStorage.setItem('user', JSON.stringify(state.user))
+            }
+        },
+
         CLEAR_AUTH(state) {
             state.user = null
             state.token = null

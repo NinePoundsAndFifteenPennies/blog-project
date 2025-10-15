@@ -33,8 +33,17 @@
       <div class="flex items-center justify-between pt-4 border-t border-gray-100">
         <!-- 作者信息 -->
         <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white">
-            {{ authorInitial }}
+          <div 
+            class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden"
+            :class="post.author?.avatarUrl ? '' : 'bg-gradient-primary'"
+          >
+            <img 
+              v-if="post.author?.avatarUrl" 
+              :src="post.author.avatarUrl" 
+              :alt="post.author.username"
+              class="w-full h-full object-cover"
+            />
+            <span v-else>{{ authorInitial }}</span>
           </div>
           <div>
             <p class="text-sm font-semibold text-gray-900">{{ post.author?.username || '匿名' }}</p>

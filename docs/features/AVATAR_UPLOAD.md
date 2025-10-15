@@ -272,7 +272,106 @@ public ResponseEntity<?> updateAvatar(
 
 ### 前端实现
 
-TODO: 添加前端实现说明
+#### 文件API模块 (frontend/src/api/files.js)
+
+提供与后端文件上传接口交互的函数：
+
+```javascript
+// 首次上传头像
+export async function uploadAvatar(file)
+
+// 更新已有头像
+export async function updateAvatar(file)
+
+// 保存头像URL到用户信息
+export async function saveUserAvatar(avatarUrl)
+```
+
+**实现细节：**
+- 使用 `FormData` 封装文件数据
+- 通过 axios 发送 multipart/form-data 请求
+- 自动从 localStorage 获取 JWT token
+- 返回后端响应的头像URL
+
+#### Vuex Store 更新 (frontend/src/store/index.js)
+
+添加了用户头像状态管理：
+
+```javascript
+mutations: {
+  UPDATE_USER_AVATAR(state, avatarUrl) {
+    // 更新state中的用户头像
+    // 同步更新localStorage
+  }
+}
+```
+
+#### 个人资料页面 (frontend/src/views/Profile.vue)
+
+**UI 特性：**
+1. **动态头像显示**
+   - 有头像：显示头像图片（`<img>`）
+   - 无头像：显示用户名首字母（渐变背景）
+
+2. **交互设计**
+   - 点击头像触发文件选择
+   - 悬停显示相机图标的半透明遮罩
+   - 视觉提示用户可以上传/更换头像
+
+3. **文件验证**
+   - 接受格式：JPG、PNG
+   - 大小限制：5MB
+   - 前端验证，及时反馈错误
+
+**核心功能函数：**
+
+```javascript
+// 触发文件选择
+triggerFileInput()
+
+// 验证图片文件
+validateImageFile(file)
+
+// 处理文件选择
+handleFileSelect(event) {
+  // 1. 验证文件
+  // 2. 判断用户是否已有头像
+  // 3. 调用相应API（uploadAvatar 或 updateAvatar）
+  // 4. 调用 saveUserAvatar 保存URL
+  // 5. 更新Vuex状态
+  // 6. 显示成功/失败消息
+}
+```
+
+**完整流程：**
+
+```
+用户点击头像
+    ↓
+触发文件选择器
+    ↓
+用户选择图片文件
+    ↓
+前端验证（类型、大小）
+    ↓
+调用 uploadAvatar 或 updateAvatar
+    ↓
+后端验证并保存文件
+    ↓
+返回头像URL
+    ↓
+调用 saveUserAvatar 保存URL
+    ↓
+更新Vuex状态（UPDATE_USER_AVATAR）
+    ↓
+页面自动刷新显示新头像
+```
+
+**错误处理：**
+- 文件类型错误："只支持 JPG 和 PNG 格式的图片"
+- 文件过大："图片大小不能超过 5MB"
+- 后端错误：显示后端返回的错误信息
+- 网络错误："头像上传失败，请重试"
 
 ## 测试建议
 
@@ -362,6 +461,18 @@ TODO: 添加前端实现说明
 **A:** 可以，在 `application.properties` 中修改 `spring.servlet.multipart.max-file-size` 配置。
 
 ## 更新日志
+
+### 2025-10-15
+
+- ✅ 实现前端头像上传和更新功能
+- ✅ 创建文件API模块 (files.js)
+- ✅ 更新个人资料页面支持头像上传
+- ✅ 添加Vuex状态管理集成
+- ✅ 实现点击头像上传交互
+- ✅ 添加悬停效果和视觉反馈
+- ✅ 前端文件验证（类型、大小）
+- ✅ 智能选择首次上传或更新接口
+- ✅ 完整的错误处理和用户提示
 
 ### 2025-10-14
 
