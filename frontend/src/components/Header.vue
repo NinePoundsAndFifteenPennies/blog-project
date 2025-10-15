@@ -67,6 +67,7 @@
                   v-if="currentUser?.avatarUrl" 
                   :src="currentUser.avatarUrl" 
                   :alt="currentUser.username"
+                  :key="currentUser.avatarUrl"
                   class="w-full h-full object-cover"
                 />
                 <span v-else>{{ userInitial }}</span>
