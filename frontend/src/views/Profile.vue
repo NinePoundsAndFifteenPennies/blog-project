@@ -43,7 +43,7 @@
                   v-if="uploadingAvatar"
                   class="absolute inset-0 w-32 h-32 rounded-full bg-black bg-opacity-70 flex items-center justify-center"
                 >
-                  <div class="spinner w-10 h-10 border-white"></div>
+                  <div class="animate-spin rounded-full w-10 h-10 border-4 border-gray-400 border-t-white"></div>
                 </div>
 
                 <!-- Hidden File Input -->
