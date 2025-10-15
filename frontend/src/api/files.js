@@ -12,8 +12,7 @@ export async function uploadAvatar(file) {
     const token = localStorage.getItem('token')
     const response = await axios.post('/api/files/upload/avatar', formData, {
         headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
+            'Authorization': `Bearer ${token}`
         }
     })
     return response.data.avatarUrl
@@ -31,8 +30,7 @@ export async function updateAvatar(file) {
     const token = localStorage.getItem('token')
     const response = await axios.put('/api/files/update/avatar', formData, {
         headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
+            'Authorization': `Bearer ${token}`
         }
     })
     return response.data.avatarUrl
