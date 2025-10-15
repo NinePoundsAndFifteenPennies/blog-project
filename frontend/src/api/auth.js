@@ -34,22 +34,16 @@ export async function login(credentials) {
 
 /**
  * 获取当前用户信息
- * @returns {Promise<Object>} - 返回用户对象 { username, ... }
+ * @returns {Promise<Object>} - 返回用户对象 { id, username, email, avatarUrl, createdAt }
  */
 export async function getCurrentUser() {
-    // 后端返回的是一个字符串 "当前登录用户是: aaaa"
-    // 我们需要解析这个字符串，并模拟一个 user 对象
-    const responseText = await request({
+    // 后端返回完整的用户信息JSON对象
+    const userResponse = await request({
         url: "/users/me",
         method: "get",
     });
 
-    // 从 "当前登录用户是: username" 中提取 username
-    const username = responseText.replace('当前登录用户是: ', '');
-
-    // 为了和localStorage保持一致，我们返回一个包含username的对象
-    // 实际项目中，后端最好直接返回JSON对象
-    return { username };
+    return userResponse;
 }
 
 /**
