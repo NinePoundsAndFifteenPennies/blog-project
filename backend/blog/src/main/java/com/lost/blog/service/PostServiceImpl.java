@@ -27,14 +27,17 @@ public class PostServiceImpl implements PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final PostMapper postMapper;
+    private final com.lost.blog.repository.CommentRepository commentRepository;
 
     @Autowired
     public PostServiceImpl(PostRepository postRepository,
                            UserRepository userRepository,
-                           PostMapper postMapper) {
+                           PostMapper postMapper,
+                           com.lost.blog.repository.CommentRepository commentRepository) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.postMapper = postMapper;
+        this.commentRepository = commentRepository;
     }
 
     @Override
@@ -164,6 +167,10 @@ public class PostServiceImpl implements PostService {
             logger.warn("用户 {} 尝试删除他人文章，ID: {}", currentUser.getUsername(), id);
             throw new AccessDeniedException("无权删除该文章");
         }
+
+        // 先删除该文章的所有评论（级联删除）
+        commentRepository.deleteByPost(post);
+        logger.info("删除文章ID: {} 的所有评论", id);
 
         postRepository.delete(post);
         logger.info("用户 {} 删除了文章，ID: {}，标题: {}",

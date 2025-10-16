@@ -16,6 +16,7 @@ public class PostResponse {
     private Boolean draft;  // 新增
     private Long likeCount;  // 点赞数
     private Boolean isLiked;  // 当前用户是否已点赞
+    private Long commentCount;  // 评论数
 
     // Getters and Setters
     public Long getId() { return id; }
@@ -53,4 +54,7 @@ public class PostResponse {
 
     public Boolean getIsLiked() { return isLiked; }
     public void setIsLiked(Boolean isLiked) { this.isLiked = isLiked; }
+
+    public Long getCommentCount() { return commentCount; }
+    public void setCommentCount(Long commentCount) { this.commentCount = commentCount; }
 }
