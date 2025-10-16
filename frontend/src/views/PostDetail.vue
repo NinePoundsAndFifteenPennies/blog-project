@@ -96,15 +96,22 @@
           <!-- Article Footer Actions -->
           <div class="card p-6 flex items-center justify-between backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.3s;">
             <div class="flex items-center space-x-6 text-gray-400">
-              <!-- Like Button (暂未实现) -->
+              <!-- Like Button -->
               <button
-                  class="flex items-center space-x-2 hover:text-red-500 transition-colors cursor-not-allowed"
-                  title="点赞功能开发中"
+                  @click="handleLike"
+                  class="flex items-center space-x-2 hover:text-red-500 transition-colors"
+                  :class="{ 'text-red-500': post.isLiked }"
+                  :title="post.isLiked ? '取消点赞' : '点赞'"
               >
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg 
+                  class="w-6 h-6" 
+                  :fill="post.isLiked ? 'currentColor' : 'none'" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
-                <span class="font-medium">点赞</span>
+                <span class="font-medium">{{ post.isLiked ? '已点赞' : '点赞' }} ({{ post.likeCount || 0 }})</span>
               </button>
 
               <!-- Comment Button (暂未实现) -->
@@ -173,6 +180,7 @@ import { useStore } from 'vuex'
 import { marked } from 'marked'
 import Header from '@/components/Header.vue'
 import { getPostById, deletePost } from '@/api/posts'
+import { likePost, unlikePost } from '@/api/likes'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
@@ -191,6 +199,7 @@ export default {
     const avatarLoadError = ref(false)
 
     const currentUser = computed(() => store.getters.currentUser)
+    const isLoggedIn = computed(() => store.getters.isLoggedIn)
     const isAuthor = computed(() => {
       return currentUser.value && post.value?.authorUsername === currentUser.value.username
     })
@@ -246,7 +255,9 @@ export default {
             avatarUrl: response.authorAvatarUrl  // 使用后端返回的作者头像
           },
           createdAt: response.createdAt,
-          updatedAt: response.updatedAt
+          updatedAt: response.updatedAt,
+          likeCount: response.likeCount || 0,  // 从后端获取点赞数
+          isLiked: response.isLiked || false   // 从后端获取是否已点赞
         }
       } catch (error) {
         console.error('加载文章失败:', error)
@@ -267,6 +278,40 @@ export default {
       } catch (error) {
         console.error('删除文章失败:', error)
         alert('删除失败,请稍后重试')
+      }
+    }
+
+    // 点赞功能
+    const handleLike = async () => {
+      // 检查是否登录
+      if (!isLoggedIn.value) {
+        // 未登录，跳转到登录页面
+        router.push({
+          path: '/login',
+          query: {
+            redirect: route.fullPath,
+            message: '请先登录后再点赞'
+          }
+        })
+        return
+      }
+
+      try {
+        let response
+        if (post.value.isLiked) {
+          // 已点赞，取消点赞
+          response = await unlikePost(post.value.id)
+        } else {
+          // 未点赞，点赞
+          response = await likePost(post.value.id)
+        }
+
+        // 更新本地状态
+        post.value.likeCount = response.likeCount
+        post.value.isLiked = response.isLiked
+      } catch (error) {
+        console.error('点赞操作失败:', error)
+        // 可以添加用户提示
       }
     }
 
@@ -300,6 +345,7 @@ export default {
       showBackToTop,
       formatDate,
       handleDelete,
+      handleLike,
       scrollToTop,
       handleAvatarError,
       handleAvatarLoad

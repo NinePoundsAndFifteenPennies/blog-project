@@ -54,7 +54,7 @@
           </div>
         </div>
 
-        <!-- 统计信息(仅显示图标,暂无实际数据) -->
+        <!-- 统计信息 -->
         <div class="flex items-center space-x-3 text-sm text-gray-400">
           <!-- 浏览量图标 -->
           <div class="flex items-center space-x-1 hover:text-primary-500 transition-colors" title="浏览量(功能开发中)">
@@ -64,12 +64,23 @@
             </svg>
           </div>
 
-          <!-- 点赞数图标 -->
-          <div class="flex items-center space-x-1 hover:text-red-500 transition-colors" title="点赞(功能开发中)">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <!-- 点赞数 -->
+          <button 
+            @click.stop="handleLike"
+            class="flex items-center space-x-1 hover:text-red-500 transition-colors"
+            :class="{ 'text-red-500': post.isLiked }"
+            :title="post.isLiked ? '取消点赞' : '点赞'"
+          >
+            <svg 
+              class="w-4 h-4" 
+              :fill="post.isLiked ? 'currentColor' : 'none'" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
-          </div>
+            <span>{{ post.likeCount || 0 }}</span>
+          </button>
 
           <!-- 评论数图标 -->
           <div class="flex items-center space-x-1 hover:text-primary-500 transition-colors" title="评论(功能开发中)">
@@ -86,6 +97,8 @@
 <script>
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useStore } from 'vuex'
+import { likePost, unlikePost } from '@/api/likes'
 
 export default {
   name: 'PostCard',
@@ -95,9 +108,13 @@ export default {
       required: true
     }
   },
-  setup(props) {
+  emits: ['like-changed'],
+  setup(props, { emit }) {
     const router = useRouter()
+    const store = useStore()
     const avatarLoadError = ref(false)
+
+    const isLoggedIn = computed(() => store.getters.isLoggedIn)
 
     const authorInitial = computed(() => {
       const name = props.post.author?.username || ''
@@ -159,6 +176,43 @@ export default {
       router.push(`/post/${props.post.id}`)
     }
 
+    // 点赞功能
+    const handleLike = async () => {
+      // 检查是否登录
+      if (!isLoggedIn.value) {
+        // 未登录，跳转到登录页面
+        router.push({
+          path: '/login',
+          query: {
+            redirect: `/post/${props.post.id}`,
+            message: '请先登录后再点赞'
+          }
+        })
+        return
+      }
+
+      try {
+        let response
+        if (props.post.isLiked) {
+          // 已点赞，取消点赞
+          response = await unlikePost(props.post.id)
+        } else {
+          // 未点赞，点赞
+          response = await likePost(props.post.id)
+        }
+
+        // 更新本地状态
+        emit('like-changed', {
+          postId: props.post.id,
+          likeCount: response.likeCount,
+          isLiked: response.isLiked
+        })
+      } catch (error) {
+        console.error('点赞操作失败:', error)
+        // 可以添加用户提示
+      }
+    }
+
     return {
       authorInitial,
       avatarLoadError,
@@ -168,7 +222,8 @@ export default {
       titleAttr,
       goToDetail,
       handleAvatarError,
-      handleAvatarLoad
+      handleAvatarLoad,
+      handleLike
     }
   }
 }

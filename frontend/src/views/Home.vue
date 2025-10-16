@@ -115,6 +115,7 @@
                 :key="post.id"
                 :post="post"
                 class="animate-scale-in"
+                @like-changed="handleLikeChanged"
             />
           </div>
 
@@ -185,9 +186,10 @@ export default {
           },
           createdAt: post.createdAt,
           updatedAt: post.updatedAt,
+          likeCount: post.likeCount || 0,  // 从后端获取点赞数
+          isLiked: post.isLiked || false,  // 从后端获取是否已点赞
           // 暂时显示静态数据,后续实现
           views: 0,
-          likes: 0,
           comments: 0,
           tags: [],
           category: null
@@ -212,6 +214,15 @@ export default {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
+    // 处理点赞变化
+    const handleLikeChanged = ({ postId, likeCount, isLiked }) => {
+      const post = posts.value.find(p => p.id === postId)
+      if (post) {
+        post.likeCount = likeCount
+        post.isLiked = isLiked
+      }
+    }
+
     onMounted(() => {
       loadPosts()
     })
@@ -223,7 +234,8 @@ export default {
       totalPages,
       totalElements,
       isLoggedIn,
-      handlePageChange
+      handlePageChange,
+      handleLikeChanged
     }
   }
 }
