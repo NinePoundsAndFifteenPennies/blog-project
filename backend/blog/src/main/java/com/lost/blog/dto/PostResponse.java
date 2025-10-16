@@ -14,6 +14,8 @@ public class PostResponse {
     private LocalDateTime publishedAt;  // 新增
     private ContentType contentType;
     private Boolean draft;  // 新增
+    private Long likeCount;  // 点赞数
+    private Boolean isLiked;  // 当前用户是否已点赞
 
     // Getters and Setters
     public Long getId() { return id; }
@@ -45,4 +47,10 @@ public class PostResponse {
 
     public Boolean getDraft() { return draft; }
     public void setDraft(Boolean draft) { this.draft = draft; }
+
+    public Long getLikeCount() { return likeCount; }
+    public void setLikeCount(Long likeCount) { this.likeCount = likeCount; }
+
+    public Boolean getIsLiked() { return isLiked; }
+    public void setIsLiked(Boolean isLiked) { this.isLiked = isLiked; }
 }

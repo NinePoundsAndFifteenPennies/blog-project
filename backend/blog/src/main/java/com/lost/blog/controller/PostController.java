@@ -43,8 +43,10 @@ public class PostController {
 
     // 获取所有已发布的文章（分页）
     @GetMapping
-    public ResponseEntity<Page<PostResponse>> getAllPosts(Pageable pageable) {
-        Page<PostResponse> posts = postService.getAllPosts(pageable);
+    public ResponseEntity<Page<PostResponse>> getAllPosts(
+            Pageable pageable,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        Page<PostResponse> posts = postService.getAllPosts(pageable, currentUser);
         return ResponseEntity.ok(posts);
     }
 

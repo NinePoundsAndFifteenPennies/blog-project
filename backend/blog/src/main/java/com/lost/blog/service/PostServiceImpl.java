@@ -60,7 +60,7 @@ public class PostServiceImpl implements PostService {
         logger.info("用户 {} 创建了新文章，ID: {}，是否草稿: {}",
                 user.getUsername(), savedPost.getId(), savedPost.getDraft());
 
-        return postMapper.toResponse(savedPost);
+        return postMapper.toResponse(savedPost, currentUser);
     }
 
     @Override
@@ -82,17 +82,17 @@ public class PostServiceImpl implements PostService {
             }
         }
 
-        return postMapper.toResponse(post);
+        return postMapper.toResponse(post, currentUser);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<PostResponse> getAllPosts(Pageable pageable) {
+    public Page<PostResponse> getAllPosts(Pageable pageable, UserDetails currentUser) {
         // 只返回已发布的文章（draft = false）
         Page<Post> postsPage = postRepository.findByDraftFalse(pageable);
         logger.debug("查询已发布文章列表，页码: {}，数量: {}",
                 pageable.getPageNumber(), postsPage.getTotalElements());
-        return postsPage.map(postMapper::toResponse);
+        return postsPage.map(post -> postMapper.toResponse(post, currentUser));
     }
 
     @Override
@@ -105,7 +105,7 @@ public class PostServiceImpl implements PostService {
         logger.debug("查询用户 {} 的所有文章（包括草稿），总数: {}",
                 user.getUsername(), postsPage.getTotalElements());
         
-        return postsPage.map(postMapper::toResponse);
+        return postsPage.map(post -> postMapper.toResponse(post, currentUser));
     }
 
     @Override
@@ -151,7 +151,7 @@ public class PostServiceImpl implements PostService {
             logger.info("文章 {} 从已发布变为草稿", id);
         }
 
-        return postMapper.toResponse(updatedPost);
+        return postMapper.toResponse(updatedPost, currentUser);
     }
 
     @Override

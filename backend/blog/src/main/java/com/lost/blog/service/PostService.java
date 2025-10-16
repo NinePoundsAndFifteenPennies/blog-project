@@ -27,9 +27,10 @@ public interface PostService {
     /**
      * 获取所有已发布的文章（分页）
      * @param pageable 分页信息
+     * @param currentUser 当前用户（可为null，用于判断点赞状态）
      * @return 分页后的文章响应数据
      */
-    Page<PostResponse> getAllPosts(Pageable pageable);
+    Page<PostResponse> getAllPosts(Pageable pageable, UserDetails currentUser);
 
     /**
      * 获取当前用户的所有文章（包括草稿）
