@@ -181,6 +181,109 @@ CREATE TABLE likes (
 -- CREATE INDEX idx_user_id ON likes(user_id);
 ```
 
+## 前端实现
+
+### 新增文件
+
+1. **api/likes.js** - 点赞 API 封装
+   - `likePost(postId)` - 点赞文章
+   - `unlikePost(postId)` - 取消点赞
+   - `getLikeInfo(postId)` - 获取点赞信息
+
+### 修改文件
+
+1. **components/PostCard.vue** - 文章卡片组件
+   - 添加点赞按钮和点赞数显示
+   - 实现点赞/取消点赞功能
+   - 未登录用户点击跳转到登录页
+   - 已点赞显示红色填充心形图标
+
+2. **views/PostDetail.vue** - 文章详情页
+   - 添加点赞按钮和点赞数显示
+   - 实现点赞/取消点赞功能
+   - 未登录用户点击跳转到登录页
+   - 已点赞显示红色填充心形图标和"已点赞"文字
+
+3. **views/Home.vue** - 首页列表
+   - 从后端 API 获取 `likeCount` 和 `isLiked` 数据
+   - 处理点赞状态变化事件
+   - 实时更新列表中的点赞状态
+
+### 用户体验
+
+#### 点赞数量显示
+- 所有用户（包括未登录用户）都可以查看点赞数量
+- 点赞数量显示在心形图标旁边
+- 数据从后端 API 实时获取
+
+#### 点赞/取消点赞
+- 登录用户点击心形图标可以点赞或取消点赞
+- 操作后状态立即更新，无需刷新页面
+- 点击一次点赞，再次点击取消点赞
+
+#### 登录验证
+- 未登录用户点击点赞按钮时自动跳转到登录页
+- 显示提示信息："请先登录后再点赞"
+- 登录成功后自动返回原页面
+
+#### 视觉反馈
+- **已点赞状态**：心形图标显示为红色填充（`fill="currentColor"`, `text-red-500`）
+- **未点赞状态**：心形图标显示为灰色空心（`fill="none"`, `text-gray-400`）
+- **悬停效果**：鼠标悬停时图标变为红色（`hover:text-red-500`）
+
+### 前端实现逻辑
+
+```javascript
+// 点赞/取消点赞切换逻辑
+const handleLike = async () => {
+  // 检查登录状态
+  if (!isLoggedIn.value) {
+    router.push({
+      path: '/login',
+      query: {
+        redirect: route.fullPath,
+        message: '请先登录后再点赞'
+      }
+    })
+    return
+  }
+
+  try {
+    let response
+    if (post.value.isLiked) {
+      // 已点赞，取消点赞
+      response = await unlikePost(post.value.id)
+    } else {
+      // 未点赞，点赞
+      response = await likePost(post.value.id)
+    }
+
+    // 更新本地状态
+    post.value.likeCount = response.likeCount
+    post.value.isLiked = response.isLiked
+  } catch (error) {
+    console.error('点赞操作失败:', error)
+  }
+}
+```
+
+### 前端数据流
+
+1. **页面加载**：Home.vue 获取文章列表时，后端返回包含 `likeCount` 和 `isLiked` 字段
+2. **状态显示**：PostCard/PostDetail 根据 `isLiked` 显示对应的视觉效果
+3. **用户操作**：用户点击点赞按钮
+4. **权限验证**：检查用户登录状态，未登录则跳转
+5. **API 调用**：调用 `likePost` 或 `unlikePost` API
+6. **状态更新**：使用后端响应更新本地状态（`likeCount`、`isLiked`）
+7. **UI 更新**：Vue 响应式系统自动更新 UI
+
+### 技术特点
+
+- **响应式更新**：使用 Vue 3 Composition API，状态变化自动反映到 UI
+- **事件通信**：PostCard 通过 `emit` 向父组件通知点赞状态变化
+- **统一错误处理**：使用 axios 拦截器统一处理 401 错误并跳转登录
+- **用户体验优化**：未登录用户可以看到点赞数，点击时给予友好提示
+
 ## 常见问题
 
 ### Q: 用户可以重复点赞吗？
@@ -197,3 +300,9 @@ A: 会的。外键约束设置了 CASCADE 删除。
 
 ### Q: 删除用户时点赞记录会被删除吗？
 A: 会的。外键约束设置了 CASCADE 删除。
+
+### Q: 点赞状态在页面刷新后会保持吗？
+A: 会的。点赞状态存储在数据库中，刷新页面后会从后端重新获取。
+
+### Q: 在列表页点赞后，进入详情页状态是否一致？
+A: 是的。点赞状态由后端统一管理，前端每次都从后端获取最新状态。
