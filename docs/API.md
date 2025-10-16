@@ -192,9 +192,13 @@ Content-Type: application/json
   "content": "文章内容",
   "contentType": "MARKDOWN",
   "authorUsername": "testuser",
+  "authorAvatarUrl": "/uploads/1/avatars/abc123.jpg",
   "createdAt": "2025-10-14T10:30:00",
   "updatedAt": null,
-  "draft": false
+  "publishedAt": "2025-10-14T10:30:00",
+  "draft": false,
+  "likeCount": 0,
+  "isLiked": false
 }
 ```
 
@@ -223,8 +227,12 @@ GET /api/posts?page=0&size=10&sort=createdAt,desc
       "content": "文章内容",
       "contentType": "MARKDOWN",
       "authorUsername": "testuser",
+      "authorAvatarUrl": "/uploads/1/avatars/abc123.jpg",
       "createdAt": "2025-10-14T10:30:00",
-      "draft": false
+      "publishedAt": "2025-10-14T10:30:00",
+      "draft": false,
+      "likeCount": 10,
+      "isLiked": false
     }
   ],
   "totalPages": 5,
@@ -265,9 +273,13 @@ GET /api/posts/{id}
   "content": "文章内容",
   "contentType": "MARKDOWN",
   "authorUsername": "testuser",
+  "authorAvatarUrl": "/uploads/1/avatars/abc123.jpg",
   "createdAt": "2025-10-14T10:30:00",
   "updatedAt": null,
-  "draft": false
+  "publishedAt": "2025-10-14T10:30:00",
+  "draft": false,
+  "likeCount": 10,
+  "isLiked": false
 }
 ```
 
@@ -373,6 +385,87 @@ Content-Type: multipart/form-data
 
 **说明:** 旧头像文件会被自动删除。
 
+## 点赞相关接口
+
+### 点赞文章
+
+给文章点赞。如果已经点赞，则不会重复添加。
+
+```http
+POST /api/posts/{postId}/likes
+Authorization: Bearer {token}
+```
+
+**路径参数:**
+- `postId`: 文章ID
+
+**成功响应:** `200 OK`
+```json
+{
+  "likeCount": 5,
+  "isLiked": true
+}
+```
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `404 Not Found` - 文章不存在
+
+---
+
+### 取消点赞
+
+取消对文章的点赞。如果未点赞，则不会有任何影响。
+
+```http
+DELETE /api/posts/{postId}/likes
+Authorization: Bearer {token}
+```
+
+**路径参数:**
+- `postId`: 文章ID
+
+**成功响应:** `200 OK`
+```json
+{
+  "likeCount": 4,
+  "isLiked": false
+}
+```
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `404 Not Found` - 文章不存在
+
+---
+
+### 获取点赞信息
+
+获取文章的点赞数量和当前用户的点赞状态。
+
+```http
+GET /api/posts/{postId}/likes
+```
+
+**路径参数:**
+- `postId`: 文章ID
+
+**成功响应:** `200 OK`
+```json
+{
+  "likeCount": 5,
+  "isLiked": true
+}
+```
+
+**说明:**
+- 匿名用户可以访问此接口查看点赞数量
+- 对于匿名用户，`isLiked` 始终为 `false`
+- 登录用户可以看到自己是否已点赞
+
+**错误响应:**
+- `404 Not Found` - 文章不存在
+
 ## 错误码说明
 
 | 状态码 | 说明 |
@@ -440,4 +533,28 @@ Content-Type: multipart/form-data
 2. **查看文章列表**
    ```bash
    curl -X GET http://localhost:8080/api/posts?page=0&size=10
+   ```
+
+### 完整的点赞流程
+
+1. **查看文章的点赞信息**
+   ```bash
+   curl -X GET http://localhost:8080/api/posts/1/likes
+   ```
+
+2. **点赞文章（需要登录）**
+   ```bash
+   curl -X POST http://localhost:8080/api/posts/1/likes \
+     -H "Authorization: Bearer {token}"
+   ```
+
+3. **取消点赞（需要登录）**
+   ```bash
+   curl -X DELETE http://localhost:8080/api/posts/1/likes \
+     -H "Authorization: Bearer {token}"
+   ```
+
+4. **再次查看点赞信息**
+   ```bash
+   curl -X GET http://localhost:8080/api/posts/1/likes
    ```
