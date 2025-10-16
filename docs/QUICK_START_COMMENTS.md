@@ -216,5 +216,4 @@ CREATE INDEX idx_comment_created_at ON comments(created_at);
 ---
 
 **版本**: v1.0  
-**最后更新**: 2025-10-16  
 **状态**: ✅ 生产就绪
