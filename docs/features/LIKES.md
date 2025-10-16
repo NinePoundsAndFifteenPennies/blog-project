@@ -102,17 +102,21 @@
 1. 验证用户身份（必须登录）
 2. 查找文章（不存在则抛出 404）
 3. 检查是否已点赞
-   - 如果已点赞，返回当前点赞数（不重复添加）
+   - 如果已点赞，返回当前点赞数（HTTP 200，幂等操作）
    - 如果未点赞，创建新的点赞记录
 4. 返回更新后的点赞数和状态
+
+**注意**：重复点赞返回 200 OK 是幂等设计，确保多次相同操作结果一致。
 
 ### 取消点赞流程
 1. 验证用户身份（必须登录）
 2. 查找文章（不存在则抛出 404）
 3. 检查是否已点赞
-   - 如果未点赞，返回当前点赞数（无需操作）
+   - 如果未点赞，返回当前点赞数（HTTP 200，幂等操作）
    - 如果已点赞，删除点赞记录
 4. 返回更新后的点赞数和状态
+
+**注意**：重复取消点赞返回 200 OK 是幂等设计，确保多次相同操作结果一致。
 
 ### 查询点赞信息流程
 1. 查找文章（不存在则抛出 404）
@@ -158,7 +162,7 @@
 
 ## 数据库迁移
 
-首次运行时，JPA 会自动创建 `likes` 表。如果需要手动创建，可以使用以下 SQL：
+首次运行时，JPA 会自动创建 `likes` 表。如果需要手动创建，可以使用以下 SQL（MySQL 语法）：
 
 ```sql
 CREATE TABLE likes (
@@ -171,8 +175,10 @@ CREATE TABLE likes (
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_post_id ON likes(post_id);
-CREATE INDEX idx_user_id ON likes(user_id);
+-- 注意：大多数数据库会自动为外键创建索引
+-- 以下索引创建仅在需要额外优化时使用
+-- CREATE INDEX idx_post_id ON likes(post_id);
+-- CREATE INDEX idx_user_id ON likes(user_id);
 ```
 
 ## 常见问题
