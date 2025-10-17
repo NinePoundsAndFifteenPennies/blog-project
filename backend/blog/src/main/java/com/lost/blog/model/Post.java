@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "posts", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"title", "user_id"}) // 修改约束：同一用户的标题可以重复，但不同用户间可以有相同标题
+        @UniqueConstraint(columnNames = {"title", "user_id"}) // 修改约束：同一用户的标题不可以重复，但不同用户间可以有相同标题
 })
 public class Post {
 
