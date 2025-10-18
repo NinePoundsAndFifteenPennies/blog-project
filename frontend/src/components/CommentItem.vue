@@ -173,7 +173,7 @@ export default {
     const isMarkdown = computed(() => {
       const content = props.comment.content || ''
       // Simple heuristic: check for common markdown patterns
-      return /[#*`\[\]_~]/.test(content)
+      return /[#*`[\]_~]/.test(content)
     })
 
     const renderedContent = computed(() => {

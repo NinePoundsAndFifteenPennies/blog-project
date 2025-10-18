@@ -217,10 +217,14 @@ export default {
 
     // 处理点赞变化
     const handleLikeChanged = ({ postId, likeCount, isLiked }) => {
-      const post = posts.value.find(p => p.id === postId)
-      if (post) {
-        post.likeCount = likeCount
-        post.isLiked = isLiked
+      const postIndex = posts.value.findIndex(p => p.id === postId)
+      if (postIndex !== -1) {
+        // Update the post object to ensure reactivity
+        posts.value[postIndex] = {
+          ...posts.value[postIndex],
+          likeCount,
+          isLiked
+        }
       }
     }
 
