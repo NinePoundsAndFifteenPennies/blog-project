@@ -83,10 +83,11 @@
           </button>
 
           <!-- 评论数图标 -->
-          <div class="flex items-center space-x-1 hover:text-primary-500 transition-colors" title="评论(功能开发中)">
+          <div class="flex items-center space-x-1 hover:text-primary-500 transition-colors" :title="`${post.commentCount || 0} 条评论`">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
             </svg>
+            <span>{{ post.commentCount || 0 }}</span>
           </div>
         </div>
       </div>
@@ -155,21 +156,33 @@ export default {
     }
 
     const displayDate = computed(() => {
-      const d = props.post?.updatedAt || props.post?.createdAt
+      // Prefer publishedAt, then updatedAt, then createdAt
+      const d = props.post?.publishedAt || props.post?.updatedAt || props.post?.createdAt
       return formatDate(d)
     })
 
     const dateLabel = computed(() => {
-      return props.post?.updatedAt ? '更新于' : '创建于'
+      if (props.post?.publishedAt && props.post?.updatedAt && props.post.publishedAt !== props.post.updatedAt) {
+        return '更新于'
+      } else if (props.post?.publishedAt) {
+        return '发布于'
+      }
+      return '创建于'
     })
 
     const titleAttr = computed(() => {
       const created = formatFullDate(props.post?.createdAt)
+      const published = formatFullDate(props.post?.publishedAt)
       const updated = formatFullDate(props.post?.updatedAt)
-      if (props.post?.updatedAt) {
-        return `创建：${created}\n更新：${updated}`
+      
+      let tooltip = `创建：${created}`
+      if (props.post?.publishedAt && props.post.publishedAt !== props.post.createdAt) {
+        tooltip += `\n发布：${published}`
       }
-      return `创建：${created}`
+      if (props.post?.updatedAt) {
+        tooltip += `\n更新：${updated}`
+      }
+      return tooltip
     })
 
     const goToDetail = () => {

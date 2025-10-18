@@ -44,6 +44,12 @@ const routes = [
     meta: { title: "个人中心", requiresAuth: true },
   },
   {
+    path: "/my-comments",
+    name: "MyComments",
+    component: () => import("@/views/MyComments.vue"),
+    meta: { title: "我的评论", requiresAuth: true },
+  },
+  {
     path: "/:pathMatch(.*)*",
     name: "NotFound",
     component: () => import("@/views/NotFound.vue"),
