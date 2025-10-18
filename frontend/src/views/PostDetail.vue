@@ -39,6 +39,7 @@
                     v-if="authorAvatarUrl && !avatarLoadError" 
                     :src="authorAvatarUrl" 
                     :alt="post.author.username || '匿名'"
+                    :key="authorAvatarUrl"
                     class="w-full h-full object-cover"
                     @error="handleAvatarError"
                     @load="handleAvatarLoad"
@@ -222,7 +223,13 @@ export default {
       return post.value?.authorUsername?.charAt(0).toUpperCase() || 'A'
     })
 
-    const authorAvatarUrl = computed(() => getFullAvatarUrl(post.value?.author?.avatarUrl))
+    // Use current user's avatar if author is current user, otherwise use post author's avatar
+    const authorAvatarUrl = computed(() => {
+      if (isAuthor.value && currentUser.value?.avatarUrl) {
+        return getFullAvatarUrl(currentUser.value.avatarUrl)
+      }
+      return getFullAvatarUrl(post.value?.author?.avatarUrl)
+    })
 
     // 处理头像加载错误
     const handleAvatarError = () => {
