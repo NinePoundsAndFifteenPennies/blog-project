@@ -182,12 +182,12 @@ export default {
     const comments = ref([])
     const newComment = ref('')
     const commentMode = ref('text') // 'text' or 'markdown'
-    const currentPage = ref(1)
     const totalPages = ref(1)
     const totalElements = ref(0)
     const initialPageSize = 10 // First load: 10 comments
     const pageSize = 20 // Subsequent loads: 20 comments
     const avatarLoadError = ref(false)
+    const loadedCount = ref(0) // Track how many comments have been loaded
 
     const currentUser = computed(() => store.getters.currentUser)
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
@@ -229,21 +229,39 @@ export default {
       }
       
       try {
-        // Use initialPageSize for first load, pageSize for subsequent loads
-        const size = (currentPage.value === 1 && !append) ? initialPageSize : pageSize
+        // Determine the size and page based on what we've loaded
+        let size, page
+        
+        if (!append) {
+          // Initial load: load first 10 comments (page 0)
+          size = initialPageSize
+          page = 0
+          loadedCount.value = 0
+        } else {
+          // Load more: always load 20 comments
+          size = pageSize
+          // Calculate which page to load based on how many we've loaded
+          // If we've loaded 10, we need to load page starting at index 10
+          page = Math.floor(loadedCount.value / size)
+        }
         
         const response = await getPostComments(props.postId, {
-          page: currentPage.value - 1,
+          page: page,
           size: size
         })
 
+        const newComments = response.content || []
+
         if (append) {
           // Append to existing comments for "load more"
-          comments.value = [...comments.value, ...(response.content || [])]
+          comments.value = [...comments.value, ...newComments]
         } else {
           // Replace comments for initial load
-          comments.value = response.content || []
+          comments.value = newComments
         }
+        
+        // Update loaded count
+        loadedCount.value = comments.value.length
         
         totalPages.value = response.totalPages || 1
         totalElements.value = response.totalElements || 0
@@ -253,6 +271,7 @@ export default {
         console.error('加载评论失败:', error)
         if (!append) {
           comments.value = []
+          loadedCount.value = 0
         }
       } finally {
         loading.value = false
@@ -262,7 +281,6 @@ export default {
 
     const loadMore = async () => {
       if (loadingMore.value || !hasMore.value) return
-      currentPage.value++
       await loadComments(true)
     }
 
@@ -275,8 +293,8 @@ export default {
         newComment.value = ''
         commentMode.value = 'text'
         
-        // Reload comments (go to first page)
-        currentPage.value = 1
+        // Reload comments (reset to initial state)
+        loadedCount.value = 0
         await loadComments()
       } catch (error) {
         console.error('发表评论失败:', error)
@@ -300,11 +318,12 @@ export default {
     const handleCommentDeleted = (commentId) => {
       comments.value = comments.value.filter(c => c.id !== commentId)
       totalElements.value = Math.max(0, totalElements.value - 1)
+      loadedCount.value = comments.value.length
       emit('comment-count-changed', totalElements.value)
       
       // Reload if current page is empty and not the first page
-      if (comments.value.length === 0 && currentPage.value > 1) {
-        currentPage.value--
+      if (comments.value.length === 0 && loadedCount.value > 0) {
+        loadedCount.value = 0
         loadComments()
       }
     }
@@ -352,7 +371,6 @@ export default {
       comments,
       newComment,
       commentMode,
-      currentPage,
       totalPages,
       totalElements,
       hasMore,
