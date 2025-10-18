@@ -125,6 +125,18 @@
                 </span>
                 <div v-if="activeTab === 'drafts'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-primary"></div>
               </button>
+              <button
+                  :class="['px-8 py-4 font-semibold transition-all duration-200 relative', 
+                    activeTab === 'comments' ? 'text-primary-600' : 'text-gray-600 hover:text-gray-900']"
+                  @click="activeTab = 'comments'"
+              >
+                <span>我的评论</span>
+                <span class="ml-2 px-2.5 py-0.5 text-xs font-bold rounded-full" 
+                      :class="activeTab === 'comments' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'">
+                  {{ userStats.comments }}
+                </span>
+                <div v-if="activeTab === 'comments'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-primary"></div>
+              </button>
             </div>
           </div>
 
@@ -135,7 +147,7 @@
           </div>
 
           <!-- Posts List -->
-          <div v-else-if="visibleList.length" class="space-y-4 animate-slide-up" style="animation-delay: 0.2s;">
+          <div v-if="activeTab !== 'comments' && visibleList.length" class="space-y-4 animate-slide-up" style="animation-delay: 0.2s;">
             <div
                 v-for="post in visibleList"
                 :key="post.id"
@@ -177,6 +189,22 @@
                       更新: {{ formatDate(post.updatedAt) }}
                     </span>
                   </div>
+
+                  <!-- Stats -->
+                  <div class="flex items-center space-x-6 mt-3 text-sm">
+                    <span class="flex items-center text-red-500" :title="`${post.likeCount || 0} 个点赞`">
+                      <svg class="w-4 h-4 mr-1.5" :fill="post.likeCount > 0 ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                      {{ post.likeCount || 0 }}
+                    </span>
+                    <span class="flex items-center text-primary-500" :title="`${post.commentCount || 0} 条评论`">
+                      <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                      </svg>
+                      {{ post.commentCount || 0 }}
+                    </span>
+                  </div>
                 </div>
 
                 <div class="flex items-center space-x-2 ml-6">
@@ -203,25 +231,85 @@
             </div>
           </div>
 
+          <!-- Comments List -->
+          <div v-else-if="activeTab === 'comments' && comments.length" class="space-y-4 animate-slide-up" style="animation-delay: 0.2s;">
+            <div
+                v-for="comment in comments"
+                :key="comment.id"
+                class="card p-6 hover:shadow-glow transition-all duration-300 group backdrop-blur-sm bg-white/90"
+            >
+              <div class="flex items-start space-x-4">
+                <div class="flex-1">
+                  <!-- Comment Content -->
+                  <div class="text-gray-700 mb-3 line-clamp-3">{{ comment.content }}</div>
+
+                  <!-- Post Link -->
+                  <router-link
+                      :to="`/post/${comment.postId}`"
+                      class="text-sm text-primary-600 hover:text-primary-700 flex items-center space-x-1 mb-2"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span class="truncate">{{ comment.postTitle }}</span>
+                  </router-link>
+
+                  <!-- Comment Stats -->
+                  <div class="flex items-center space-x-6 text-sm text-gray-500">
+                    <span class="flex items-center">
+                      <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {{ formatCommentDate(comment.createdAt) }}
+                    </span>
+                    <span v-if="comment.updatedAt" class="text-xs text-gray-400">(已编辑)</span>
+                    <span class="flex items-center text-red-500">
+                      <svg class="w-4 h-4 mr-1.5" :fill="comment.likeCount > 0 ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                      {{ comment.likeCount || 0 }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Empty State -->
           <div v-else class="card p-16 text-center backdrop-blur-sm bg-white/90 animate-scale-in">
             <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-primary-100 to-purple-100 mb-6 animate-float">
               <svg class="w-12 h-12 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <path v-if="activeTab === 'comments'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
             <h3 class="text-2xl font-bold text-gray-700 mb-3">
-              {{ activeTab === 'drafts' ? '草稿箱为空' : '还没有发布文章' }}
+              {{ activeTab === 'comments' ? '还没有评论' : activeTab === 'drafts' ? '草稿箱为空' : '还没有发布文章' }}
             </h3>
             <p class="text-gray-500 mb-8 text-lg">
-              {{ activeTab === 'drafts' ? '你还没有草稿，去创作第一篇草稿吧！' : '开始创作你的第一篇文章吧!' }}
+              {{ activeTab === 'comments' ? '去文章下面发表你的第一条评论吧！' : activeTab === 'drafts' ? '你还没有草稿，去创作第一篇草稿吧！' : '开始创作你的第一篇文章吧!' }}
             </p>
-            <router-link to="/post/create" class="btn-primary inline-flex items-center space-x-2">
+            <router-link v-if="activeTab !== 'comments'" to="/post/create" class="btn-primary inline-flex items-center space-x-2">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
               </svg>
               <span>创建文章</span>
             </router-link>
+            <router-link v-else to="/" class="btn-primary inline-flex items-center space-x-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              <span>浏览文章</span>
+            </router-link>
+          </div>
+
+          <!-- Pagination -->
+          <div v-if="totalPages > 1" class="mt-8">
+            <Pagination
+                :current-page="currentPage"
+                :total-pages="totalPages"
+                @page-change="handlePageChange"
+            />
           </div>
         </div>
       </div>
@@ -230,21 +318,28 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import Header from '@/components/Header.vue'
+import Pagination from '@/components/Pagination.vue'
 import { getMyPosts, deletePost } from '@/api/posts'
+import { getMyComments } from '@/api/comments'
 import { uploadAvatar, updateAvatar, saveUserAvatar } from '@/api/files'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'Profile',
-  components: { Header },
+  components: { Header, Pagination },
   setup() {
     const store = useStore()
     const loading = ref(false)
     const posts = ref([])
+    const comments = ref([])
     const activeTab = ref('posts')
+    const currentPage = ref(1)
+    const totalPages = ref(1)
+    const totalElements = ref(0)
+    const pageSize = 10
     const fileInput = ref(null)
     const uploadingAvatar = ref(false)
     const avatarLoadError = ref(false)
@@ -253,7 +348,7 @@ export default {
     const userInitial = computed(() => currentUser.value?.username?.charAt(0).toUpperCase() || 'U')
     const userAvatarUrl = computed(() => getFullAvatarUrl(currentUser.value?.avatarUrl))
 
-    const userStats = reactive({ posts: 0, drafts: 0 })
+    const userStats = reactive({ posts: 0, drafts: 0, comments: 0 })
 
     const formatDate = (str) => {
       if (!str) return ''
@@ -261,11 +356,33 @@ export default {
       return date.toLocaleString('zh-CN', { hour12: false })
     }
 
+    const formatCommentDate = (str) => {
+      if (!str) return ''
+      const date = new Date(str)
+      const now = new Date()
+      const diff = now - date
+      const minutes = Math.floor(diff / (1000 * 60))
+      const hours = Math.floor(diff / (1000 * 60 * 60))
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+
+      if (minutes < 1) return '刚刚'
+      if (minutes < 60) return `${minutes}分钟前`
+      if (hours < 24) return `${hours}小时前`
+      if (days < 7) return `${days}天前`
+      if (days < 30) return `${Math.floor(days / 7)}周前`
+      if (days < 365) return `${Math.floor(days / 30)}个月前`
+
+      return date.toLocaleDateString('zh-CN')
+    }
+
     const loadPosts = async () => {
       if (!currentUser.value) return
       loading.value = true
       try {
-        const res = await getMyPosts({ page: 0, size: 100 })
+        const res = await getMyPosts({ 
+          page: currentPage.value - 1, 
+          size: pageSize 
+        })
         const myPosts = res.content || []
 
         posts.value = myPosts.map(p => ({
@@ -273,12 +390,46 @@ export default {
           summary: p.content?.replace(/[#*`\n]/g, '').slice(0, 100) || ''
         }))
 
-        userStats.drafts = posts.value.filter(p => p.draft).length
-        userStats.posts = posts.value.filter(p => !p.draft).length
+        totalPages.value = res.totalPages || 1
+        totalElements.value = res.totalElements || 0
+        
+        // Update stats - we need to fetch total counts separately or store them
+        // For now, just use the filtered counts from all loaded data
+        userStats.posts = myPosts.filter(p => !p.draft).length
+        userStats.drafts = myPosts.filter(p => p.draft).length
       } catch (e) {
         console.error('加载失败:', e)
       } finally {
         loading.value = false
+      }
+    }
+
+    const loadComments = async () => {
+      if (!currentUser.value) return
+      loading.value = true
+      try {
+        const res = await getMyComments({ 
+          page: currentPage.value - 1, 
+          size: pageSize 
+        })
+        
+        comments.value = res.content || []
+        totalPages.value = res.totalPages || 1
+        totalElements.value = res.totalElements || 0
+        userStats.comments = res.totalElements || 0
+      } catch (e) {
+        console.error('加载评论失败:', e)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    const loadData = () => {
+      currentPage.value = 1
+      if (activeTab.value === 'comments') {
+        loadComments()
+      } else {
+        loadPosts()
       }
     }
 
@@ -370,23 +521,56 @@ export default {
       }
     }
 
-    const visibleList = computed(() =>
-        activeTab.value === 'drafts' ? posts.value.filter(p => p.draft) : posts.value.filter(p => !p.draft)
-    )
+    const visibleList = computed(() => {
+      if (activeTab.value === 'comments') {
+        return []
+      }
+      return activeTab.value === 'drafts' 
+        ? posts.value.filter(p => p.draft) 
+        : posts.value.filter(p => !p.draft)
+    })
 
-    onMounted(loadPosts)
+    const handlePageChange = (page) => {
+      currentPage.value = page
+      if (activeTab.value === 'comments') {
+        loadComments()
+      } else {
+        loadPosts()
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
+    // Watch for tab changes
+    watch(activeTab, () => {
+      loadData()
+    })
+
+    onMounted(() => {
+      loadPosts()
+      // Load comment count for the badge
+      getMyComments({ page: 0, size: 1 }).then(res => {
+        userStats.comments = res.totalElements || 0
+      }).catch(() => {
+        userStats.comments = 0
+      })
+    })
 
     return { 
       loading, 
-      posts, 
+      posts,
+      comments,
       userStats, 
       currentUser, 
       userInitial,
       userAvatarUrl,
-      formatDate, 
+      formatDate,
+      formatCommentDate,
       handleDelete, 
       activeTab, 
       visibleList,
+      currentPage,
+      totalPages,
+      handlePageChange,
       fileInput,
       uploadingAvatar,
       avatarLoadError,
@@ -403,6 +587,13 @@ export default {
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
