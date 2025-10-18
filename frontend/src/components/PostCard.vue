@@ -37,9 +37,10 @@
             class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-gradient-primary"
           >
             <img 
-              v-if="post.author?.avatarUrl && !avatarLoadError" 
-              :src="post.author.avatarUrl" 
+              v-if="displayAvatarUrl && !avatarLoadError" 
+              :src="displayAvatarUrl" 
               :alt="post.author.username"
+              :key="displayAvatarUrl"
               class="w-full h-full object-cover"
               @error="handleAvatarError"
               @load="handleAvatarLoad"
@@ -100,6 +101,7 @@ import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { likePost, unlikePost } from '@/api/likes'
 import { ref, reactive, computed, onMounted, watch } from 'vue' // 1. 导入 watch
+import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'PostCard',
@@ -114,10 +116,27 @@ export default {
     const router = useRouter()
     const store = useStore()
     const avatarLoadError = ref(false)
-    watch(() => props.post.author?.avatarUrl, () => {
+    
+    const isLoggedIn = computed(() => store.getters.isLoggedIn)
+    const currentUser = computed(() => store.getters.currentUser)
+    
+    // Check if the post author is the current user
+    const isCurrentUser = computed(() => {
+      return currentUser.value?.username === props.post.author?.username
+    })
+    
+    // Use current user's avatar if author is current user, otherwise use post author's avatar
+    const displayAvatarUrl = computed(() => {
+      if (isCurrentUser.value && currentUser.value?.avatarUrl) {
+        return getFullAvatarUrl(currentUser.value.avatarUrl)
+      }
+      return props.post.author?.avatarUrl
+    })
+    
+    // Reset avatar error when avatar URL changes
+    watch(displayAvatarUrl, () => {
       avatarLoadError.value = false
     })
-    const isLoggedIn = computed(() => store.getters.isLoggedIn)
 
     const authorInitial = computed(() => {
       const name = props.post.author?.username || ''
@@ -234,6 +253,7 @@ export default {
     return {
       authorInitial,
       avatarLoadError,
+      displayAvatarUrl,
       formatDate,
       displayDate,
       dateLabel,
