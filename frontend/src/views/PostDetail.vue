@@ -352,7 +352,7 @@ export default {
 
         // 更新本地状态
         post.value.likeCount = response.likeCount
-        post.value.isLiked = response.isLiked
+        post.value.isLiked = response.liked
       } catch (error) {
         console.error('点赞操作失败:', error)
         // 可以添加用户提示

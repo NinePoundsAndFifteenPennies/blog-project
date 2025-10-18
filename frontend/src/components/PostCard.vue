@@ -221,7 +221,7 @@ export default {
         emit('like-changed', {
           postId: props.post.id,
           likeCount: response.likeCount,
-          isLiked: response.isLiked
+          isLiked: response.liked
         })
       } catch (error) {
         console.error('点赞操作失败:', error)
