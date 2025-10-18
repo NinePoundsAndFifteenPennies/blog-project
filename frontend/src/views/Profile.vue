@@ -238,10 +238,35 @@
                 :key="comment.id"
                 class="card p-6 hover:shadow-glow transition-all duration-300 group backdrop-blur-sm bg-white/90"
             >
-              <div class="flex items-start space-x-4">
+              <div class="flex items-start justify-between">
                 <div class="flex-1">
                   <!-- Comment Content -->
-                  <div class="text-gray-700 mb-3 line-clamp-3">{{ comment.content }}</div>
+                  <div v-if="!comment.isEditing" class="text-gray-700 mb-3 line-clamp-3">{{ comment.content }}</div>
+                  
+                  <!-- Edit Mode -->
+                  <div v-else class="mb-3">
+                    <textarea
+                      v-model="comment.editContent"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                      rows="4"
+                      placeholder="输入评论内容..."
+                    ></textarea>
+                    <div class="flex items-center justify-end space-x-2 mt-2">
+                      <button
+                        @click="cancelEditComment(comment)"
+                        class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        取消
+                      </button>
+                      <button
+                        @click="saveEditComment(comment)"
+                        class="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        :disabled="!comment.editContent || !comment.editContent.trim()"
+                      >
+                        保存
+                      </button>
+                    </div>
+                  </div>
 
                   <!-- Post Link -->
                   <router-link
@@ -270,6 +295,28 @@
                       {{ comment.likeCount || 0 }}
                     </span>
                   </div>
+                </div>
+
+                <!-- Edit/Delete Actions -->
+                <div v-if="!comment.isEditing" class="flex items-center space-x-2 ml-4">
+                  <button
+                      @click="startEditComment(comment)"
+                      class="p-3 text-gray-600 hover:text-primary-600 hover:bg-gradient-to-br hover:from-primary-50 hover:to-purple-50 rounded-xl transition-all duration-200 transform hover:scale-110"
+                      title="编辑评论"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                      @click="handleDeleteComment(comment.id)"
+                      class="p-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 transform hover:scale-110"
+                      title="删除评论"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
                 </div>
               </div>
             </div>
@@ -323,7 +370,7 @@ import { useStore } from 'vuex'
 import Header from '@/components/Header.vue'
 import Pagination from '@/components/Pagination.vue'
 import { getMyPosts, deletePost } from '@/api/posts'
-import { getMyComments } from '@/api/comments'
+import { getMyComments, updateComment, deleteComment } from '@/api/comments'
 import { uploadAvatar, updateAvatar, saveUserAvatar } from '@/api/files'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
@@ -375,7 +422,7 @@ export default {
       return date.toLocaleDateString('zh-CN')
     }
 
-    const loadPosts = async () => {
+    const loadPosts = async (updateStats = false) => {
       if (!currentUser.value) return
       loading.value = true
       try {
@@ -393,10 +440,18 @@ export default {
         totalPages.value = res.totalPages || 1
         totalElements.value = res.totalElements || 0
         
-        // Update stats - we need to fetch total counts separately or store them
-        // For now, just use the filtered counts from all loaded data
-        userStats.posts = myPosts.filter(p => !p.draft).length
-        userStats.drafts = myPosts.filter(p => p.draft).length
+        // Update stats only when explicitly requested or on first load
+        if (updateStats) {
+          // Load total counts by fetching first page with large size to get accurate counts
+          try {
+            const statsRes = await getMyPosts({ page: 0, size: 100 })
+            const allPosts = statsRes.content || []
+            userStats.posts = allPosts.filter(p => !p.draft).length
+            userStats.drafts = allPosts.filter(p => p.draft).length
+          } catch (e) {
+            console.error('加载统计失败:', e)
+          }
+        }
       } catch (e) {
         console.error('加载失败:', e)
       } finally {
@@ -429,7 +484,7 @@ export default {
       if (activeTab.value === 'comments') {
         loadComments()
       } else {
-        loadPosts()
+        loadPosts(false)
       }
     }
 
@@ -437,9 +492,8 @@ export default {
       if (!confirm('确定删除该文章吗？')) return
       try {
         await deletePost(id)
-        posts.value = posts.value.filter(p => p.id !== id)
-        userStats.drafts = posts.value.filter(p => p.draft).length
-        userStats.posts = posts.value.filter(p => !p.draft).length
+        // Reload current page to update the list and stats
+        await loadPosts(true)
         alert('删除成功')
       } catch (e) {
         console.error(e)
@@ -530,6 +584,59 @@ export default {
         : posts.value.filter(p => !p.draft)
     })
 
+    // Comment edit/delete functions
+    const startEditComment = (comment) => {
+      comment.isEditing = true
+      comment.editContent = comment.content
+    }
+
+    const cancelEditComment = (comment) => {
+      comment.isEditing = false
+      comment.editContent = ''
+    }
+
+    const saveEditComment = async (comment) => {
+      if (!comment.editContent || !comment.editContent.trim()) return
+      
+      try {
+        const response = await updateComment(comment.id, comment.editContent)
+        // Update the comment in the list
+        const index = comments.value.findIndex(c => c.id === comment.id)
+        if (index !== -1) {
+          comments.value[index] = {
+            ...response,
+            isEditing: false,
+            editContent: ''
+          }
+        }
+        alert('评论更新成功')
+      } catch (error) {
+        console.error('更新评论失败:', error)
+        alert('更新评论失败，请稍后重试')
+      }
+    }
+
+    const handleDeleteComment = async (commentId) => {
+      if (!confirm('确定要删除这条评论吗？')) return
+      
+      try {
+        await deleteComment(commentId)
+        comments.value = comments.value.filter(c => c.id !== commentId)
+        userStats.comments = Math.max(0, userStats.comments - 1)
+        totalElements.value = Math.max(0, totalElements.value - 1)
+        alert('评论删除成功')
+        
+        // Reload if current page is empty and not the first page
+        if (comments.value.length === 0 && currentPage.value > 1) {
+          currentPage.value--
+          loadComments()
+        }
+      } catch (error) {
+        console.error('删除评论失败:', error)
+        alert('删除评论失败，请稍后重试')
+      }
+    }
+
     const handlePageChange = (page) => {
       currentPage.value = page
       if (activeTab.value === 'comments') {
@@ -546,7 +653,7 @@ export default {
     })
 
     onMounted(() => {
-      loadPosts()
+      loadPosts(true) // Load posts with stats update on mount
       // Load comment count for the badge
       getMyComments({ page: 0, size: 1 }).then(res => {
         userStats.comments = res.totalElements || 0
@@ -565,7 +672,11 @@ export default {
       userAvatarUrl,
       formatDate,
       formatCommentDate,
-      handleDelete, 
+      handleDelete,
+      startEditComment,
+      cancelEditComment,
+      saveEditComment,
+      handleDeleteComment,
       activeTab, 
       visibleList,
       currentPage,
