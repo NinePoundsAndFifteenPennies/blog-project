@@ -48,17 +48,17 @@
                 <div>
                   <p class="font-bold text-lg text-gray-900">{{ post.author?.username || '匿名' }}</p>
                   <div class="flex items-center space-x-4 text-sm text-gray-500">
-                    <span class="flex items-center">
+                    <span class="flex items-center" :title="`创建时间: ${formatFullDate(post.createdAt)}`">
                       <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      {{ formatDate(post.createdAt) }}
+                      发布于 {{ formatDate(post.publishedAt || post.createdAt) }}
                     </span>
-                    <span class="flex items-center">
+                    <span v-if="post.updatedAt" class="flex items-center" :title="`更新时间: ${formatFullDate(post.updatedAt)}`">
                       <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
-                      阅读时间 5 分钟
+                      更新于 {{ formatDate(post.updatedAt) }}
                     </span>
                   </div>
                 </div>
@@ -114,13 +114,13 @@
                 <span class="font-medium">{{ post.isLiked ? '已点赞' : '点赞' }} ({{ post.likeCount || 0 }})</span>
               </button>
 
-              <!-- Comment Button (暂未实现) -->
-              <button class="flex items-center space-x-2 hover:text-primary-500 transition-colors cursor-not-allowed" title="评论功能开发中">
+              <!-- Comment Count -->
+              <div class="flex items-center space-x-2 text-gray-400">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                 </svg>
-                <span class="font-medium">评论</span>
-              </button>
+                <span class="font-medium">评论 ({{ commentCount }})</span>
+              </div>
             </div>
 
             <!-- Share Button (暂未实现) -->
@@ -130,6 +130,17 @@
               </svg>
               <span>分享</span>
             </button>
+          </div>
+
+          <!-- Comment Section -->
+          <div class="mt-8 animate-slide-up" style="animation-delay: 0.4s;">
+            <CommentList
+              v-if="post"
+              :post-id="post.id"
+              :post-author-username="post.authorUsername"
+              :is-draft="post.draft"
+              @comment-count-changed="handleCommentCountChanged"
+            />
           </div>
         </div>
       </div>
@@ -179,6 +190,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { marked } from 'marked'
 import Header from '@/components/Header.vue'
+import CommentList from '@/components/CommentList.vue'
 import { getPostById, deletePost } from '@/api/posts'
 import { likePost, unlikePost } from '@/api/likes'
 import { getFullAvatarUrl } from '@/utils/avatar'
@@ -186,7 +198,8 @@ import { getFullAvatarUrl } from '@/utils/avatar'
 export default {
   name: 'PostDetail',
   components: {
-    Header
+    Header,
+    CommentList
   },
   setup() {
     const route = useRoute()
@@ -197,6 +210,7 @@ export default {
     const post = ref(null)
     const showBackToTop = ref(false)
     const avatarLoadError = ref(false)
+    const commentCount = ref(0)
 
     const currentUser = computed(() => store.getters.currentUser)
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
@@ -229,11 +243,37 @@ export default {
     const formatDate = (dateString) => {
       if (!dateString) return ''
       const date = new Date(dateString)
+      const now = new Date()
+      const diff = now - date
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+
+      if (days === 0) return '今天'
+      if (days === 1) return '昨天'
+      if (days < 7) return `${days}天前`
+      if (days < 30) return `${Math.floor(days / 7)}周前`
+      if (days < 365) return `${Math.floor(days / 30)}个月前`
+
       return date.toLocaleDateString('zh-CN', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
       })
+    }
+
+    const formatFullDate = (dateString) => {
+      if (!dateString) return ''
+      try {
+        return new Date(dateString).toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        })
+      } catch (e) {
+        return dateString
+      }
     }
 
     // 加载文章详情
@@ -256,9 +296,13 @@ export default {
           },
           createdAt: response.createdAt,
           updatedAt: response.updatedAt,
+          publishedAt: response.publishedAt,
+          draft: response.draft || false,
           likeCount: response.likeCount || 0,  // 从后端获取点赞数
           isLiked: response.isLiked || false   // 从后端获取是否已点赞
         }
+        
+        commentCount.value = response.commentCount || 0
       } catch (error) {
         console.error('加载文章失败:', error)
         post.value = null
@@ -325,6 +369,10 @@ export default {
       showBackToTop.value = window.scrollY > 300
     }
 
+    const handleCommentCountChanged = (count) => {
+      commentCount.value = count
+    }
+
     onMounted(() => {
       loadPost()
       window.addEventListener('scroll', handleScroll)
@@ -343,12 +391,15 @@ export default {
       avatarLoadError,
       renderedContent,
       showBackToTop,
+      commentCount,
       formatDate,
+      formatFullDate,
       handleDelete,
       handleLike,
       scrollToTop,
       handleAvatarError,
-      handleAvatarLoad
+      handleAvatarLoad,
+      handleCommentCountChanged
     }
   }
 }
