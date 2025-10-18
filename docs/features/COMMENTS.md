@@ -103,20 +103,20 @@
 - **方法**: POST
 - **路径**: `/api/comments/{commentId}/likes`
 - **认证**: 需要
-- **响应**: `{ "likeCount": 5, "isLiked": true }`
+- **响应**: `{ "likeCount": 5, "liked": true }`
 
 ### 7. 取消点赞评论
 - **方法**: DELETE
 - **路径**: `/api/comments/{commentId}/likes`
 - **认证**: 需要
-- **响应**: `{ "likeCount": 4, "isLiked": false }`
+- **响应**: `{ "likeCount": 4, "liked": false }`
 
 ### 8. 获取评论点赞信息
 - **方法**: GET
 - **路径**: `/api/comments/{commentId}/likes`
 - **认证**: 不需要（匿名用户可访问）
-- **响应**: `{ "likeCount": 5, "isLiked": false }`
-- **说明**: 匿名用户的 `isLiked` 始终为 `false`
+- **响应**: `{ "likeCount": 5, "liked": false }`
+- **说明**: 匿名用户的 `liked` 始终为 `false`
 
 ## 实现细节
 
