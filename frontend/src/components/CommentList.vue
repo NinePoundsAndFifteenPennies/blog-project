@@ -185,7 +185,6 @@ export default {
     const totalPages = ref(1)
     const totalElements = ref(0)
     const initialPageSize = 10 // First load: 10 comments
-    const pageSize = 20 // Subsequent loads: 20 comments
     const avatarLoadError = ref(false)
     const loadedCount = ref(0) // Track how many comments have been loaded
 
@@ -229,42 +228,44 @@ export default {
       }
       
       try {
-        // Determine the size and page based on what we've loaded
-        let size, page
-        
         if (!append) {
-          // Initial load: load first 10 comments (page 0)
-          size = initialPageSize
-          page = 0
+          // Initial load: load first 10 comments (page 0, size 10)
           loadedCount.value = 0
+          const response = await getPostComments(props.postId, {
+            page: 0,
+            size: initialPageSize
+          })
+
+          comments.value = response.content || []
+          loadedCount.value = comments.value.length
+          totalPages.value = response.totalPages || 1
+          totalElements.value = response.totalElements || 0
         } else {
-          // Load more: always load 20 comments
-          size = pageSize
-          // Calculate which page to load based on how many we've loaded
-          // If we've loaded 10, we need to load page starting at index 10
-          page = Math.floor(loadedCount.value / size)
-        }
-        
-        const response = await getPostComments(props.postId, {
-          page: page,
-          size: size
-        })
-
-        const newComments = response.content || []
-
-        if (append) {
-          // Append to existing comments for "load more"
+          // Load more: load next 20 comments by making 2 requests of 10 each
+          const startPage = Math.floor(loadedCount.value / 10)
+          const newComments = []
+          
+          // Request 2 pages of 10 items each to get 20 items
+          for (let i = 0; i < 2; i++) {
+            const page = startPage + i
+            // Check if we've reached the end
+            if (page * 10 >= totalElements.value) break
+            
+            const response = await getPostComments(props.postId, {
+              page: page,
+              size: 10
+            })
+            
+            if (response.content && response.content.length > 0) {
+              newComments.push(...response.content)
+              totalPages.value = response.totalPages || 1
+              totalElements.value = response.totalElements || 0
+            }
+          }
+          
           comments.value = [...comments.value, ...newComments]
-        } else {
-          // Replace comments for initial load
-          comments.value = newComments
+          loadedCount.value = comments.value.length
         }
-        
-        // Update loaded count
-        loadedCount.value = comments.value.length
-        
-        totalPages.value = response.totalPages || 1
-        totalElements.value = response.totalElements || 0
 
         emit('comment-count-changed', totalElements.value)
       } catch (error) {
