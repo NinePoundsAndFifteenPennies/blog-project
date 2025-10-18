@@ -100,7 +100,7 @@
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { likePost, unlikePost } from '@/api/likes'
-import { ref, reactive, computed, onMounted, watch } from 'vue' // 1. 导入 watch
+import { ref, computed, watch } from 'vue'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
