@@ -330,14 +330,14 @@ export default {
       }
     }
 
-    const handleLikeChanged = ({ commentId, likeCount, isLiked }) => {
+    const handleLikeChanged = ({ commentId, likeCount, liked }) => {
       const commentIndex = comments.value.findIndex(c => c.id === commentId)
       if (commentIndex !== -1) {
         // Update using splice to ensure Vue reactivity
         const updatedComment = {
           ...comments.value[commentIndex],
           likeCount,
-          isLiked
+          liked
         }
         comments.value.splice(commentIndex, 1, updatedComment)
       }

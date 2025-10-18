@@ -86,12 +86,12 @@
           <button
             @click="handleLike"
             class="flex items-center space-x-1 transition-colors"
-            :class="comment.isLiked ? 'text-red-500' : 'text-gray-400 hover:text-red-500'"
-            :title="comment.isLiked ? '取消点赞' : '点赞'"
+            :class="comment.liked ? 'text-red-500' : 'text-gray-400 hover:text-red-500'"
+            :title="comment.liked ? '取消点赞' : '点赞'"
           >
             <svg 
               class="w-4 h-4" 
-              :fill="comment.isLiked ? 'currentColor' : 'none'" 
+              :fill="comment.liked ? 'currentColor' : 'none'" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
             >
@@ -265,7 +265,7 @@ export default {
 
       try {
         let response
-        if (props.comment.isLiked) {
+        if (props.comment.liked) {
           response = await unlikeComment(props.comment.id)
         } else {
           response = await likeComment(props.comment.id)
@@ -274,7 +274,7 @@ export default {
         emit('like-changed', {
           commentId: props.comment.id,
           likeCount: response.likeCount,
-          isLiked: response.isLiked
+          liked: response.liked
         })
       } catch (error) {
         console.error('点赞操作失败:', error)

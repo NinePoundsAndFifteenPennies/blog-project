@@ -68,12 +68,12 @@
           <button 
             @click.stop="handleLike"
             class="flex items-center space-x-1 hover:text-red-500 transition-colors"
-            :class="{ 'text-red-500': post.isLiked }"
-            :title="post.isLiked ? '取消点赞' : '点赞'"
+            :class="{ 'text-red-500': post.liked }"
+            :title="post.liked ? '取消点赞' : '点赞'"
           >
             <svg 
               class="w-4 h-4" 
-              :fill="post.isLiked ? 'currentColor' : 'none'" 
+              :fill="post.liked ? 'currentColor' : 'none'" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
             >
@@ -209,7 +209,7 @@ export default {
 
       try {
         let response
-        if (props.post.isLiked) {
+        if (props.post.liked) {
           // 已点赞，取消点赞
           response = await unlikePost(props.post.id)
         } else {
@@ -221,7 +221,7 @@ export default {
         emit('like-changed', {
           postId: props.post.id,
           likeCount: response.likeCount,
-          isLiked: response.isLiked
+          liked: response.liked
         })
       } catch (error) {
         console.error('点赞操作失败:', error)
