@@ -188,7 +188,7 @@ export default {
           updatedAt: post.updatedAt,
           publishedAt: post.publishedAt,
           likeCount: post.likeCount || 0,  // 从后端获取点赞数
-          liked: post.liked || false,  // 从后端获取是否已点赞
+          isLiked: post.isLiked || false,  // 从后端获取是否已点赞
           commentCount: post.commentCount || 0,  // 从后端获取评论数
           // 暂时显示静态数据,后续实现
           views: 0,
@@ -216,14 +216,14 @@ export default {
     }
 
     // 处理点赞变化
-    const handleLikeChanged = ({ postId, likeCount, liked }) => {
+    const handleLikeChanged = ({ postId, likeCount, isLiked }) => {
       const postIndex = posts.value.findIndex(p => p.id === postId)
       if (postIndex !== -1) {
         // Update the post object to ensure reactivity
         posts.value[postIndex] = {
           ...posts.value[postIndex],
           likeCount,
-          liked
+          isLiked
         }
       }
     }
