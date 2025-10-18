@@ -8,13 +8,26 @@
 
 ### 1. 数据库迁移
 
-**好消息：无需手动执行SQL脚本！**
+**⚠️ 重要提示**：由于Hibernate的限制，需要执行一条SQL语句。
 
-项目已配置 `spring.jpa.hibernate.ddl-auto=update`，只需重启应用，Hibernate会自动：
-- ✅ 修改 `likes` 表结构（添加 `comment_id` 列，修改 `post_id` 为可空）
-- ✅ 创建外键约束和索引
-- ✅ 添加唯一约束
+**必需步骤（只需执行一次）**：
+
+```sql
+-- 将 post_id 列改为可空（Hibernate无法自动修改现有列的约束）
+ALTER TABLE likes MODIFY COLUMN post_id BIGINT NULL;
+```
+
+**为什么需要这个**：
+- 如果你的 `likes` 表已存在，`post_id` 列可能是 NOT NULL
+- Hibernate的 `ddl-auto=update` 模式**无法修改现有列的约束**
+- 这是Hibernate的已知限制
+
+执行上述SQL后，重启应用，Hibernate会自动：
+- ✅ 添加 `comment_id` 列和相关约束
+- ✅ 创建外键和索引
 - ✅ 保留所有现有数据
+
+**如果是全新安装**（数据库中没有 `likes` 表），直接启动应用即可，无需执行任何SQL。
 
 **可选步骤**：如果想添加数据库层面的CHECK约束（MySQL 8.0.16+），在首次启动应用后执行：
 

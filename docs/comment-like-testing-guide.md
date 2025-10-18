@@ -5,17 +5,32 @@
 
 ## 数据库变更
 
-### 自动迁移（推荐）
+### ⚠️ 重要：Hibernate的限制
 
-**无需手动执行SQL脚本！** 项目已配置 `spring.jpa.hibernate.ddl-auto=update`，Hibernate会在应用启动时自动执行以下操作：
+虽然项目配置了 `spring.jpa.hibernate.ddl-auto=update`，但Hibernate有一个重要限制：
 
-1. ✅ 将 `post_id` 列改为可空
-2. ✅ 添加 `comment_id` 列
-3. ✅ 添加外键约束（`comment_id` -> `comments.id`，级联删除）
-4. ✅ 添加唯一约束（`user_id`, `comment_id`）
-5. ✅ 为 `comment_id` 添加索引
+**Hibernate无法修改现有列的约束**。如果你的 `likes` 表已经存在且 `post_id` 列是 NOT NULL，Hibernate无法自动将其改为可空。
+
+### 必需的SQL脚本
+
+**首次部署时，必须执行以下SQL**（只需执行一次）：
+
+```sql
+-- 将 post_id 列改为可空（Hibernate无法自动完成此操作）
+ALTER TABLE likes MODIFY COLUMN post_id BIGINT NULL;
+```
+
+执行此脚本后，Hibernate会在应用启动时自动完成以下操作：
+1. ✅ 添加 `comment_id` 列
+2. ✅ 添加外键约束（`comment_id` -> `comments.id`，级联删除）
+3. ✅ 添加唯一约束（`user_id`, `comment_id`）
+4. ✅ 为 `comment_id` 添加索引
 
 **重启应用时不会覆盖数据**：Hibernate的`update`模式会保留现有数据，只添加缺失的表结构。
+
+### 全新安装
+
+如果是全新安装（数据库中没有 `likes` 表），直接启动应用即可，Hibernate会自动创建正确的表结构，无需执行任何SQL脚本。
 
 ### 可选：手动添加CHECK约束
 
@@ -283,14 +298,14 @@ WHERE (post_id IS NULL AND comment_id IS NULL)
 ## 潜在问题和注意事项
 
 ### 1. 数据库迁移
-- ✅ **自动迁移**：Hibernate会在应用启动时自动更新数据库表结构
-- ✅ **数据安全**：现有数据会被保留，Hibernate只添加缺失的列和约束
-- ✅ **无需手动操作**：不需要执行SQL脚本，直接重启应用即可
-- ⚠️ **可选CHECK约束**：
-  - Hibernate无法自动创建CHECK约束
-  - 如需数据库层面的额外保护，可在首次启动后手动添加
-  - 需要 MySQL 8.0.16 或更高版本
-  - 即使不添加，应用层代码也会确保数据完整性
+- ⚠️ **必需的SQL**：如果 `likes` 表已存在，必须先执行一条SQL使 `post_id` 可空
+  ```sql
+  ALTER TABLE likes MODIFY COLUMN post_id BIGINT NULL;
+  ```
+- 📝 **原因**：Hibernate无法修改现有列的约束（这是Hibernate的限制）
+- ✅ **全新安装**：如果数据库中没有 `likes` 表，直接启动应用即可
+- ✅ **自动迁移**：执行SQL后，Hibernate会自动添加 `comment_id` 列和所有约束
+- 🔒 **数据安全**：现有数据会被保留，只修改表结构
 
 ### 2. 性能考虑
 - **当前实现存在 N+1 查询问题**：获取评论列表时，每个评论都会额外查询点赞数和用户点赞状态

@@ -19,11 +19,11 @@ public class Like {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id")
+    @JoinColumn(name = "post_id", nullable = true)
     private Post post;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "comment_id")
+    @JoinColumn(name = "comment_id", nullable = true)
     private Comment comment;
 
     @Column(name = "created_at", nullable = false, updatable = false)
