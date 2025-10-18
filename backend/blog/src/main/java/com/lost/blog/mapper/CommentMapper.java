@@ -7,6 +7,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class CommentMapper {
 
+    /**
+     * Convert Comment entity to CommentResponse DTO.
+     * Note: This method does NOT populate like information (likeCount and isLiked).
+     * The service layer is responsible for setting these fields to avoid N+1 query problems.
+     */
     public CommentResponse toResponse(Comment comment) {
         if (comment == null) {
             return null;
@@ -21,6 +26,11 @@ public class CommentMapper {
         response.setAuthorAvatarUrl(comment.getUser().getAvatarUrl());
         response.setCreatedAt(comment.getCreatedAt());
         response.setUpdatedAt(comment.getUpdatedAt());
+        
+        // Initialize like fields to default values
+        // Service layer will populate these fields
+        response.setLikeCount(0);
+        response.setLiked(false);
         
         return response;
     }

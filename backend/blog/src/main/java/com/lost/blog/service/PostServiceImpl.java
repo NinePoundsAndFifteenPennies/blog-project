@@ -173,7 +173,14 @@ public class PostServiceImpl implements PostService {
 
         // 先删除该文章的所有点赞（级联删除）
         likeRepository.deleteByPost(post);
-        logger.info("删除文章ID: {} 的所有点赞", id);
+        logger.info("删除文章ID: {} 的所有文章点赞", id);
+
+        // 获取该文章的所有评论，并删除每个评论的点赞
+        var comments = commentRepository.findByPost(post, org.springframework.data.domain.Pageable.unpaged());
+        comments.forEach(comment -> {
+            likeRepository.deleteByComment(comment);
+            logger.info("删除评论ID: {} 的所有点赞", comment.getId());
+        });
 
         // 再删除该文章的所有评论（级联删除）
         commentRepository.deleteByPost(post);

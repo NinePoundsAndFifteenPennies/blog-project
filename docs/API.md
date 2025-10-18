@@ -596,7 +596,9 @@ Content-Type: application/json
   "authorUsername": "用户名",
   "authorAvatarUrl": "https://example.com/avatar.jpg",
   "createdAt": "2025-10-16T15:30:00",
-  "updatedAt": null
+  "updatedAt": null,
+  "likeCount": 0,
+  "isLiked": false
 }
 ```
 
@@ -635,7 +637,9 @@ GET /api/posts/{postId}/comments?page=0&size=20
       "authorUsername": "user1",
       "authorAvatarUrl": "https://example.com/avatar1.jpg",
       "createdAt": "2025-10-16T15:30:00",
-      "updatedAt": null
+      "updatedAt": null,
+      "likeCount": 3,
+      "isLiked": false
     }
   ],
   "pageable": {
@@ -652,6 +656,7 @@ GET /api/posts/{postId}/comments?page=0&size=20
 **说明:**
 - 匿名用户可以访问此接口查看评论
 - 评论按创建时间升序排列（最早的在前）
+- 每条评论包含点赞数量和当前用户的点赞状态
 
 **错误响应:**
 - `404 Not Found` - 文章不存在
@@ -683,7 +688,9 @@ Authorization: Bearer {token}
       "authorUsername": "currentUser",
       "authorAvatarUrl": "https://example.com/my-avatar.jpg",
       "createdAt": "2025-10-16T15:30:00",
-      "updatedAt": null
+      "updatedAt": null,
+      "likeCount": 5,
+      "isLiked": true
     }
   ],
   "totalElements": 1,
@@ -726,7 +733,9 @@ Content-Type: application/json
   "authorUsername": "用户名",
   "authorAvatarUrl": "https://example.com/avatar.jpg",
   "createdAt": "2025-10-16T15:30:00",
-  "updatedAt": "2025-10-16T16:00:00"
+  "updatedAt": "2025-10-16T16:00:00",
+  "likeCount": 2,
+  "isLiked": true
 }
 ```
 
@@ -762,6 +771,89 @@ Authorization: Bearer {token}
 - `401 Unauthorized` - 未登录或 token 无效
 - `403 Forbidden` - 无权限删除此评论
 - `404 Not Found` - 评论不存在
+
+## 评论点赞相关接口
+
+### 点赞评论
+
+给评论点赞。如果已经点赞，则不会重复添加。
+
+```http
+POST /api/comments/{commentId}/likes
+Authorization: Bearer {token}
+```
+
+**路径参数:**
+- `commentId`: 评论ID
+
+**成功响应:** `200 OK`
+```json
+{
+  "likeCount": 5,
+  "isLiked": true
+}
+```
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `404 Not Found` - 评论不存在
+
+---
+
+### 取消点赞评论
+
+取消对评论的点赞。如果未点赞，则不会有任何影响。
+
+```http
+DELETE /api/comments/{commentId}/likes
+Authorization: Bearer {token}
+```
+
+**路径参数:**
+- `commentId`: 评论ID
+
+**成功响应:** `200 OK`
+```json
+{
+  "likeCount": 4,
+  "isLiked": false
+}
+```
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `404 Not Found` - 评论不存在
+
+---
+
+### 获取评论点赞信息
+
+获取评论的点赞数量和当前用户的点赞状态。
+
+```http
+GET /api/comments/{commentId}/likes
+```
+
+**路径参数:**
+- `commentId`: 评论ID
+
+**成功响应:** `200 OK`
+```json
+{
+  "likeCount": 5,
+  "isLiked": true
+}
+```
+
+**说明:**
+- 匿名用户可以访问此接口查看点赞数量
+- 对于匿名用户，`isLiked` 始终为 `false`
+- 登录用户可以看到自己是否已点赞
+
+**错误响应:**
+- `404 Not Found` - 评论不存在
+
+---
 
 ## 错误码说明
 

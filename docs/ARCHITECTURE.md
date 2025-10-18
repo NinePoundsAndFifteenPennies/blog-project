@@ -81,13 +81,13 @@ Controller ──► Service ──► Repository ──► Database
 | 实体层 | **model/** | 数据库实体类 (JPA Entity) |
 | 实体 | └── User.java | 用户实体 |
 | 实体 | └── Post.java | 文章实体 |
-| 实体 | └── Like.java | 点赞实体 |
+| 实体 | └── Like.java | 点赞实体（支持文章和评论点赞）|
 | 实体 | └── Comment.java | 评论实体 |
 | 枚举 | └── ContentType.java | 内容类型枚举 |
 | 数据访问层 | **repository/** | 提供数据库操作接口 |
 | Repository | └── UserRepository.java | 用户数据访问接口 |
 | Repository | └── PostRepository.java | 文章数据访问接口 |
-| Repository | └── LikeRepository.java | 点赞数据访问接口 |
+| Repository | └── LikeRepository.java | 点赞数据访问接口（文章和评论）|
 | Repository | └── CommentRepository.java | 评论数据访问接口 |
 | 安全层 | **security/** | 与认证和授权相关的工具类 |
 | 工具类 | └── JwtTokenProvider.java | JWT 生成与验证 |
@@ -101,7 +101,7 @@ Controller ──► Service ──► Repository ──► Database
 | 接口 | └── FileService.java | 文件服务接口 |
 | 实现类 | └── FileServiceImpl.java | 文件服务实现（头像上传、更新、删除） |
 | 接口 | └── LikeService.java | 点赞服务接口 |
-| 实现类 | └── LikeServiceImpl.java | 点赞服务实现 |
+| 实现类 | └── LikeServiceImpl.java | 点赞服务实现（文章和评论点赞）|
 | 接口 | └── CommentService.java | 评论服务接口 |
 | 实现类 | └── CommentServiceImpl.java | 评论服务实现 |
 | 配置文件 | **resources/** | 存放应用的资源文件 |
@@ -218,7 +218,7 @@ uploads/
 ### 功能差异
 
 - **未实现**: 分类 (Category)、标签 (Tag)
-- **新增**: "记住我"功能、JWT自动刷新、增强的Markdown编辑器、头像上传系统、文章点赞功能、评论功能
+- **新增**: "记住我"功能、JWT自动刷新、增强的Markdown编辑器、头像上传系统、文章点赞功能、评论功能、评论点赞功能
 
 ### 架构差异
 
