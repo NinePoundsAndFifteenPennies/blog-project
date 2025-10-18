@@ -24,6 +24,8 @@ ALTER TABLE likes ADD CONSTRAINT uk_user_comment
 
 -- 5. 添加检查约束，确保 post_id 和 comment_id 只有一个不为空
 -- 注意：MySQL 8.0.16+ 支持 CHECK 约束
+-- 如果你的 MySQL 版本低于 8.0.16，可以跳过此步骤
+-- 应用层代码会确保数据完整性
 ALTER TABLE likes ADD CONSTRAINT ck_like_target 
     CHECK ((post_id IS NOT NULL AND comment_id IS NULL) OR (post_id IS NULL AND comment_id IS NOT NULL));
 
@@ -281,6 +283,10 @@ WHERE (post_id IS NULL AND comment_id IS NULL)
 - 在执行迁移前，确保备份现有数据
 - 检查是否有现有的点赞记录会受到新约束的影响
 - 迁移脚本需要在所有环境（开发、测试、生产）中验证
+- **MySQL 版本要求**：
+  - CHECK 约束需要 MySQL 8.0.16 或更高版本
+  - 如果使用旧版本，跳过 CHECK 约束步骤，应用层会保证数据完整性
+  - 其他约束（唯一约束、外键）在所有 MySQL 5.x+ 版本都支持
 
 ### 2. 性能考虑
 - **当前实现存在 N+1 查询问题**：获取评论列表时，每个评论都会额外查询点赞数和用户点赞状态

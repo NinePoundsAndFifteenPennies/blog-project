@@ -25,6 +25,8 @@ ALTER TABLE likes ADD CONSTRAINT uk_user_comment
     UNIQUE (user_id, comment_id);
 
 -- 5. 添加检查约束（MySQL 8.0.16+）
+-- 注意：MySQL 8.0.16 之前的版本不支持 CHECK 约束
+-- 对于旧版本，约束将在应用层处理
 ALTER TABLE likes ADD CONSTRAINT ck_like_target 
     CHECK ((post_id IS NOT NULL AND comment_id IS NULL) OR 
            (post_id IS NULL AND comment_id IS NOT NULL));
@@ -278,6 +280,9 @@ A: 点赞记录会被自动删除（级联删除）。这由数据库外键约�
 
 ### Q: 性能如何？
 A: 当前实现对于中小型应用（每页 <20 条评论）性能可接受。对于高流量场景，建议查看测试指南中的性能优化建议。
+
+### Q: 我的 MySQL 版本低于 8.0.16，不支持 CHECK 约束怎么办？
+A: 跳过 CHECK 约束的创建步骤。应用层代码会确保数据完整性（Like 实体只会关联文章或评论之一）。建议升级到 MySQL 8.0.16+ 以获得数据库层面的约束保护。
 
 ---
 
