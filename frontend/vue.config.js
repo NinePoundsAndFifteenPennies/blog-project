@@ -1,4 +1,5 @@
-// vue.config.js  —— 请确保文件名精确为 vue.config.js
+// frontend/vue.config.js
+
 const path = require('path')
 const { defineConfig } = require('@vue/cli-service')
 
@@ -20,8 +21,11 @@ module.exports = defineConfig({
             '/api': {
                 target: 'http://localhost:8080',
                 changeOrigin: true,
-                // pathRewrite 不必要时可以省略，此处保留原样（并保持等价）
-                pathRewrite: { '^/api': '/api' }
+            },
+            // 新增这条代理规则
+            '/uploads': {
+                target: 'http://localhost:8080',
+                changeOrigin: true,
             }
         }
     },

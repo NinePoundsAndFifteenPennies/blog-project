@@ -96,10 +96,10 @@
 </template>
 
 <script>
-import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { likePost, unlikePost } from '@/api/likes'
+import { ref, reactive, computed, onMounted, watch } from 'vue' // 1. 导入 watch
 
 export default {
   name: 'PostCard',
@@ -114,7 +114,9 @@ export default {
     const router = useRouter()
     const store = useStore()
     const avatarLoadError = ref(false)
-
+    watch(() => props.post.author?.avatarUrl, () => {
+      avatarLoadError.value = false
+    })
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
 
     const authorInitial = computed(() => {

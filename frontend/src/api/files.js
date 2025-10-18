@@ -1,4 +1,4 @@
-import axios from 'axios'
+import request from '@/utils/request';
 
 /**
  * 上传头像（首次）
@@ -6,16 +6,18 @@ import axios from 'axios'
  * @returns {Promise<string>} - 返回头像URL
  */
 export async function uploadAvatar(file) {
-    const formData = new FormData()
-    formData.append('file', file)
+    const formData = new FormData();
+    formData.append('file', file);
 
-    const token = localStorage.getItem('token')
-    const response = await axios.post('/api/files/upload/avatar', formData, {
+    const response = await request({
+        url: '/files/upload/avatar',
+        method: 'post',
+        data: formData,
         headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    })
-    return response.data.avatarUrl
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.avatarUrl;
 }
 
 /**
@@ -24,16 +26,18 @@ export async function uploadAvatar(file) {
  * @returns {Promise<string>} - 返回新头像URL
  */
 export async function updateAvatar(file) {
-    const formData = new FormData()
-    formData.append('file', file)
+    const formData = new FormData();
+    formData.append('file', file);
 
-    const token = localStorage.getItem('token')
-    const response = await axios.put('/api/files/update/avatar', formData, {
+    const response = await request({
+        url: '/files/update/avatar',
+        method: 'put',
+        data: formData,
         headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    })
-    return response.data.avatarUrl
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.avatarUrl;
 }
 
 /**
@@ -42,15 +46,9 @@ export async function updateAvatar(file) {
  * @returns {Promise<Object>} - 返回更新后的用户信息
  */
 export async function saveUserAvatar(avatarUrl) {
-    const token = localStorage.getItem('token')
-    const response = await axios.post('/api/users/me/avatar', 
-        { avatarUrl }, 
-        {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        }
-    )
-    return response.data
+    return request({
+        url: '/users/me/avatar',
+        method: 'post',
+        data: { avatarUrl },
+    });
 }

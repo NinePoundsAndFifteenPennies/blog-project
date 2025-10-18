@@ -186,10 +186,10 @@
 </template>
 
 <script>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { getFullAvatarUrl } from '@/utils/avatar'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue' // 1. 导入 watch
 
 export default {
   name: 'Header',
@@ -209,6 +209,12 @@ export default {
       return currentUser.value?.username?.charAt(0).toUpperCase() || 'U'
     })
     const userAvatarUrl = computed(() => getFullAvatarUrl(currentUser.value?.avatarUrl))
+
+    // 2. 添加这个 watch 监听器
+    watch(userAvatarUrl, () => {
+      // 当头像 URL 变化时，重置错误状态
+      avatarLoadError.value = false
+    })
 
     // 处理搜索
     const handleSearch = () => {

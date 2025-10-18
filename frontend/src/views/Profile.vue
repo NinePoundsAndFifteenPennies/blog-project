@@ -395,6 +395,12 @@ export default {
     const userInitial = computed(() => currentUser.value?.username?.charAt(0).toUpperCase() || 'U')
     const userAvatarUrl = computed(() => getFullAvatarUrl(currentUser.value?.avatarUrl))
 
+    // 2. 添加这个 watch 监听器
+    watch(userAvatarUrl, () => {
+      // 当头像 URL 变化时，重置错误状态
+      avatarLoadError.value = false
+    })
+
     const userStats = reactive({ posts: 0, drafts: 0, comments: 0 })
 
     const formatDate = (str) => {

@@ -118,7 +118,7 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue' // 1. 导入 watch
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { marked } from 'marked'
@@ -145,6 +145,11 @@ export default {
     const store = useStore()
     const router = useRouter()
     const avatarLoadError = ref(false)
+    // 2. 添加对 comment prop 的 watch
+    watch(() => props.comment.authorAvatarUrl, () => {
+      // 当评论的头像 URL 变化时，重置错误状态
+      avatarLoadError.value = false
+    })
     const isEditing = ref(false)
     const editContent = ref('')
     const saving = ref(false)
