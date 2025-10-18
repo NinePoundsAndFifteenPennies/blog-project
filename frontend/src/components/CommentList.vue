@@ -270,10 +270,14 @@ export default {
     }
 
     const handleLikeChanged = ({ commentId, likeCount, isLiked }) => {
-      const comment = comments.value.find(c => c.id === commentId)
-      if (comment) {
-        comment.likeCount = likeCount
-        comment.isLiked = isLiked
+      const commentIndex = comments.value.findIndex(c => c.id === commentId)
+      if (commentIndex !== -1) {
+        // Create new object to ensure reactivity
+        comments.value[commentIndex] = {
+          ...comments.value[commentIndex],
+          likeCount,
+          isLiked
+        }
       }
     }
 

@@ -156,13 +156,16 @@ export default {
     }
 
     const displayDate = computed(() => {
-      // Prefer publishedAt, then updatedAt, then createdAt
-      const d = props.post?.publishedAt || props.post?.updatedAt || props.post?.createdAt
-      return formatDate(d)
+      // Show updatedAt if exists and different from publishedAt/createdAt, otherwise show publishedAt or createdAt
+      if (props.post?.updatedAt) {
+        return formatDate(props.post.updatedAt)
+      }
+      return formatDate(props.post?.publishedAt || props.post?.createdAt)
     })
 
     const dateLabel = computed(() => {
-      if (props.post?.publishedAt && props.post?.updatedAt && props.post.publishedAt !== props.post.updatedAt) {
+      // If updatedAt exists and is different, show "更新于"
+      if (props.post?.updatedAt) {
         return '更新于'
       } else if (props.post?.publishedAt) {
         return '发布于'
