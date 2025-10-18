@@ -561,6 +561,208 @@ GET /api/posts/{postId}/likes
 **错误响应:**
 - `404 Not Found` - 文章不存在
 
+## 评论相关接口
+
+### 创建评论
+
+在指定文章下创建一条评论。
+
+```http
+POST /api/posts/{postId}/comments
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**路径参数:**
+- `postId`: 文章ID
+
+**请求体:**
+```json
+{
+  "content": "这是评论内容"
+}
+```
+
+**字段说明:**
+- `content` (String, 必填): 评论内容，长度1-3000字符
+
+**成功响应:** `201 Created`
+```json
+{
+  "id": 1,
+  "content": "这是评论内容",
+  "postId": 10,
+  "postTitle": "文章标题",
+  "authorUsername": "用户名",
+  "authorAvatarUrl": "https://example.com/avatar.jpg",
+  "createdAt": "2025-10-16T15:30:00",
+  "updatedAt": null
+}
+```
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `403 Forbidden` - 尝试评论草稿文章
+- `404 Not Found` - 文章不存在
+- `400 Bad Request` - 评论内容不符合要求
+
+---
+
+### 获取文章评论
+
+获取指定文章的所有评论，支持分页。
+
+```http
+GET /api/posts/{postId}/comments?page=0&size=20
+```
+
+**路径参数:**
+- `postId`: 文章ID
+
+**查询参数:**
+- `page` (可选): 页码，从0开始，默认0
+- `size` (可选): 每页数量，默认20
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "content": "第一条评论",
+      "postId": 10,
+      "postTitle": "文章标题",
+      "authorUsername": "user1",
+      "authorAvatarUrl": "https://example.com/avatar1.jpg",
+      "createdAt": "2025-10-16T15:30:00",
+      "updatedAt": null
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 20
+  },
+  "totalElements": 1,
+  "totalPages": 1,
+  "last": true,
+  "first": true
+}
+```
+
+**说明:**
+- 匿名用户可以访问此接口查看评论
+- 评论按创建时间升序排列（最早的在前）
+
+**错误响应:**
+- `404 Not Found` - 文章不存在
+
+---
+
+### 获取我的评论
+
+获取当前登录用户发表的所有评论。
+
+```http
+GET /api/comments/my?page=0&size=10
+Authorization: Bearer {token}
+```
+
+**查询参数:**
+- `page` (可选): 页码，从0开始，默认0
+- `size` (可选): 每页数量，默认10
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "content": "我的评论",
+      "postId": 10,
+      "postTitle": "文章标题A",
+      "authorUsername": "currentUser",
+      "authorAvatarUrl": "https://example.com/my-avatar.jpg",
+      "createdAt": "2025-10-16T15:30:00",
+      "updatedAt": null
+    }
+  ],
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+
+---
+
+### 更新评论
+
+更新自己创建的评论内容。
+
+```http
+PUT /api/comments/{commentId}
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**路径参数:**
+- `commentId`: 评论ID
+
+**请求体:**
+```json
+{
+  "content": "更新后的评论内容"
+}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 1,
+  "content": "更新后的评论内容",
+  "postId": 10,
+  "postTitle": "文章标题",
+  "authorUsername": "用户名",
+  "authorAvatarUrl": "https://example.com/avatar.jpg",
+  "createdAt": "2025-10-16T15:30:00",
+  "updatedAt": "2025-10-16T16:00:00"
+}
+```
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `403 Forbidden` - 无权限编辑此评论（非评论作者）
+- `404 Not Found` - 评论不存在
+
+---
+
+### 删除评论
+
+删除一条评论。评论作者和文章作者都可以删除评论。
+
+```http
+DELETE /api/comments/{commentId}
+Authorization: Bearer {token}
+```
+
+**路径参数:**
+- `commentId`: 评论ID
+
+**成功响应:** `200 OK`
+```json
+"评论删除成功"
+```
+
+**权限说明:**
+- 评论作者可以删除自己的评论
+- 文章作者可以删除自己文章下的任何评论
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `403 Forbidden` - 无权限删除此评论
+- `404 Not Found` - 评论不存在
+
 ## 错误码说明
 
 | 状态码 | 说明 |
