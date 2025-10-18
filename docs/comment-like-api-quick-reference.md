@@ -7,33 +7,25 @@
 ## 前提条件
 
 ### 1. 数据库迁移
-在测试前，必须先执行数据库迁移脚本：
+
+**好消息：无需手动执行SQL脚本！**
+
+项目已配置 `spring.jpa.hibernate.ddl-auto=update`，只需重启应用，Hibernate会自动：
+- ✅ 修改 `likes` 表结构（添加 `comment_id` 列，修改 `post_id` 为可空）
+- ✅ 创建外键约束和索引
+- ✅ 添加唯一约束
+- ✅ 保留所有现有数据
+
+**可选步骤**：如果想添加数据库层面的CHECK约束（MySQL 8.0.16+），在首次启动应用后执行：
 
 ```sql
--- 1. 将 post_id 列改为可空
-ALTER TABLE likes MODIFY COLUMN post_id BIGINT NULL;
-
--- 2. 添加 comment_id 列
-ALTER TABLE likes ADD COLUMN comment_id BIGINT NULL;
-
--- 3. 添加外键约束
-ALTER TABLE likes ADD CONSTRAINT fk_likes_comment 
-    FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE;
-
--- 4. 添加唯一约束
-ALTER TABLE likes ADD CONSTRAINT uk_user_comment 
-    UNIQUE (user_id, comment_id);
-
--- 5. 添加检查约束（MySQL 8.0.16+）
--- 注意：MySQL 8.0.16 之前的版本不支持 CHECK 约束
--- 对于旧版本，约束将在应用层处理
+-- 可选：额外的数据完整性保护
 ALTER TABLE likes ADD CONSTRAINT ck_like_target 
     CHECK ((post_id IS NOT NULL AND comment_id IS NULL) OR 
            (post_id IS NULL AND comment_id IS NOT NULL));
-
--- 6. 添加索引
-CREATE INDEX idx_likes_comment_id ON likes(comment_id);
 ```
+
+注意：即使不添加CHECK约束，应用层代码也会确保数据完整性。
 
 ### 2. 测试数据准备
 确保系统中已存在：

@@ -4,34 +4,36 @@
 新增了对评论进行点赞和取消点赞的功能，与现有的文章点赞功能保持一致的设计风格。
 
 ## 数据库变更
-需要执行以下数据库迁移来支持评论点赞：
+
+### 自动迁移（推荐）
+
+**无需手动执行SQL脚本！** 项目已配置 `spring.jpa.hibernate.ddl-auto=update`，Hibernate会在应用启动时自动执行以下操作：
+
+1. ✅ 将 `post_id` 列改为可空
+2. ✅ 添加 `comment_id` 列
+3. ✅ 添加外键约束（`comment_id` -> `comments.id`，级联删除）
+4. ✅ 添加唯一约束（`user_id`, `comment_id`）
+5. ✅ 为 `comment_id` 添加索引
+
+**重启应用时不会覆盖数据**：Hibernate的`update`模式会保留现有数据，只添加缺失的表结构。
+
+### 可选：手动添加CHECK约束
+
+Hibernate无法自动创建CHECK约束。如果需要数据库层面的额外保护，可以在首次启动应用后手动执行：
 
 ```sql
--- 修改 likes 表以支持评论点赞
--- 1. 将 post_id 列改为可空
-ALTER TABLE likes MODIFY COLUMN post_id BIGINT NULL;
-
--- 2. 添加 comment_id 列
-ALTER TABLE likes ADD COLUMN comment_id BIGINT NULL;
-
--- 3. 添加外键约束
-ALTER TABLE likes ADD CONSTRAINT fk_likes_comment 
-    FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE;
-
--- 4. 添加唯一约束，确保用户对同一评论只能点赞一次
-ALTER TABLE likes ADD CONSTRAINT uk_user_comment 
-    UNIQUE (user_id, comment_id);
-
--- 5. 添加检查约束，确保 post_id 和 comment_id 只有一个不为空
+-- 可选：添加检查约束，确保 post_id 和 comment_id 只有一个不为空
 -- 注意：MySQL 8.0.16+ 支持 CHECK 约束
--- 如果你的 MySQL 版本低于 8.0.16，可以跳过此步骤
--- 应用层代码会确保数据完整性
+-- 应用层代码已经确保数据完整性，此约束为额外保护
 ALTER TABLE likes ADD CONSTRAINT ck_like_target 
-    CHECK ((post_id IS NOT NULL AND comment_id IS NULL) OR (post_id IS NULL AND comment_id IS NOT NULL));
-
--- 6. 为 comment_id 添加索引以优化查询性能
-CREATE INDEX idx_likes_comment_id ON likes(comment_id);
+    CHECK ((post_id IS NOT NULL AND comment_id IS NULL) OR 
+           (post_id IS NULL AND comment_id IS NOT NULL));
 ```
+
+**重要提示**：
+- 即使不添加CHECK约束，应用层代码也会确保数据完整性
+- CHECK约束需要 MySQL 8.0.16 或更高版本
+- 旧版本MySQL可以跳过此步骤
 
 ## 新增 API 端点
 
@@ -262,11 +264,12 @@ WHERE l.comment_id IS NOT NULL AND c.id IS NULL;
 ### 检查点 3: 点赞目标验证
 ```sql
 -- 查询违反"只能点赞文章或评论其中之一"约束的记录
+-- 注意：应用层代码会确保此约束，但可以验证
 SELECT id, post_id, comment_id
 FROM likes
 WHERE (post_id IS NULL AND comment_id IS NULL) 
    OR (post_id IS NOT NULL AND comment_id IS NOT NULL);
--- 应返回空结果
+-- 应返回空结果（应用层确保数据完整性）
 ```
 
 ## 日志验证
@@ -280,13 +283,14 @@ WHERE (post_id IS NULL AND comment_id IS NULL)
 ## 潜在问题和注意事项
 
 ### 1. 数据库迁移
-- 在执行迁移前，确保备份现有数据
-- 检查是否有现有的点赞记录会受到新约束的影响
-- 迁移脚本需要在所有环境（开发、测试、生产）中验证
-- **MySQL 版本要求**：
-  - CHECK 约束需要 MySQL 8.0.16 或更高版本
-  - 如果使用旧版本，跳过 CHECK 约束步骤，应用层会保证数据完整性
-  - 其他约束（唯一约束、外键）在所有 MySQL 5.x+ 版本都支持
+- ✅ **自动迁移**：Hibernate会在应用启动时自动更新数据库表结构
+- ✅ **数据安全**：现有数据会被保留，Hibernate只添加缺失的列和约束
+- ✅ **无需手动操作**：不需要执行SQL脚本，直接重启应用即可
+- ⚠️ **可选CHECK约束**：
+  - Hibernate无法自动创建CHECK约束
+  - 如需数据库层面的额外保护，可在首次启动后手动添加
+  - 需要 MySQL 8.0.16 或更高版本
+  - 即使不添加，应用层代码也会确保数据完整性
 
 ### 2. 性能考虑
 - **当前实现存在 N+1 查询问题**：获取评论列表时，每个评论都会额外查询点赞数和用户点赞状态
