@@ -122,13 +122,22 @@
       <p class="text-gray-500">暂无评论，快来发表第一条评论吧！</p>
     </div>
 
-    <!-- Pagination -->
-    <div v-if="totalPages > 1" class="mt-8">
-      <Pagination
-        :current-page="currentPage"
-        :total-pages="totalPages"
-        @page-change="handlePageChange"
-      />
+    <!-- Load More Button (Dynamic Loading) -->
+    <div v-if="hasMore" class="mt-8 text-center">
+      <button
+        @click="loadMore"
+        class="btn-secondary inline-flex items-center space-x-2"
+        :disabled="loadingMore"
+      >
+        <svg v-if="!loadingMore" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+        <div v-else class="animate-spin rounded-full h-5 w-5 border-2 border-primary-600 border-t-transparent"></div>
+        <span>{{ loadingMore ? '加载中...' : '加载更多评论' }}</span>
+      </button>
+      <p class="text-sm text-gray-500 mt-2">
+        已加载 {{ comments.length }} / {{ totalElements }} 条评论
+      </p>
     </div>
   </div>
 </template>
@@ -138,15 +147,13 @@ import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { marked } from 'marked'
 import CommentItem from './CommentItem.vue'
-import Pagination from './Pagination.vue'
 import { createComment, getPostComments } from '@/api/comments'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'CommentList',
   components: {
-    CommentItem,
-    Pagination
+    CommentItem
   },
   props: {
     postId: {
@@ -167,6 +174,7 @@ export default {
     const store = useStore()
     
     const loading = ref(false)
+    const loadingMore = ref(false)
     const submitting = ref(false)
     const comments = ref([])
     const newComment = ref('')
@@ -197,6 +205,10 @@ export default {
       }
     })
 
+    const hasMore = computed(() => {
+      return comments.value.length < totalElements.value
+    })
+
     const handleAvatarError = () => {
       avatarLoadError.value = true
     }
@@ -205,25 +217,46 @@ export default {
       avatarLoadError.value = false
     }
 
-    const loadComments = async () => {
-      loading.value = true
+    const loadComments = async (append = false) => {
+      if (append) {
+        loadingMore.value = true
+      } else {
+        loading.value = true
+      }
+      
       try {
         const response = await getPostComments(props.postId, {
           page: currentPage.value - 1,
           size: pageSize
         })
 
-        comments.value = response.content || []
+        if (append) {
+          // Append to existing comments for "load more"
+          comments.value = [...comments.value, ...(response.content || [])]
+        } else {
+          // Replace comments for initial load
+          comments.value = response.content || []
+        }
+        
         totalPages.value = response.totalPages || 1
         totalElements.value = response.totalElements || 0
 
         emit('comment-count-changed', totalElements.value)
       } catch (error) {
         console.error('加载评论失败:', error)
-        comments.value = []
+        if (!append) {
+          comments.value = []
+        }
       } finally {
         loading.value = false
+        loadingMore.value = false
       }
+    }
+
+    const loadMore = async () => {
+      if (loadingMore.value || !hasMore.value) return
+      currentPage.value++
+      await loadComments(true)
     }
 
     const submitComment = async () => {
@@ -281,22 +314,13 @@ export default {
       }
     }
 
-    const handlePageChange = (page) => {
-      currentPage.value = page
-      loadComments()
-      // Scroll to comments section
-      const element = document.querySelector('.bg-white.rounded-lg.shadow-sm')
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }
-    }
-
     onMounted(() => {
       loadComments()
     })
 
     return {
       loading,
+      loadingMore,
       submitting,
       comments,
       newComment,
@@ -304,6 +328,7 @@ export default {
       currentPage,
       totalPages,
       totalElements,
+      hasMore,
       currentUser,
       isLoggedIn,
       userInitial,
@@ -316,7 +341,7 @@ export default {
       handleCommentUpdated,
       handleCommentDeleted,
       handleLikeChanged,
-      handlePageChange
+      loadMore
     }
   }
 }
