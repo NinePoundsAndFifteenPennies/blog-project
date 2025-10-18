@@ -598,7 +598,7 @@ Content-Type: application/json
   "createdAt": "2025-10-16T15:30:00",
   "updatedAt": null,
   "likeCount": 0,
-  "isLiked": false
+  "liked": false
 }
 ```
 
@@ -639,7 +639,7 @@ GET /api/posts/{postId}/comments?page=0&size=20
       "createdAt": "2025-10-16T15:30:00",
       "updatedAt": null,
       "likeCount": 3,
-      "isLiked": false
+      "liked": false
     }
   ],
   "pageable": {
@@ -690,7 +690,7 @@ Authorization: Bearer {token}
       "createdAt": "2025-10-16T15:30:00",
       "updatedAt": null,
       "likeCount": 5,
-      "isLiked": true
+      "liked": true
     }
   ],
   "totalElements": 1,
@@ -735,7 +735,7 @@ Content-Type: application/json
   "createdAt": "2025-10-16T15:30:00",
   "updatedAt": "2025-10-16T16:00:00",
   "likeCount": 2,
-  "isLiked": true
+  "liked": true
 }
 ```
 
@@ -790,7 +790,7 @@ Authorization: Bearer {token}
 ```json
 {
   "likeCount": 5,
-  "isLiked": true
+  "liked": true
 }
 ```
 
@@ -816,7 +816,7 @@ Authorization: Bearer {token}
 ```json
 {
   "likeCount": 4,
-  "isLiked": false
+  "liked": false
 }
 ```
 
@@ -841,13 +841,13 @@ GET /api/comments/{commentId}/likes
 ```json
 {
   "likeCount": 5,
-  "isLiked": true
+  "liked": true
 }
 ```
 
 **说明:**
 - 匿名用户可以访问此接口查看点赞数量
-- 对于匿名用户，`isLiked` 始终为 `false`
+- 对于匿名用户，`liked` 始终为 `false`
 - 登录用户可以看到自己是否已点赞
 
 **错误响应:**
