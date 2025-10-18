@@ -1,0 +1,310 @@
+# 评论点赞功能测试指南
+
+## 功能概述
+新增了对评论进行点赞和取消点赞的功能，与现有的文章点赞功能保持一致的设计风格。
+
+## 数据库变更
+需要执行以下数据库迁移来支持评论点赞：
+
+```sql
+-- 修改 likes 表以支持评论点赞
+-- 1. 将 post_id 列改为可空
+ALTER TABLE likes MODIFY COLUMN post_id BIGINT NULL;
+
+-- 2. 添加 comment_id 列
+ALTER TABLE likes ADD COLUMN comment_id BIGINT NULL;
+
+-- 3. 添加外键约束
+ALTER TABLE likes ADD CONSTRAINT fk_likes_comment 
+    FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE;
+
+-- 4. 添加唯一约束，确保用户对同一评论只能点赞一次
+ALTER TABLE likes ADD CONSTRAINT uk_user_comment 
+    UNIQUE (user_id, comment_id);
+
+-- 5. 添加检查约束，确保 post_id 和 comment_id 只有一个不为空
+ALTER TABLE likes ADD CONSTRAINT ck_like_target 
+    CHECK ((post_id IS NOT NULL AND comment_id IS NULL) OR (post_id IS NULL AND comment_id IS NOT NULL));
+```
+
+## 新增 API 端点
+
+### 1. 点赞评论
+- **端点**: `POST /api/comments/{commentId}/likes`
+- **认证**: 需要登录
+- **请求参数**: 无请求体
+- **响应**:
+```json
+{
+  "likeCount": 5,
+  "isLiked": true
+}
+```
+
+### 2. 取消点赞评论
+- **端点**: `DELETE /api/comments/{commentId}/likes`
+- **认证**: 需要登录
+- **请求参数**: 无
+- **响应**:
+```json
+{
+  "likeCount": 4,
+  "isLiked": false
+}
+```
+
+### 3. 获取评论点赞信息
+- **端点**: `GET /api/comments/{commentId}/likes`
+- **认证**: 可选（匿名用户 isLiked 始终为 false）
+- **响应**:
+```json
+{
+  "likeCount": 4,
+  "isLiked": false
+}
+```
+
+## 现有 API 的变更
+
+### 获取评论列表
+- **端点**: `GET /api/posts/{postId}/comments`
+- **变更**: 响应中每个评论现在包含 `likeCount` 和 `isLiked` 字段
+- **响应示例**:
+```json
+{
+  "content": [...],
+  "page": {
+    "size": 10,
+    "number": 0,
+    "totalElements": 1,
+    "totalPages": 1
+  }
+}
+```
+
+每个评论对象现在包含：
+```json
+{
+  "id": 1,
+  "content": "这是一条评论",
+  "postId": 1,
+  "postTitle": "文章标题",
+  "authorUsername": "user123",
+  "authorAvatarUrl": "https://example.com/avatar.jpg",
+  "createdAt": "2023-10-15T10:30:00",
+  "updatedAt": null,
+  "likeCount": 5,
+  "isLiked": true
+}
+```
+
+## 测试场景
+
+### 基本功能测试
+
+#### 场景 1: 点赞评论
+1. 以用户 A 身份登录
+2. 创建或找到一条评论（commentId = 1）
+3. 调用 `POST /api/comments/1/likes`
+4. **预期结果**:
+   - 响应状态码 200
+   - `isLiked` 为 `true`
+   - `likeCount` 增加 1
+
+#### 场景 2: 重复点赞（幂等性）
+1. 继续使用用户 A 的会话
+2. 再次调用 `POST /api/comments/1/likes`
+3. **预期结果**:
+   - 响应状态码 200
+   - `likeCount` 不变（不会重复添加）
+   - 日志中应显示"已经点赞过"的信息
+
+#### 场景 3: 取消点赞
+1. 继续使用用户 A 的会话
+2. 调用 `DELETE /api/comments/1/likes`
+3. **预期结果**:
+   - 响应状态码 200
+   - `isLiked` 为 `false`
+   - `likeCount` 减少 1
+
+#### 场景 4: 重复取消点赞（幂等性）
+1. 继续使用用户 A 的会话
+2. 再次调用 `DELETE /api/comments/1/likes`
+3. **预期结果**:
+   - 响应状态码 200
+   - `likeCount` 不变
+   - 日志中应显示"未点赞过"的信息
+
+#### 场景 5: 多用户点赞
+1. 用户 A 点赞评论 1
+2. 用户 B 点赞评论 1
+3. 用户 C 点赞评论 1
+4. 调用 `GET /api/comments/1/likes`
+5. **预期结果**:
+   - `likeCount` 应为 3
+   - 以用户 A 身份查询时 `isLiked` 为 `true`
+   - 以用户 D（未点赞）身份查询时 `isLiked` 为 `false`
+
+### 权限测试
+
+#### 场景 6: 未登录用户点赞
+1. 不传递认证令牌
+2. 调用 `POST /api/comments/1/likes`
+3. **预期结果**:
+   - 响应状态码 401 (Unauthorized)
+
+#### 场景 7: 匿名用户查看点赞信息
+1. 不传递认证令牌
+2. 调用 `GET /api/comments/1/likes`
+3. **预期结果**:
+   - 响应状态码 200
+   - `isLiked` 始终为 `false`
+   - `likeCount` 显示正确的点赞总数
+
+### 异常情况测试
+
+#### 场景 8: 点赞不存在的评论
+1. 以用户 A 身份登录
+2. 调用 `POST /api/comments/999999/likes`（假设 999999 不存在）
+3. **预期结果**:
+   - 响应状态码 404 (Not Found)
+   - 错误消息："未找到ID为: 999999 的评论"
+
+#### 场景 9: 获取已删除评论的点赞
+1. 创建评论并记录 commentId
+2. 有用户对其点赞
+3. 删除该评论
+4. 尝试调用 `GET /api/comments/{commentId}/likes`
+5. **预期结果**:
+   - 响应状态码 404 (Not Found)
+
+### 级联删除测试
+
+#### 场景 10: 删除评论时清理点赞
+1. 创建评论（commentId = 1）
+2. 多个用户对该评论点赞
+3. 删除该评论
+4. 检查数据库 `likes` 表
+5. **预期结果**:
+   - 所有关联的点赞记录应被自动删除
+   - 不应残留孤立的点赞记录
+
+### 集成测试
+
+#### 场景 11: 获取评论列表时显示点赞信息
+1. 创建文章（postId = 1）
+2. 在该文章下创建 3 条评论
+3. 用户 A 对评论 1 和 2 点赞
+4. 用户 B 对评论 1 点赞
+5. 以用户 A 身份调用 `GET /api/posts/1/comments`
+6. **预期结果**:
+   - 评论 1: `likeCount=2, isLiked=true`
+   - 评论 2: `likeCount=1, isLiked=true`
+   - 评论 3: `likeCount=0, isLiked=false`
+
+#### 场景 12: 创建评论后立即显示点赞信息
+1. 以用户 A 身份创建新评论
+2. **预期结果**:
+   - 响应中包含 `likeCount=0, isLiked=false`
+
+#### 场景 13: 更新评论后保留点赞信息
+1. 用户 A 创建评论
+2. 用户 B 和 C 对其点赞
+3. 用户 A 编辑评论内容
+4. **预期结果**:
+   - 更新后的响应显示 `likeCount=2`
+   - 点赞记录未丢失
+
+### 性能和并发测试
+
+#### 场景 14: 并发点赞测试
+1. 同时有多个用户对同一评论点赞
+2. **预期结果**:
+   - 所有操作都应成功
+   - 最终 `likeCount` 应等于点赞的用户数
+   - 不应出现重复点赞
+
+#### 场景 15: 频繁点赞/取消点赞
+1. 同一用户快速连续地点赞和取消点赞同一评论
+2. **预期结果**:
+   - 所有操作都应正确处理
+   - 最终状态应一致
+
+## 数据完整性检查
+
+### 检查点 1: 唯一约束验证
+```sql
+-- 查询是否存在同一用户对同一评论的多次点赞
+SELECT user_id, comment_id, COUNT(*) as count
+FROM likes
+WHERE comment_id IS NOT NULL
+GROUP BY user_id, comment_id
+HAVING count > 1;
+-- 应返回空结果
+```
+
+### 检查点 2: 外键约束验证
+```sql
+-- 查询是否存在指向不存在评论的点赞记录
+SELECT l.id, l.comment_id
+FROM likes l
+LEFT JOIN comments c ON l.comment_id = c.id
+WHERE l.comment_id IS NOT NULL AND c.id IS NULL;
+-- 应返回空结果
+```
+
+### 检查点 3: 点赞目标验证
+```sql
+-- 查询违反"只能点赞文章或评论其中之一"约束的记录
+SELECT id, post_id, comment_id
+FROM likes
+WHERE (post_id IS NULL AND comment_id IS NULL) 
+   OR (post_id IS NOT NULL AND comment_id IS NOT NULL);
+-- 应返回空结果
+```
+
+## 日志验证
+
+在测试过程中，检查应用日志应包含以下信息：
+- 用户点赞评论的记录（包括用户名、评论ID、当前点赞数）
+- 用户取消点赞的记录
+- 重复点赞/取消点赞的提示信息
+- 任何异常或错误的详细堆栈信息
+
+## 潜在问题和注意事项
+
+### 1. 数据库迁移
+- 在执行迁移前，确保备份现有数据
+- 检查是否有现有的点赞记录会受到新约束的影响
+- 迁移脚本需要在所有环境（开发、测试、生产）中验证
+
+### 2. 性能考虑
+- 如果评论数量很大，获取评论列表时计算每个评论的点赞数可能影响性能
+- 建议监控 `likeRepository.countByComment()` 的执行时间
+- 可能需要在 `likes` 表的 `comment_id` 列上添加索引
+
+### 3. 事务一致性
+- 确保点赞操作的事务性（已使用 `@Transactional` 注解）
+- 测试数据库连接中断时的行为
+
+### 4. API 兼容性
+- 现有前端调用 `GET /api/posts/{postId}/comments` 的地方需要更新以处理新的 `likeCount` 和 `isLiked` 字段
+- 确认旧版本客户端能够忽略新增字段而不报错
+
+## 测试工具推荐
+
+- **Postman/Insomnia**: 用于手动 API 测试
+- **JMeter/K6**: 用于性能和并发测试
+- **MySQL Workbench/DBeaver**: 用于数据库验证
+
+## 总结
+
+完成上述测试场景后，应确保：
+1. ✅ 基本点赞/取消点赞功能正常工作
+2. ✅ 幂等性保证（重复操作不会产生副作用）
+3. ✅ 权限控制正确（未登录用户不能点赞）
+4. ✅ 异常处理完善（不存在的评论、已删除的评论等）
+5. ✅ 数据完整性保持（唯一约束、外键约束）
+6. ✅ 级联删除正常工作
+7. ✅ API 响应一致性（所有返回评论的地方都包含点赞信息）
+8. ✅ 性能可接受（特别是在高负载下）

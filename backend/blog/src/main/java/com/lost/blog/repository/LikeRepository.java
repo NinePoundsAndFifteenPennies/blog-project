@@ -1,5 +1,6 @@
 package com.lost.blog.repository;
 
+import com.lost.blog.model.Comment;
 import com.lost.blog.model.Like;
 import com.lost.blog.model.Post;
 import com.lost.blog.model.User;
@@ -25,4 +26,19 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
     
     // Delete all likes for a specific post (for cascade deletion)
     void deleteByPost(Post post);
+    
+    // Check if a user has liked a specific comment
+    boolean existsByUserAndComment(User user, Comment comment);
+    
+    // Find a like by user and comment
+    Optional<Like> findByUserAndComment(User user, Comment comment);
+    
+    // Count likes for a specific comment
+    long countByComment(Comment comment);
+    
+    // Delete a like by user and comment
+    void deleteByUserAndComment(User user, Comment comment);
+    
+    // Delete all likes for a specific comment (for cascade deletion)
+    void deleteByComment(Comment comment);
 }

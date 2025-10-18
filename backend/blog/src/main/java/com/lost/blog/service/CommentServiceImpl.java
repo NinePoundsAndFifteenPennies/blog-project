@@ -29,16 +29,19 @@ public class CommentServiceImpl implements CommentService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final CommentMapper commentMapper;
+    private final LikeService likeService;
 
     @Autowired
     public CommentServiceImpl(CommentRepository commentRepository,
                              PostRepository postRepository,
                              UserRepository userRepository,
-                             CommentMapper commentMapper) {
+                             CommentMapper commentMapper,
+                             LikeService likeService) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.commentMapper = commentMapper;
+        this.likeService = likeService;
     }
 
     @Override
@@ -67,7 +70,10 @@ public class CommentServiceImpl implements CommentService {
         Comment savedComment = commentRepository.save(comment);
         logger.info("用户 {} 创建了评论ID: {} 在文章ID: {}", user.getUsername(), savedComment.getId(), postId);
 
-        return commentMapper.toResponse(savedComment);
+        CommentResponse response = commentMapper.toResponse(savedComment);
+        response.setLikeCount(0);  // New comment has no likes
+        response.setLiked(false);
+        return response;
     }
 
     @Override
@@ -92,7 +98,10 @@ public class CommentServiceImpl implements CommentService {
         Comment updatedComment = commentRepository.save(comment);
         logger.info("用户 {} 更新了评论ID: {}", user.getUsername(), commentId);
 
-        return commentMapper.toResponse(updatedComment);
+        CommentResponse response = commentMapper.toResponse(updatedComment);
+        response.setLikeCount(likeService.getCommentLikeCount(commentId));
+        response.setLiked(likeService.isCommentLikedByUser(commentId, currentUser));
+        return response;
     }
 
     @Override
@@ -121,7 +130,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<CommentResponse> getCommentsByPost(Long postId, Pageable pageable) {
+    public Page<CommentResponse> getCommentsByPost(Long postId, Pageable pageable, UserDetails currentUser) {
         // 获取文章
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到文章ID: " + postId));
@@ -129,7 +138,13 @@ public class CommentServiceImpl implements CommentService {
         // 获取评论（按创建时间升序排列，最早的在前）
         Page<Comment> comments = commentRepository.findByPost(post, pageable);
 
-        return comments.map(commentMapper::toResponse);
+        return comments.map(comment -> {
+            CommentResponse response = commentMapper.toResponse(comment);
+            // Set like count and user's like status
+            response.setLikeCount(likeService.getCommentLikeCount(comment.getId()));
+            response.setLiked(likeService.isCommentLikedByUser(comment.getId(), currentUser));
+            return response;
+        });
     }
 
     @Override
@@ -142,7 +157,13 @@ public class CommentServiceImpl implements CommentService {
         // 获取用户的所有评论
         Page<Comment> comments = commentRepository.findByUser(user, pageable);
 
-        return comments.map(commentMapper::toResponse);
+        return comments.map(comment -> {
+            CommentResponse response = commentMapper.toResponse(comment);
+            // Set like count and user's like status
+            response.setLikeCount(likeService.getCommentLikeCount(comment.getId()));
+            response.setLiked(likeService.isCommentLikedByUser(comment.getId(), currentUser));
+            return response;
+        });
     }
 
     @Override

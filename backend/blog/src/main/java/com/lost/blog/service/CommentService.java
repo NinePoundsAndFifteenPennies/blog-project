@@ -37,9 +37,10 @@ public interface CommentService {
      * 获取文章的所有评论（分页）
      * @param postId 文章ID
      * @param pageable 分页信息
+     * @param currentUser 当前登录用户（可为null，用于判断点赞状态）
      * @return 分页后的评论响应数据
      */
-    Page<CommentResponse> getCommentsByPost(Long postId, Pageable pageable);
+    Page<CommentResponse> getCommentsByPost(Long postId, Pageable pageable, UserDetails currentUser);
 
     /**
      * 获取当前用户的所有评论（分页）

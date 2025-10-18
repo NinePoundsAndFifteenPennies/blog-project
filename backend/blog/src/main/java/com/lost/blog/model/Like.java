@@ -5,7 +5,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "likes", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"user_id", "post_id"})
+        @UniqueConstraint(columnNames = {"user_id", "post_id"}),
+        @UniqueConstraint(columnNames = {"user_id", "comment_id"})
 })
 public class Like {
 
@@ -18,8 +19,12 @@ public class Like {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id", nullable = false)
+    @JoinColumn(name = "post_id")
     private Post post;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "comment_id")
+    private Comment comment;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -52,6 +57,14 @@ public class Like {
 
     public void setPost(Post post) {
         this.post = post;
+    }
+
+    public Comment getComment() {
+        return comment;
+    }
+
+    public void setComment(Comment comment) {
+        this.comment = comment;
     }
 
     public LocalDateTime getCreatedAt() {
