@@ -184,7 +184,9 @@ export default {
     const commentMode = ref('text') // 'text' or 'markdown'
     const totalPages = ref(1)
     const totalElements = ref(0)
-    const initialPageSize = 10 // First load: 10 comments
+    const PAGE_SIZE = 10 // Page size for all requests
+    const INITIAL_LOAD_SIZE = 10 // First load: 10 comments
+    const LOAD_MORE_PAGES = 2 // Load 2 pages (20 comments) each time
     const avatarLoadError = ref(false)
     const loadedCount = ref(0) // Track how many comments have been loaded
 
@@ -229,11 +231,11 @@ export default {
       
       try {
         if (!append) {
-          // Initial load: load first 10 comments (page 0, size 10)
+          // Initial load: load first batch of comments
           loadedCount.value = 0
           const response = await getPostComments(props.postId, {
             page: 0,
-            size: initialPageSize
+            size: INITIAL_LOAD_SIZE
           })
 
           comments.value = response.content || []
@@ -241,19 +243,19 @@ export default {
           totalPages.value = response.totalPages || 1
           totalElements.value = response.totalElements || 0
         } else {
-          // Load more: load next 20 comments by making 2 requests of 10 each
-          const startPage = Math.floor(loadedCount.value / 10)
+          // Load more: load next batch of comments by making multiple page requests
+          const startPage = Math.floor(loadedCount.value / PAGE_SIZE)
           const newComments = []
           
-          // Request 2 pages of 10 items each to get 20 items
-          for (let i = 0; i < 2; i++) {
+          // Request multiple pages to get more items
+          for (let i = 0; i < LOAD_MORE_PAGES; i++) {
             const page = startPage + i
-            // Check if we've reached the end
-            if (page * 10 >= totalElements.value) break
+            // Check if this page would start beyond total elements
+            if (page * PAGE_SIZE >= totalElements.value) break
             
             const response = await getPostComments(props.postId, {
               page: page,
-              size: 10
+              size: PAGE_SIZE
             })
             
             if (response.content && response.content.length > 0) {
