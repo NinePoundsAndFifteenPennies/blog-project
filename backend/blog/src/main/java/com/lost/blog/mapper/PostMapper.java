@@ -11,10 +11,12 @@ import org.springframework.stereotype.Component;
 public class PostMapper {
 
     private final LikeService likeService;
+    private final com.lost.blog.service.CommentService commentService;
 
     @Autowired
-    public PostMapper(LikeService likeService) {
+    public PostMapper(LikeService likeService, com.lost.blog.service.CommentService commentService) {
         this.likeService = likeService;
+        this.commentService = commentService;
     }
 
     public PostResponse toResponse(Post post) {
@@ -40,6 +42,9 @@ public class PostMapper {
         // 添加点赞信息
         postResponse.setLikeCount(likeService.getLikeCount(post.getId()));
         postResponse.setIsLiked(likeService.isPostLikedByUser(post.getId(), currentUser));
+        
+        // 添加评论数
+        postResponse.setCommentCount(commentService.getCommentCount(post.getId()));
         
         return postResponse;
     }

@@ -12,6 +12,10 @@
 
 需要认证的接口必须在请求头中携带 JWT Token：
 
+## 注意
+
+有些返回结果是我直接从postman里面复制粘贴过来的， 返回结果某些量的value不一定和测试给的一致。
+
 ```http
 Authorization: Bearer {your-jwt-token}
 ```
@@ -67,12 +71,13 @@ Content-Type: application/json
 **参数说明:**
 - `username`: 用户名或邮箱
 - `password`: 密码
-- `rememberMe`: 是否记住我（true: 30天，false: 1小时）
+- `rememberMe`: 是否记住我（true: 30天，false: 1小时，可以加可以不加，默认false）
 
 **成功响应:** `200 OK`
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiJ9..."
+  "accessToken": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJzZWNvbmR1c2VyIiwiaWF0IjoxNzYwNjg2MTc5LCJleHAiOjE3NjA2ODk3Nzl9.2Rev0bSNSRrD_gBhMii2DX5J2z-zdJPk4ZuRwjeIifQ6kXvGBnLS7hPOj0m9_-lwd06umRDSjKGQNIUeigohog",
+  "tokenType": "Bearer"
 }
 ```
 
@@ -90,11 +95,10 @@ Authorization: Bearer {token}
 **成功响应:** `200 OK`
 ```json
 {
-  "id": 1,
-  "username": "testuser",
-  "email": "test@example.com",
-  "avatarUrl": "/uploads/1/avatars/abc123.jpg",
-  "createdAt": "2025-10-14T10:30:00"
+  "id": 2,
+  "username": "seconduser",
+  "email": "seconduser@lost.com",
+  "avatarUrl": "/uploads/2/avatars/9d70a757-54e1-41eb-99df-b509ba97b7dc.jpg"
 }
 ```
 
@@ -113,7 +117,7 @@ Authorization: Bearer {token}
 Content-Type: application/json
 ```
 
-**请求体:**
+**请求体:**（不加默认false）
 ```json
 {
   "rememberMe": false
@@ -123,7 +127,8 @@ Content-Type: application/json
 **成功响应:** `200 OK`
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiJ9..."
+  "accessToken": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJzZWNvbmR1c2VyIiwiaWF0IjoxNzYwNjg2MjI0LCJleHAiOjE3NjA2ODk4MjR9.KAtGtaVn61rBzXBFkoKPnBHbc9KHqiWRQ2UnYcbI28OlOHr7RflWNxMjBAIKOcBKkcQtyIEOsUeHdnOyqgbzaQ",
+  "tokenType": "Bearer"
 }
 ```
 
@@ -149,10 +154,10 @@ Content-Type: application/json
 **成功响应:** `200 OK`
 ```json
 {
-  "id": 1,
-  "username": "testuser",
-  "email": "test@example.com",
-  "avatarUrl": "/uploads/1/avatars/abc123.jpg"
+  "id": 2,
+  "username": "seconduser",
+  "email": "seconduser@lost.com",
+  "avatarUrl": "/uploads/2/avatars/9d70a757-54e1-41eb-99df-b509ba97b7dc.jpg"
 }
 ```
 
@@ -187,18 +192,19 @@ Content-Type: application/json
 **成功响应:** `201 Created`
 ```json
 {
-  "id": 1,
-  "title": "文章标题",
-  "content": "文章内容",
-  "contentType": "MARKDOWN",
-  "authorUsername": "testuser",
-  "authorAvatarUrl": "/uploads/1/avatars/abc123.jpg",
-  "createdAt": "2025-10-14T10:30:00",
+  "id": 24,
+  "title": "测试api2",
+  "content": "# 这是标题\n\n这是文章内容...",
+  "authorUsername": "seconduser",
+  "authorAvatarUrl": "/uploads/2/avatars/9d70a757-54e1-41eb-99df-b509ba97b7dc.jpg",
+  "createdAt": "2025-10-17T17:58:06.0262871",
   "updatedAt": null,
-  "publishedAt": "2025-10-14T10:30:00",
+  "publishedAt": "2025-10-17T17:58:06.0262871",
+  "contentType": "MARKDOWN",
   "draft": false,
   "likeCount": 0,
-  "isLiked": false
+  "isLiked": false,
+  "commentCount": 0
 }
 ```
 
@@ -222,23 +228,46 @@ GET /api/posts?page=0&size=10&sort=createdAt,desc
 {
   "content": [
     {
-      "id": 1,
-      "title": "文章标题",
-      "content": "文章内容",
+      "id": 24,
+      "title": "测试api2",
+      "content": "# 这是标题\n\n这是文章内容...",
+      "authorUsername": "seconduser",
+      "authorAvatarUrl": "/uploads/2/avatars/9d70a757-54e1-41eb-99df-b509ba97b7dc.jpg",
+      "createdAt": "2025-10-17T17:58:06.026287",
+      "updatedAt": null,
+      "publishedAt": "2025-10-17T17:58:06.026287",
       "contentType": "MARKDOWN",
-      "authorUsername": "testuser",
-      "authorAvatarUrl": "/uploads/1/avatars/abc123.jpg",
-      "createdAt": "2025-10-14T10:30:00",
-      "publishedAt": "2025-10-14T10:30:00",
       "draft": false,
-      "likeCount": 10,
-      "isLiked": false
+      "likeCount": 0,
+      "isLiked": false,
+      "commentCount": 0
     }
   ],
-  "totalPages": 5,
-  "totalElements": 50,
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10,
+    "sort": {
+      "empty": false,
+      "unsorted": false,
+      "sorted": true
+    },
+    "offset": 0,
+    "unpaged": false,
+    "paged": true
+  },
+  "totalElements": 1,
+  "totalPages": 1,
+  "last": true,
   "size": 10,
-  "number": 0
+  "number": 0,
+  "first": true,
+  "numberOfElements": 1,
+  "sort": {
+    "empty": false,
+    "unsorted": false,
+    "sorted": true
+  },
+  "empty": false
 }
 ```
 
@@ -252,8 +281,54 @@ GET /api/posts?page=0&size=10&sort=createdAt,desc
 GET /api/posts/my?page=0&size=10
 Authorization: Bearer {token}
 ```
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 8,
+      "title": "更新",
+      "content": "更新后的内容",
+      "authorUsername": "seconduser",
+      "authorAvatarUrl": "/uploads/2/avatars/9d70a757-54e1-41eb-99df-b509ba97b7dc.jpg",
+      "createdAt": "2025-10-07T17:41:04.153692",
+      "updatedAt": "2025-10-17T17:44:12.00442",
+      "publishedAt": "2025-10-08T23:19:00.080556",
+      "contentType": "MARKDOWN",
+      "draft": false,
+      "likeCount": 2,
+      "isLiked": true,
+      "commentCount": 1
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10,
+    "sort": {
+      "empty": true,
+      "unsorted": true,
+      "sorted": false
+    },
+    "offset": 0,
+    "unpaged": false,
+    "paged": true
+  },
+  "totalElements": 1,
+  "totalPages": 1,
+  "last": true,
+  "size": 10,
+  "number": 0,
+  "first": true,
+  "numberOfElements": 1,
+  "sort": {
+    "empty": true,
+    "unsorted": true,
+    "sorted": false
+  },
+  "empty": false
+}
+```
 
-**成功响应:** `200 OK`（格式同获取文章列表）
 
 ---
 
@@ -263,23 +338,26 @@ Authorization: Bearer {token}
 
 ```http
 GET /api/posts/{id}
+#这个token可加可不加，加了的话返回当前用户是否isLiked，不加默认false
+Authorization: Bearer {token} 
 ```
 
 **成功响应:** `200 OK`
 ```json
 {
-  "id": 1,
-  "title": "文章标题",
-  "content": "文章内容",
+  "id": 8,
+  "title": "更新",
+  "content": "更新后的内容",
+  "authorUsername": "seconduser",
+  "authorAvatarUrl": "/uploads/2/avatars/9d70a757-54e1-41eb-99df-b509ba97b7dc.jpg",
+  "createdAt": "2025-10-07T17:41:04.153692",
+  "updatedAt": "2025-10-17T17:44:12.00442",
+  "publishedAt": "2025-10-08T23:19:00.080556",
   "contentType": "MARKDOWN",
-  "authorUsername": "testuser",
-  "authorAvatarUrl": "/uploads/1/avatars/abc123.jpg",
-  "createdAt": "2025-10-14T10:30:00",
-  "updatedAt": null,
-  "publishedAt": "2025-10-14T10:30:00",
   "draft": false,
-  "likeCount": 10,
-  "isLiked": false
+  "likeCount": 2,
+  "isLiked": false,
+  "commentCount": 1
 }
 ```
 
@@ -308,7 +386,24 @@ Content-Type: application/json
 }
 ```
 
-**成功响应:** `200 OK`（返回更新后的文章）
+**成功响应:** `200 OK`
+```json
+{
+    "id": 8,
+    "title": "更新后的标题",
+    "content": "更新后的内容",
+    "authorUsername": "seconduser",
+    "authorAvatarUrl": "/uploads/2/avatars/9d70a757-54e1-41eb-99df-b509ba97b7dc.jpg",
+    "createdAt": "2025-10-07T17:41:04.153692",
+    "updatedAt": "2025-10-10T13:41:13.683885",
+    "publishedAt": "2025-10-08T23:19:00.080556",
+    "contentType": "MARKDOWN",
+    "draft": false,
+    "likeCount": 2,
+    "isLiked": true,
+    "commentCount": 1
+}
+```
 
 **错误响应:**
 - `403 Forbidden` - 无权限修改此文章
@@ -466,6 +561,208 @@ GET /api/posts/{postId}/likes
 **错误响应:**
 - `404 Not Found` - 文章不存在
 
+## 评论相关接口
+
+### 创建评论
+
+在指定文章下创建一条评论。
+
+```http
+POST /api/posts/{postId}/comments
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**路径参数:**
+- `postId`: 文章ID
+
+**请求体:**
+```json
+{
+  "content": "这是评论内容"
+}
+```
+
+**字段说明:**
+- `content` (String, 必填): 评论内容，长度1-3000字符
+
+**成功响应:** `201 Created`
+```json
+{
+  "id": 1,
+  "content": "这是评论内容",
+  "postId": 10,
+  "postTitle": "文章标题",
+  "authorUsername": "用户名",
+  "authorAvatarUrl": "https://example.com/avatar.jpg",
+  "createdAt": "2025-10-16T15:30:00",
+  "updatedAt": null
+}
+```
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `403 Forbidden` - 尝试评论草稿文章
+- `404 Not Found` - 文章不存在
+- `400 Bad Request` - 评论内容不符合要求
+
+---
+
+### 获取文章评论
+
+获取指定文章的所有评论，支持分页。
+
+```http
+GET /api/posts/{postId}/comments?page=0&size=20
+```
+
+**路径参数:**
+- `postId`: 文章ID
+
+**查询参数:**
+- `page` (可选): 页码，从0开始，默认0
+- `size` (可选): 每页数量，默认20
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "content": "第一条评论",
+      "postId": 10,
+      "postTitle": "文章标题",
+      "authorUsername": "user1",
+      "authorAvatarUrl": "https://example.com/avatar1.jpg",
+      "createdAt": "2025-10-16T15:30:00",
+      "updatedAt": null
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 20
+  },
+  "totalElements": 1,
+  "totalPages": 1,
+  "last": true,
+  "first": true
+}
+```
+
+**说明:**
+- 匿名用户可以访问此接口查看评论
+- 评论按创建时间升序排列（最早的在前）
+
+**错误响应:**
+- `404 Not Found` - 文章不存在
+
+---
+
+### 获取我的评论
+
+获取当前登录用户发表的所有评论。
+
+```http
+GET /api/comments/my?page=0&size=10
+Authorization: Bearer {token}
+```
+
+**查询参数:**
+- `page` (可选): 页码，从0开始，默认0
+- `size` (可选): 每页数量，默认10
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "content": "我的评论",
+      "postId": 10,
+      "postTitle": "文章标题A",
+      "authorUsername": "currentUser",
+      "authorAvatarUrl": "https://example.com/my-avatar.jpg",
+      "createdAt": "2025-10-16T15:30:00",
+      "updatedAt": null
+    }
+  ],
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+
+---
+
+### 更新评论
+
+更新自己创建的评论内容。
+
+```http
+PUT /api/comments/{commentId}
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**路径参数:**
+- `commentId`: 评论ID
+
+**请求体:**
+```json
+{
+  "content": "更新后的评论内容"
+}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 1,
+  "content": "更新后的评论内容",
+  "postId": 10,
+  "postTitle": "文章标题",
+  "authorUsername": "用户名",
+  "authorAvatarUrl": "https://example.com/avatar.jpg",
+  "createdAt": "2025-10-16T15:30:00",
+  "updatedAt": "2025-10-16T16:00:00"
+}
+```
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `403 Forbidden` - 无权限编辑此评论（非评论作者）
+- `404 Not Found` - 评论不存在
+
+---
+
+### 删除评论
+
+删除一条评论。评论作者和文章作者都可以删除评论。
+
+```http
+DELETE /api/comments/{commentId}
+Authorization: Bearer {token}
+```
+
+**路径参数:**
+- `commentId`: 评论ID
+
+**成功响应:** `200 OK`
+```json
+"评论删除成功"
+```
+
+**权限说明:**
+- 评论作者可以删除自己的评论
+- 文章作者可以删除自己文章下的任何评论
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `403 Forbidden` - 无权限删除此评论
+- `404 Not Found` - 评论不存在
+
 ## 错误码说明
 
 | 状态码 | 说明 |
@@ -490,71 +787,3 @@ GET /api/posts/{postId}/likes
 }
 ```
 
-## 使用示例
-
-### 完整的头像上传流程
-
-1. **上传头像文件**
-   ```bash
-   curl -X POST http://localhost:8080/api/files/upload/avatar \
-     -H "Authorization: Bearer {token}" \
-     -F "file=@avatar.jpg"
-   ```
-
-2. **保存头像 URL**
-   ```bash
-   curl -X POST http://localhost:8080/api/users/me/avatar \
-     -H "Authorization: Bearer {token}" \
-     -H "Content-Type: application/json" \
-     -d '{"avatarUrl": "/uploads/1/avatars/abc123.jpg"}'
-   ```
-
-3. **验证头像已保存**
-   ```bash
-   curl -X GET http://localhost:8080/api/users/me \
-     -H "Authorization: Bearer {token}"
-   ```
-
-### 完整的文章发布流程
-
-1. **创建文章**
-   ```bash
-   curl -X POST http://localhost:8080/api/posts \
-     -H "Authorization: Bearer {token}" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "title": "我的第一篇文章",
-       "content": "# 标题\n\n这是内容",
-       "contentType": "MARKDOWN",
-       "draft": false
-     }'
-   ```
-
-2. **查看文章列表**
-   ```bash
-   curl -X GET http://localhost:8080/api/posts?page=0&size=10
-   ```
-
-### 完整的点赞流程
-
-1. **查看文章的点赞信息**
-   ```bash
-   curl -X GET http://localhost:8080/api/posts/1/likes
-   ```
-
-2. **点赞文章（需要登录）**
-   ```bash
-   curl -X POST http://localhost:8080/api/posts/1/likes \
-     -H "Authorization: Bearer {token}"
-   ```
-
-3. **取消点赞（需要登录）**
-   ```bash
-   curl -X DELETE http://localhost:8080/api/posts/1/likes \
-     -H "Authorization: Bearer {token}"
-   ```
-
-4. **再次查看点赞信息**
-   ```bash
-   curl -X GET http://localhost:8080/api/posts/1/likes
-   ```

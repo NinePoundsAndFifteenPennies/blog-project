@@ -56,6 +56,8 @@ Controller ──► Service ──► Repository ──► Database
 | 控制器 | └── UserController.java | 提供用户注册、登录、获取信息的 API |
 | 控制器 | └── PostController.java | 提供文章 CRUD API |
 | 控制器 | └── FileController.java | 提供头像上传和更新 API |
+| 控制器 | └── LikeController.java | 提供文章点赞 API |
+| 控制器 | └── CommentController.java | 提供评论 CRUD API |
 | 数据传输对象 | **dto/** | 定义请求和响应的数据模型 |
 | DTO | └── UserRegistrationRequest.java | 用户注册请求体 |
 | DTO | └── LoginRequest.java | 用户登录请求体 |
@@ -65,6 +67,9 @@ Controller ──► Service ──► Repository ──► Database
 | DTO | └── AvatarUrlRequest.java | 头像URL请求体 |
 | DTO | └── JwtAuthenticationResponse.java | JWT 认证响应 |
 | DTO | └── ErrorResponse.java | 标准化错误响应 |
+| DTO | └── LikeResponse.java | 点赞响应体 |
+| DTO | └── CommentRequest.java | 评论创建/更新请求体 |
+| DTO | └── CommentResponse.java | 评论响应体 |
 | 异常层 | **exception/** | 自定义异常类与全局异常处理 |
 | 异常处理器 | └── GlobalExceptionHandler.java | 统一捕获和处理异常 |
 | 异常类 | └── AccessDeniedException.java | 访问被拒绝异常 |
@@ -72,13 +77,18 @@ Controller ──► Service ──► Repository ──► Database
 | 映射层 | **mapper/** | 实体与 DTO 的转换工具 |
 | 映射器 | └── UserMapper.java | User ↔ UserResponse 转换 |
 | 映射器 | └── PostMapper.java | Post ↔ PostResponse 转换 |
+| 映射器 | └── CommentMapper.java | Comment ↔ CommentResponse 转换 |
 | 实体层 | **model/** | 数据库实体类 (JPA Entity) |
 | 实体 | └── User.java | 用户实体 |
 | 实体 | └── Post.java | 文章实体 |
+| 实体 | └── Like.java | 点赞实体 |
+| 实体 | └── Comment.java | 评论实体 |
 | 枚举 | └── ContentType.java | 内容类型枚举 |
 | 数据访问层 | **repository/** | 提供数据库操作接口 |
 | Repository | └── UserRepository.java | 用户数据访问接口 |
 | Repository | └── PostRepository.java | 文章数据访问接口 |
+| Repository | └── LikeRepository.java | 点赞数据访问接口 |
+| Repository | └── CommentRepository.java | 评论数据访问接口 |
 | 安全层 | **security/** | 与认证和授权相关的工具类 |
 | 工具类 | └── JwtTokenProvider.java | JWT 生成与验证 |
 | 过滤器 | └── JwtAuthenticationFilter.java | 拦截并校验 JWT 请求 |
@@ -90,6 +100,10 @@ Controller ──► Service ──► Repository ──► Database
 | 实现类 | └── PostServiceImpl.java | 文章服务实现 |
 | 接口 | └── FileService.java | 文件服务接口 |
 | 实现类 | └── FileServiceImpl.java | 文件服务实现（头像上传、更新、删除） |
+| 接口 | └── LikeService.java | 点赞服务接口 |
+| 实现类 | └── LikeServiceImpl.java | 点赞服务实现 |
+| 接口 | └── CommentService.java | 评论服务接口 |
+| 实现类 | └── CommentServiceImpl.java | 评论服务实现 |
 | 配置文件 | **resources/** | 存放应用的资源文件 |
 | 配置文件 | └── application.properties | 应用配置（数据库、JWT密钥等） |
 
@@ -149,10 +163,16 @@ Service 层使用接口与实现分离：
 
 - **User**: 用户信息（用户名、密码、邮箱、头像URL）
 - **Post**: 文章信息（标题、内容、作者、创建时间、是否草稿）
+- **Like**: 点赞信息（用户、文章、创建时间）
+- **Comment**: 评论信息（内容、用户、文章、创建时间、更新时间）
 
 ### 关系设计
 
 - User ←─[一对多]─→ Post（一个用户可以有多篇文章）
+- User ←─[一对多]─→ Like（一个用户可以点赞多篇文章）
+- Post ←─[一对多]─→ Like（一篇文章可以有多个点赞）
+- User ←─[一对多]─→ Comment（一个用户可以发表多条评论）
+- Post ←─[一对多]─→ Comment（一篇文章可以有多条评论）
 
 ## 文件存储
 
@@ -197,8 +217,8 @@ uploads/
 
 ### 功能差异
 
-- **未实现**: 评论 (Comment)、分类 (Category)、标签 (Tag)
-- **新增**: "记住我"功能、JWT自动刷新、增强的Markdown编辑器、头像上传系统、文章点赞功能
+- **未实现**: 分类 (Category)、标签 (Tag)
+- **新增**: "记住我"功能、JWT自动刷新、增强的Markdown编辑器、头像上传系统、文章点赞功能、评论功能
 
 ### 架构差异
 

@@ -7,7 +7,7 @@
 - **后端**: Spring Boot + Spring Security + JWT + JPA/Hibernate + MySQL
 - **前端**: Vue.js + Axios + TailwindCSS
 - **架构**: RESTful API + 前后端分离
-- **特色**: JWT认证、"记住我"功能、Markdown编辑器、文章管理、头像上传
+- **特色**: JWT认证、"记住我"功能、Markdown编辑器、文章管理、头像上传、点赞功能、评论功能
 
 ## 核心功能
 
@@ -16,6 +16,7 @@
 - ✅ 增强的 Markdown 编辑器（工具栏、快捷键、代码高亮）
 - ✅ 头像上传与管理（按用户分类存储、更新机制）
 - ✅ 文章点赞功能（点赞/取消点赞、点赞数显示）
+- ✅ 评论功能（CRUD、分页、权限控制、级联删除）
 - ✅ 全局异常处理与标准化错误响应
 
 ## 快速开始
@@ -52,6 +53,8 @@
   - [编辑器改进](docs/features/EDITOR.md)
   - [记住我功能](docs/features/REMEMBER_ME.md)
   - [头像上传](docs/features/AVATAR_UPLOAD.md)
+  - [点赞功能](docs/features/LIKES.md)
+  - [评论功能](docs/features/COMMENTS.md)
 
 ## 项目进度
 
@@ -64,14 +67,16 @@
 - 增强的 Markdown 编辑器
 - 头像上传与管理系统
 - 文章点赞功能
+- 评论功能（CRUD、权限控制、级联删除）
 
 **未来计划**:
-- 评论功能
 - 文章分类和标签
 - 文章搜索
 - 用户个人资料编辑
 - 代码高亮优化
 - 响应式设计优化
+- 评论回复功能
+- 评论点赞功能
 
 ## 技术栈
 
