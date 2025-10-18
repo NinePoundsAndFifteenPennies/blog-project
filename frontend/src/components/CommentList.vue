@@ -184,9 +184,8 @@ export default {
     const commentMode = ref('text') // 'text' or 'markdown'
     const totalPages = ref(1)
     const totalElements = ref(0)
-    const PAGE_SIZE = 10 // Page size for all requests
-    const INITIAL_LOAD_SIZE = 10 // First load: 10 comments
-    const LOAD_MORE_PAGES = 2 // Load 2 pages (20 comments) each time
+    const PAGE_SIZE = 10 // Page size for all requests (first load: 10, each load more: 2 pages × 10 = 20)
+    const LOAD_MORE_PAGES = 2 // Load 2 pages (20 comments) each time when clicking "Load More"
     const avatarLoadError = ref(false)
     const loadedCount = ref(0) // Track how many comments have been loaded
 
@@ -235,7 +234,7 @@ export default {
           loadedCount.value = 0
           const response = await getPostComments(props.postId, {
             page: 0,
-            size: INITIAL_LOAD_SIZE
+            size: PAGE_SIZE
           })
 
           comments.value = response.content || []
