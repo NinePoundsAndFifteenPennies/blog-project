@@ -48,6 +48,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/**").permitAll()
                         // 允许对点赞信息的GET请求的匿名访问（查看点赞数量和状态）
                         .requestMatchers(HttpMethod.GET, "/api/posts/*/likes").permitAll()
+                        // 允许对评论点赞信息的GET请求的匿名访问
+                        .requestMatchers(HttpMethod.GET, "/api/comments/*/likes").permitAll()
                         // 其他所有请求都需要认证
                         .anyRequest().authenticated()
                 );
