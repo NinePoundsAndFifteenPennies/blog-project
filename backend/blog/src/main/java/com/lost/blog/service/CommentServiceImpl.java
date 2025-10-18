@@ -9,6 +9,7 @@ import com.lost.blog.model.Comment;
 import com.lost.blog.model.Post;
 import com.lost.blog.model.User;
 import com.lost.blog.repository.CommentRepository;
+import com.lost.blog.repository.LikeRepository;
 import com.lost.blog.repository.PostRepository;
 import com.lost.blog.repository.UserRepository;
 import org.slf4j.Logger;
@@ -30,18 +31,21 @@ public class CommentServiceImpl implements CommentService {
     private final UserRepository userRepository;
     private final CommentMapper commentMapper;
     private final LikeService likeService;
+    private final LikeRepository likeRepository;
 
     @Autowired
     public CommentServiceImpl(CommentRepository commentRepository,
                              PostRepository postRepository,
                              UserRepository userRepository,
                              CommentMapper commentMapper,
-                             LikeService likeService) {
+                             LikeService likeService,
+                             LikeRepository likeRepository) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.commentMapper = commentMapper;
         this.likeService = likeService;
+        this.likeRepository = likeRepository;
     }
 
     @Override
@@ -123,6 +127,10 @@ public class CommentServiceImpl implements CommentService {
             logger.warn("用户 {} 尝试删除不属于自己的评论ID: {}", user.getUsername(), commentId);
             throw new AccessDeniedException("您没有权限删除此评论");
         }
+
+        // 删除评论前，先删除该评论的所有点赞记录
+        likeRepository.deleteByComment(comment);
+        logger.info("删除评论ID: {} 的所有点赞记录", commentId);
 
         commentRepository.delete(comment);
         logger.info("用户 {} 删除了评论ID: {}", user.getUsername(), commentId);

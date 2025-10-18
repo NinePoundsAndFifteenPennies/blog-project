@@ -8,23 +8,32 @@
 
 ### 1. 数据库迁移
 
-**⚠️ 重要提示**：由于Hibernate的限制，需要执行一条SQL语句。
+**⚠️ 重要提示**：由于Hibernate的限制，需要执行SQL语句。
 
 **必需步骤（只需执行一次）**：
 
 ```sql
--- 将 post_id 列改为可空（Hibernate无法自动修改现有列的约束）
+-- 1. 将 post_id 列改为可空（Hibernate无法自动修改现有列的约束）
 ALTER TABLE likes MODIFY COLUMN post_id BIGINT NULL;
+
+-- 2. 添加/更新外键约束以支持级联删除
+-- 注意：如果外键已存在但没有 ON DELETE CASCADE，需要先删除再重建
+-- 使用 SHOW CREATE TABLE likes; 查看现有约束
+
+-- 添加评论点赞的外键（带级联删除）
+ALTER TABLE likes 
+ADD CONSTRAINT fk_likes_comment 
+FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE;
 ```
 
 **为什么需要这个**：
 - 如果你的 `likes` 表已存在，`post_id` 列可能是 NOT NULL
 - Hibernate的 `ddl-auto=update` 模式**无法修改现有列的约束**
-- 这是Hibernate的已知限制
+- 外键的级联删除需要数据库层面的支持，应用层也会确保删除评论前先删除相关点赞
 
 执行上述SQL后，重启应用，Hibernate会自动：
 - ✅ 添加 `comment_id` 列和相关约束
-- ✅ 创建外键和索引
+- ✅ 创建索引
 - ✅ 保留所有现有数据
 
 **如果是全新安装**（数据库中没有 `likes` 表），直接启动应用即可，无需执行任何SQL。

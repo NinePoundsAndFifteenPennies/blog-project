@@ -16,15 +16,31 @@
 **首次部署时，必须执行以下SQL**（只需执行一次）：
 
 ```sql
--- 将 post_id 列改为可空（Hibernate无法自动完成此操作）
+-- 1. 将 post_id 列改为可空（Hibernate无法自动完成此操作）
 ALTER TABLE likes MODIFY COLUMN post_id BIGINT NULL;
+
+-- 2. 更新外键约束，添加级联删除（如果外键已存在，先删除再重建）
+-- 查看现有外键名称
+SHOW CREATE TABLE likes;
+
+-- 删除现有外键（替换 fk_name 为实际的外键名称）
+-- ALTER TABLE likes DROP FOREIGN KEY fk_name;
+
+-- 添加带级联删除的外键约束
+ALTER TABLE likes 
+ADD CONSTRAINT fk_likes_comment 
+FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE;
+
+-- 如果 post_id 外键也需要级联删除
+ALTER TABLE likes 
+ADD CONSTRAINT fk_likes_post 
+FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE;
 ```
 
 执行此脚本后，Hibernate会在应用启动时自动完成以下操作：
-1. ✅ 添加 `comment_id` 列
-2. ✅ 添加外键约束（`comment_id` -> `comments.id`，级联删除）
-3. ✅ 添加唯一约束（`user_id`, `comment_id`）
-4. ✅ 为 `comment_id` 添加索引
+1. ✅ 添加 `comment_id` 列（如果不存在）
+2. ✅ 添加唯一约束（`user_id`, `comment_id`）
+3. ✅ 为 `comment_id` 添加索引
 
 **重启应用时不会覆盖数据**：Hibernate的`update`模式会保留现有数据，只添加缺失的表结构。
 
