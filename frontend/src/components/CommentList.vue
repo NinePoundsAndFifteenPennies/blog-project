@@ -122,18 +122,21 @@
       <p class="text-gray-500">暂无评论，快来发表第一条评论吧！</p>
     </div>
 
-    <!-- Load More Button (Dynamic Loading) -->
-    <div v-if="hasMore" class="mt-8 text-center">
+    <!-- Load More Button and Loading Indicator (Dynamic Loading) -->
+    <div v-if="hasMore || loadingMore" class="mt-8 text-center">
+      <div v-if="loadingMore" class="flex flex-col items-center space-y-3 py-4">
+        <div class="animate-spin rounded-full h-8 w-8 border-3 border-primary-600 border-t-transparent"></div>
+        <p class="text-sm text-gray-500">正在加载更多评论...</p>
+      </div>
       <button
+        v-else
         @click="loadMore"
         class="btn-secondary inline-flex items-center space-x-2"
-        :disabled="loadingMore"
       >
-        <svg v-if="!loadingMore" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
         </svg>
-        <div v-else class="animate-spin rounded-full h-5 w-5 border-2 border-primary-600 border-t-transparent"></div>
-        <span>{{ loadingMore ? '加载中...' : '加载更多评论' }}</span>
+        <span>加载更多评论</span>
       </button>
       <p class="text-sm text-gray-500 mt-2">
         已加载 {{ comments.length }} / {{ totalElements }} 条评论
@@ -143,7 +146,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
 import { marked } from 'marked'
 import CommentItem from './CommentItem.vue'
@@ -182,7 +185,8 @@ export default {
     const currentPage = ref(1)
     const totalPages = ref(1)
     const totalElements = ref(0)
-    const pageSize = 20
+    const initialPageSize = 10 // First load: 10 comments
+    const pageSize = 20 // Subsequent loads: 20 comments
     const avatarLoadError = ref(false)
 
     const currentUser = computed(() => store.getters.currentUser)
@@ -225,9 +229,12 @@ export default {
       }
       
       try {
+        // Use initialPageSize for first load, pageSize for subsequent loads
+        const size = (currentPage.value === 1 && !append) ? initialPageSize : pageSize
+        
         const response = await getPostComments(props.postId, {
           page: currentPage.value - 1,
-          size: pageSize
+          size: size
         })
 
         if (append) {
@@ -314,8 +321,28 @@ export default {
       }
     }
 
+    // Infinite scroll handler
+    const handleScroll = () => {
+      if (loadingMore.value || !hasMore.value) return
+
+      const scrollPosition = window.innerHeight + window.scrollY
+      const documentHeight = document.documentElement.scrollHeight
+      
+      // Trigger load more when within 200px of bottom
+      if (scrollPosition >= documentHeight - 200) {
+        loadMore()
+      }
+    }
+
     onMounted(() => {
       loadComments()
+      // Add scroll listener for infinite scroll
+      window.addEventListener('scroll', handleScroll)
+    })
+
+    onUnmounted(() => {
+      // Clean up scroll listener
+      window.removeEventListener('scroll', handleScroll)
     })
 
     return {
