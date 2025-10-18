@@ -2,26 +2,17 @@ package com.lost.blog.mapper;
 
 import com.lost.blog.dto.CommentResponse;
 import com.lost.blog.model.Comment;
-import com.lost.blog.repository.LikeRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 @Component
 public class CommentMapper {
 
-    private final LikeRepository likeRepository;
-
-    @Autowired
-    public CommentMapper(LikeRepository likeRepository) {
-        this.likeRepository = likeRepository;
-    }
-
+    /**
+     * Convert Comment entity to CommentResponse DTO.
+     * Note: This method does NOT populate like information (likeCount and isLiked).
+     * The service layer is responsible for setting these fields to avoid N+1 query problems.
+     */
     public CommentResponse toResponse(Comment comment) {
-        return toResponse(comment, null);
-    }
-
-    public CommentResponse toResponse(Comment comment, UserDetails currentUser) {
         if (comment == null) {
             return null;
         }
@@ -36,9 +27,10 @@ public class CommentMapper {
         response.setCreatedAt(comment.getCreatedAt());
         response.setUpdatedAt(comment.getUpdatedAt());
         
-        // Set like information
-        response.setLikeCount(likeRepository.countByComment(comment));
-        response.setLiked(false);  // Default to false for anonymous users
+        // Initialize like fields to default values
+        // Service layer will populate these fields
+        response.setLikeCount(0);
+        response.setLiked(false);
         
         return response;
     }

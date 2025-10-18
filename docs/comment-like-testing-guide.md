@@ -23,8 +23,12 @@ ALTER TABLE likes ADD CONSTRAINT uk_user_comment
     UNIQUE (user_id, comment_id);
 
 -- 5. 添加检查约束，确保 post_id 和 comment_id 只有一个不为空
+-- 注意：MySQL 8.0.16+ 支持 CHECK 约束
 ALTER TABLE likes ADD CONSTRAINT ck_like_target 
     CHECK ((post_id IS NOT NULL AND comment_id IS NULL) OR (post_id IS NULL AND comment_id IS NOT NULL));
+
+-- 6. 为 comment_id 添加索引以优化查询性能
+CREATE INDEX idx_likes_comment_id ON likes(comment_id);
 ```
 
 ## 新增 API 端点
@@ -279,9 +283,15 @@ WHERE (post_id IS NULL AND comment_id IS NULL)
 - 迁移脚本需要在所有环境（开发、测试、生产）中验证
 
 ### 2. 性能考虑
-- 如果评论数量很大，获取评论列表时计算每个评论的点赞数可能影响性能
-- 建议监控 `likeRepository.countByComment()` 的执行时间
-- 可能需要在 `likes` 表的 `comment_id` 列上添加索引
+- **当前实现存在 N+1 查询问题**：获取评论列表时，每个评论都会额外查询点赞数和用户点赞状态
+- 对于少量评论（<20条）的场景，性能影响可接受
+- 对于大量评论的场景，建议优化方案：
+  - 方案1：使用批量查询，一次性获取所有评论的点赞信息
+  - 方案2：在数据库层面使用 JOIN 查询
+  - 方案3：引入缓存（Redis）存储点赞计数
+  - 方案4：在 comments 表添加 like_count 冗余字段（需要维护一致性）
+- 已添加 `comment_id` 索引优化查询性能
+- 建议监控 API 响应时间，特别是 `GET /api/posts/{postId}/comments` 端点
 
 ### 3. 事务一致性
 - 确保点赞操作的事务性（已使用 `@Transactional` 注解）
@@ -297,6 +307,35 @@ WHERE (post_id IS NULL AND comment_id IS NULL)
 - **JMeter/K6**: 用于性能和并发测试
 - **MySQL Workbench/DBeaver**: 用于数据库验证
 
+## 已知限制和未来优化
+
+### 当前实现的限制
+
+1. **N+1 查询问题**
+   - 获取评论列表时，每个评论都会单独查询点赞信息
+   - 对于每页 20 条评论，会产生约 40 次额外的数据库查询
+   - 适用场景：评论数量较少（<20条/页）的中小型应用
+
+2. **缺少批量操作 API**
+   - 当前不支持批量查询多个评论的点赞状态
+   - 前端需要多次调用 API 才能获取多个评论的点赞信息
+
+### 未来优化建议
+
+1. **性能优化**
+   - 实现批量查询接口：`POST /api/comments/likes/batch` 接受评论ID列表
+   - 在 Service 层使用 `IN` 查询批量获取点赞信息
+   - 引入缓存层（Redis）缓存点赞计数，减少数据库压力
+
+2. **数据一致性增强**
+   - 在应用层添加验证逻辑，确保 Like 记录只能关联文章或评论之一
+   - 添加单元测试和集成测试覆盖所有边界情况
+
+3. **监控和告警**
+   - 添加慢查询监控
+   - 监控点赞相关 API 的响应时间和错误率
+   - 设置性能基线和告警阈值
+
 ## 总结
 
 完成上述测试场景后，应确保：
@@ -304,7 +343,9 @@ WHERE (post_id IS NULL AND comment_id IS NULL)
 2. ✅ 幂等性保证（重复操作不会产生副作用）
 3. ✅ 权限控制正确（未登录用户不能点赞）
 4. ✅ 异常处理完善（不存在的评论、已删除的评论等）
-5. ✅ 数据完整性保持（唯一约束、外键约束）
+5. ✅ 数据完整性保持（唯一约束、外键约束、CHECK约束）
 6. ✅ 级联删除正常工作
 7. ✅ API 响应一致性（所有返回评论的地方都包含点赞信息）
 8. ✅ 性能可接受（特别是在高负载下）
+
+**注意**：当前实现优先保证功能正确性和代码简洁性，对于高流量场景需要进行性能优化。
