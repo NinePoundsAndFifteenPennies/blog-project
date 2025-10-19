@@ -56,11 +56,6 @@
   - [头像上传](docs/features/AVATAR_UPLOAD.md)
   - [点赞功能](docs/features/LIKES.md)
   - [评论功能](docs/features/COMMENTS.md)
-- **[问题修复](docs/)** - 重要问题的修复说明
-  - [头像显示问题修复](docs/AVATAR_DISPLAY_FIX.md) - 技术文档
-  - [头像显示问题修复总结](docs/AVATAR_FIX_SUMMARY_CN.md) - 中文总结
-  - [头像问题图解](docs/AVATAR_FIX_DIAGRAM.md) - 问题与解决方案对比图
-  - [头像修复测试指南](docs/AVATAR_FIX_TESTING.md) - 详细测试步骤
 
 ## 项目进度
 
@@ -72,7 +67,6 @@
 - 前后端完全对接
 - 增强的 Markdown 编辑器
 - 头像上传与管理系统
-- 头像正确加载显示（修复开发环境CORS问题）✨修复
 - 文章点赞功能
 - 评论功能（CRUD、权限控制、级联删除）
 - 评论点赞功能
