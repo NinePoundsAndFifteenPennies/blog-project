@@ -50,6 +50,12 @@ const routes = [
     meta: { title: "我的评论", requiresAuth: true },
   },
   {
+    path: "/comment/:id/edit",
+    name: "CommentEdit",
+    component: () => import("@/views/CommentEdit.vue"),
+    meta: { title: "编辑评论", requiresAuth: true },
+  },
+  {
     path: "/:pathMatch(.*)*",
     name: "NotFound",
     component: () => import("@/views/NotFound.vue"),

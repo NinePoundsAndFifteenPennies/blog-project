@@ -32,50 +32,31 @@
           <!-- Actions for comment author or post author -->
           <div v-if="canManage" class="flex items-center space-x-2">
             <button
-              v-if="isCommentAuthor && !isEditing"
-              @click="startEdit"
-              class="text-sm text-primary-600 hover:text-primary-700"
+              v-if="isCommentAuthor"
+              @click="handleEdit"
+              class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
               title="编辑评论"
             >
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
               编辑
             </button>
             <button
               @click="handleDelete"
-              class="text-sm text-red-600 hover:text-red-700"
+              class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
               title="删除评论"
             >
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
               删除
             </button>
           </div>
         </div>
 
-        <!-- Edit Mode -->
-        <div v-if="isEditing" class="mb-3">
-          <textarea
-            v-model="editContent"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-            rows="4"
-            placeholder="输入评论内容..."
-          ></textarea>
-          <div class="flex items-center justify-end space-x-2 mt-2">
-            <button
-              @click="cancelEdit"
-              class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
-            >
-              取消
-            </button>
-            <button
-              @click="saveEdit"
-              class="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-              :disabled="!editContent.trim() || saving"
-            >
-              {{ saving ? '保存中...' : '保存' }}
-            </button>
-          </div>
-        </div>
-
         <!-- Content Display -->
-        <div v-else>
+        <div>
           <!-- Render based on content type -->
           <div v-if="isMarkdown" class="prose prose-sm max-w-none text-gray-700 mb-3" v-html="renderedContent"></div>
           <div v-else class="text-gray-700 mb-3 whitespace-pre-wrap">{{ comment.content }}</div>
@@ -123,7 +104,7 @@ import { ref, computed, watch } from 'vue' // 1. 导入 watch
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { marked } from 'marked'
-import { updateComment, deleteComment, likeComment, unlikeComment } from '@/api/comments'
+import { deleteComment, likeComment, unlikeComment } from '@/api/comments'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
@@ -147,9 +128,6 @@ export default {
     const store = useStore()
     const router = useRouter()
     const avatarLoadError = ref(false)
-    const isEditing = ref(false)
-    const editContent = ref('')
-    const saving = ref(false)
 
     const currentUser = computed(() => store.getters.currentUser)
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
@@ -233,30 +211,19 @@ export default {
       return date.toLocaleDateString('zh-CN')
     }
 
-    const startEdit = () => {
-      editContent.value = props.comment.content
-      isEditing.value = true
-    }
-
-    const cancelEdit = () => {
-      isEditing.value = false
-      editContent.value = ''
-    }
-
-    const saveEdit = async () => {
-      if (!editContent.value.trim()) return
-
-      saving.value = true
-      try {
-        const response = await updateComment(props.comment.id, editContent.value)
-        emit('comment-updated', response)
-        isEditing.value = false
-      } catch (error) {
-        console.error('更新评论失败:', error)
-        alert('更新评论失败，请稍后重试')
-      } finally {
-        saving.value = false
-      }
+    const handleEdit = () => {
+      // Navigate to comment edit page with comment data
+      router.push({
+        name: 'CommentEdit',
+        params: { id: props.comment.id },
+        state: {
+          comment: {
+            id: props.comment.id,
+            content: props.comment.content,
+            postId: props.comment.postId
+          }
+        }
+      })
     }
 
     const handleDelete = async () => {
@@ -304,9 +271,6 @@ export default {
     return {
       avatarLoadError,
       displayAvatarUrl,
-      isEditing,
-      editContent,
-      saving,
       isCommentAuthor,
       isPostAuthor,
       canManage,
@@ -316,9 +280,7 @@ export default {
       handleAvatarError,
       handleAvatarLoad,
       formatDate,
-      startEdit,
-      cancelEdit,
-      saveEdit,
+      handleEdit,
       handleDelete,
       handleLike
     }
