@@ -134,8 +134,9 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
+import { useRoute, useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import PostCard from '@/components/PostCard.vue'
 import Pagination from '@/components/Pagination.vue'
@@ -151,10 +152,13 @@ export default {
   },
   setup() {
     const store = useStore()
+    const route = useRoute()
+    const router = useRouter()
 
     const loading = ref(false)
     const posts = ref([])
-    const currentPage = ref(1)
+    // Initialize page from URL query parameter
+    const currentPage = ref(parseInt(route.query.page) || 1)
     const totalPages = ref(1)
     const totalElements = ref(0)
     const pageSize = 6 // 每页显示6篇文章
@@ -211,9 +215,20 @@ export default {
     // 分页切换
     const handlePageChange = (page) => {
       currentPage.value = page
+      // Update URL with page parameter
+      router.push({ query: { ...route.query, page } })
       loadPosts()
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
+
+    // Watch for route query changes (e.g., browser back/forward)
+    watch(() => route.query.page, (newPage) => {
+      const page = parseInt(newPage) || 1
+      if (page !== currentPage.value) {
+        currentPage.value = page
+        loadPosts()
+      }
+    })
 
     // 处理点赞变化
     const handleLikeChanged = ({ postId, likeCount, isLiked }) => {

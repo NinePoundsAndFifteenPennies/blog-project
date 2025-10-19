@@ -56,7 +56,7 @@
           <!-- Preview (for Markdown mode) -->
           <div v-if="commentMode === 'markdown' && newComment.trim()" class="mt-2 p-3 border border-gray-200 rounded-lg bg-gray-50">
             <div class="text-xs text-gray-500 mb-2">预览:</div>
-            <div class="prose prose-sm max-w-none" v-html="previewContent"></div>
+            <div class="markdown-body" v-html="previewContent"></div>
           </div>
 
           <!-- Submit button -->

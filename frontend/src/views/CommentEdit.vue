@@ -71,6 +71,9 @@
 
                 <!-- Markdown Toolbar -->
                 <div v-if="contentMode === 'markdown'" class="mb-3 flex flex-wrap gap-1 pb-3 border-b border-gray-100">
+                  <button @click="insertMarkdown('heading')" type="button" class="toolbar-btn" title="标题">
+                    <span class="font-bold text-sm">H</span>
+                  </button>
                   <button @click="insertMarkdown('bold')" type="button" class="toolbar-btn" title="粗体">
                     <span class="font-bold">B</span>
                   </button>
@@ -89,6 +92,11 @@
                   <button @click="insertMarkdown('ul')" type="button" class="toolbar-btn" title="无序列表">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </button>
+                  <button @click="insertMarkdown('ol')" type="button" class="toolbar-btn" title="有序列表">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
                   </button>
                   <button @click="insertMarkdown('quote')" type="button" class="toolbar-btn" title="引用">
@@ -132,7 +140,7 @@
                 </div>
 
                 <div v-if="content.trim()" class="min-h-[300px]">
-                  <div v-if="contentMode === 'markdown'" class="prose prose-sm max-w-none" v-html="previewContent"></div>
+                  <div v-if="contentMode === 'markdown'" class="markdown-body" v-html="previewContent"></div>
                   <div v-else class="text-gray-700 whitespace-pre-wrap">{{ content }}</div>
                 </div>
 
@@ -286,6 +294,10 @@ export default {
       let cursorOffset = 0
 
       switch (type) {
+        case 'heading':
+          insertText = `## ${selectedText || '标题'}`
+          cursorOffset = selectedText ? insertText.length : insertText.length - 2
+          break
         case 'bold':
           insertText = `**${selectedText || '粗体文本'}**`
           cursorOffset = selectedText ? insertText.length : insertText.length - 2
@@ -304,6 +316,10 @@ export default {
           break
         case 'ul':
           insertText = selectedText ? `- ${selectedText}` : '- 列表项'
+          cursorOffset = insertText.length
+          break
+        case 'ol':
+          insertText = selectedText ? `1. ${selectedText}` : '1. 列表项'
           cursorOffset = insertText.length
           break
         case 'quote':

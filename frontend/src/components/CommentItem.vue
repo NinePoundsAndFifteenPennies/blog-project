@@ -58,7 +58,7 @@
         <!-- Content Display -->
         <div>
           <!-- Render based on content type -->
-          <div v-if="isMarkdown" class="prose prose-sm max-w-none text-gray-700 mb-3" v-html="renderedContent"></div>
+          <div v-if="isMarkdown" class="markdown-body text-gray-700 mb-3" v-html="renderedContent"></div>
           <div v-else class="text-gray-700 mb-3 whitespace-pre-wrap">{{ comment.content }}</div>
         </div>
 
