@@ -3,6 +3,7 @@ package com.lost.blog.controller;
 import com.lost.blog.dto.CommentRequest;
 import com.lost.blog.dto.CommentResponse;
 import com.lost.blog.dto.LikeResponse;
+import com.lost.blog.dto.ReplyRequest;
 import com.lost.blog.service.CommentService;
 import com.lost.blog.service.LikeService;
 import jakarta.validation.Valid;
@@ -38,6 +39,16 @@ public class CommentController {
         return new ResponseEntity<>(comment, HttpStatus.CREATED);
     }
 
+    // 创建子评论（回复评论）
+    @PostMapping("/comments/{commentId}/replies")
+    public ResponseEntity<CommentResponse> createReply(
+            @PathVariable Long commentId,
+            @Valid @RequestBody ReplyRequest replyRequest,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        CommentResponse reply = commentService.createReply(commentId, replyRequest, currentUser);
+        return new ResponseEntity<>(reply, HttpStatus.CREATED);
+    }
+
     // 更新评论
     @PutMapping("/comments/{commentId}")
     public ResponseEntity<CommentResponse> updateComment(
@@ -57,7 +68,7 @@ public class CommentController {
         return ResponseEntity.ok("评论删除成功");
     }
 
-    // 获取文章的所有评论（分页）
+    // 获取文章的所有顶层评论（分页）
     @GetMapping("/posts/{postId}/comments")
     public ResponseEntity<Page<CommentResponse>> getCommentsByPost(
             @PathVariable Long postId,
@@ -65,6 +76,16 @@ public class CommentController {
             @AuthenticationPrincipal UserDetails currentUser) {
         Page<CommentResponse> comments = commentService.getCommentsByPost(postId, pageable, currentUser);
         return ResponseEntity.ok(comments);
+    }
+
+    // 获取评论的所有回复（子评论）
+    @GetMapping("/comments/{commentId}/replies")
+    public ResponseEntity<Page<CommentResponse>> getReplies(
+            @PathVariable Long commentId,
+            Pageable pageable,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        Page<CommentResponse> replies = commentService.getReplies(commentId, pageable, currentUser);
+        return ResponseEntity.ok(replies);
     }
 
     // 获取当前用户的所有评论（分页）

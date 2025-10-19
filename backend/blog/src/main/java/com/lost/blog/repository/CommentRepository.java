@@ -14,6 +14,18 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     // 获取文章的所有评论（分页）
     Page<Comment> findByPost(Post post, Pageable pageable);
 
+    // 获取文章的所有顶层评论（分页）- parent_id为null
+    Page<Comment> findByPostAndParentIsNull(Post post, Pageable pageable);
+
+    // 获取评论的直接子评论（分页）
+    Page<Comment> findByParent(Comment parent, Pageable pageable);
+
+    // 获取评论的所有子评论（不分页）- 用于级联删除
+    java.util.List<Comment> findByParent(Comment parent);
+
+    // 统计评论的子评论数量
+    long countByParent(Comment parent);
+
     // 获取用户的所有评论（分页）
     Page<Comment> findByUser(User user, Pageable pageable);
 

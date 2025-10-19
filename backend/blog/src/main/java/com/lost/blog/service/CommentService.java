@@ -2,6 +2,7 @@ package com.lost.blog.service;
 
 import com.lost.blog.dto.CommentRequest;
 import com.lost.blog.dto.CommentResponse;
+import com.lost.blog.dto.ReplyRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,6 +17,15 @@ public interface CommentService {
      * @return 创建的评论响应数据
      */
     CommentResponse createComment(Long postId, CommentRequest commentRequest, UserDetails currentUser);
+
+    /**
+     * 创建子评论（回复）
+     * @param commentId 父评论ID
+     * @param replyRequest 回复请求数据
+     * @param currentUser 当前登录用户
+     * @return 创建的子评论响应数据
+     */
+    CommentResponse createReply(Long commentId, ReplyRequest replyRequest, UserDetails currentUser);
 
     /**
      * 更新评论
@@ -34,13 +44,22 @@ public interface CommentService {
     void deleteComment(Long commentId, UserDetails currentUser);
 
     /**
-     * 获取文章的所有评论（分页）
+     * 获取文章的所有顶层评论（分页）
      * @param postId 文章ID
      * @param pageable 分页信息
      * @param currentUser 当前登录用户（可为null，用于判断点赞状态）
      * @return 分页后的评论响应数据
      */
     Page<CommentResponse> getCommentsByPost(Long postId, Pageable pageable, UserDetails currentUser);
+
+    /**
+     * 获取评论的所有回复（子评论）
+     * @param commentId 父评论ID
+     * @param pageable 分页信息
+     * @param currentUser 当前登录用户（可为null，用于判断点赞状态）
+     * @return 分页后的子评论响应数据
+     */
+    Page<CommentResponse> getReplies(Long commentId, Pageable pageable, UserDetails currentUser);
 
     /**
      * 获取当前用户的所有评论（分页）
