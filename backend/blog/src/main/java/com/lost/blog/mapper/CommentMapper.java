@@ -27,10 +27,29 @@ public class CommentMapper {
         response.setCreatedAt(comment.getCreatedAt());
         response.setUpdatedAt(comment.getUpdatedAt());
         
+        // Set parent comment ID if exists
+        response.setParentId(comment.getParent() != null ? comment.getParent().getId() : null);
+        
+        // Set reply to user information if exists
+        if (comment.getReplyToUser() != null) {
+            response.setReplyToUserId(comment.getReplyToUser().getId());
+            response.setReplyToUsername(comment.getReplyToUser().getUsername());
+        } else {
+            response.setReplyToUserId(null);
+            response.setReplyToUsername(null);
+        }
+        
+        // Set level
+        response.setLevel(comment.getLevel() != null ? comment.getLevel() : 0);
+        
         // Initialize like fields to default values
         // Service layer will populate these fields
         response.setLikeCount(0);
         response.setLiked(false);
+        
+        // Initialize replyCount to 0
+        // Service layer will populate this field for top-level comments
+        response.setReplyCount(0L);
         
         return response;
     }

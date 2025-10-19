@@ -2,6 +2,7 @@ package com.lost.blog.service;
 
 import com.lost.blog.dto.CommentRequest;
 import com.lost.blog.dto.CommentResponse;
+import com.lost.blog.dto.ReplyRequest;
 import com.lost.blog.exception.AccessDeniedException;
 import com.lost.blog.exception.ResourceNotFoundException;
 import com.lost.blog.mapper.CommentMapper;
@@ -15,16 +16,23 @@ import com.lost.blog.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 public class CommentServiceImpl implements CommentService {
 
     private static final Logger logger = LoggerFactory.getLogger(CommentServiceImpl.class);
+
+    @Value("${comment.max-nesting-level:3}")
+    private int maxNestingLevel;
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
@@ -82,6 +90,57 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional
+    public CommentResponse createReply(Long commentId, ReplyRequest replyRequest, UserDetails currentUser) {
+        // 获取当前用户
+        User user = userRepository.findByUsername(currentUser.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("未找到用户: " + currentUser.getUsername()));
+
+        // 获取父评论
+        Comment parentComment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到评论ID: " + commentId));
+
+        // 检查父评论所属文章是否为草稿
+        if (parentComment.getPost().getDraft()) {
+            logger.warn("用户 {} 尝试回复草稿文章的评论ID: {}", user.getUsername(), commentId);
+            throw new AccessDeniedException("不能回复草稿文章的评论");
+        }
+
+        // 计算回复层级
+        int newLevel = (parentComment.getLevel() != null ? parentComment.getLevel() : 0) + 1;
+
+        // 检查层级限制
+        if (newLevel > maxNestingLevel) {
+            logger.warn("用户 {} 尝试创建超过最大层级的回复，当前层级: {}", user.getUsername(), newLevel);
+            throw new AccessDeniedException("回复层级过深，无法继续回复（最大层级: " + maxNestingLevel + "）");
+        }
+
+        // 验证replyToUserId（如果提供）
+        User replyToUser = null;
+        if (replyRequest.getReplyToUserId() != null) {
+            replyToUser = userRepository.findById(replyRequest.getReplyToUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("未找到被回复的用户ID: " + replyRequest.getReplyToUserId()));
+        }
+
+        // 创建子评论
+        Comment reply = new Comment();
+        reply.setContent(replyRequest.getContent());
+        reply.setUser(user);
+        reply.setPost(parentComment.getPost()); // 继承父评论的文章
+        reply.setParent(parentComment);
+        reply.setReplyToUser(replyToUser);
+        reply.setLevel(newLevel);
+
+        Comment savedReply = commentRepository.save(reply);
+        logger.info("用户 {} 创建了子评论ID: {} 回复评论ID: {}", user.getUsername(), savedReply.getId(), commentId);
+
+        CommentResponse response = commentMapper.toResponse(savedReply);
+        response.setLikeCount(0);  // New reply has no likes
+        response.setLiked(false);
+        return response;
+    }
+
+    @Override
+    @Transactional
     public CommentResponse updateComment(Long commentId, CommentRequest commentRequest, UserDetails currentUser) {
         // 获取当前用户
         User user = userRepository.findByUsername(currentUser.getUsername())
@@ -128,12 +187,44 @@ public class CommentServiceImpl implements CommentService {
             throw new AccessDeniedException("您没有权限删除此评论");
         }
 
-        // 删除评论前，先删除该评论的所有点赞记录
+        // 递归查找所有子孙评论ID
+        List<Long> descendantIds = findDescendantCommentIds(commentId);
+        logger.info("找到评论ID: {} 的 {} 个子孙评论", commentId, descendantIds.size());
+
+        // 删除所有子孙评论的点赞记录
+        for (Long id : descendantIds) {
+            Comment descendant = commentRepository.findById(id).orElse(null);
+            if (descendant != null) {
+                likeRepository.deleteByComment(descendant);
+                logger.debug("删除子孙评论ID: {} 的点赞记录", id);
+            }
+        }
+
+        // 删除该评论的所有点赞记录
         likeRepository.deleteByComment(comment);
         logger.info("删除评论ID: {} 的所有点赞记录", commentId);
 
+        // 删除评论（CASCADE会自动删除所有子孙评论）
         commentRepository.delete(comment);
-        logger.info("用户 {} 删除了评论ID: {}", user.getUsername(), commentId);
+        logger.info("用户 {} 删除了评论ID: {} 及其所有子评论", user.getUsername(), commentId);
+    }
+
+    /**
+     * 递归查找所有子孙评论ID
+     */
+    private List<Long> findDescendantCommentIds(Long commentId) {
+        List<Long> result = new ArrayList<>();
+        Comment comment = commentRepository.findById(commentId).orElse(null);
+        if (comment == null) {
+            return result;
+        }
+
+        List<Comment> children = commentRepository.findByParent(comment);
+        for (Comment child : children) {
+            result.add(child.getId());
+            result.addAll(findDescendantCommentIds(child.getId())); // 递归
+        }
+        return result;
     }
 
     @Override
@@ -143,14 +234,50 @@ public class CommentServiceImpl implements CommentService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到文章ID: " + postId));
 
-        // 获取评论（按创建时间升序排列，最早的在前）
-        Page<Comment> comments = commentRepository.findByPost(post, pageable);
+        // 获取顶层评论（parent_id为null，按创建时间升序排列）
+        Page<Comment> comments = commentRepository.findByPostAndParentIsNull(post, pageable);
 
         return comments.map(comment -> {
             CommentResponse response = commentMapper.toResponse(comment);
             // Set like count and user's like status
             response.setLikeCount(likeService.getCommentLikeCount(comment.getId()));
             response.setLiked(likeService.isCommentLikedByUser(comment.getId(), currentUser));
+            // Set reply count (recursively count all descendants)
+            response.setReplyCount(countRepliesRecursively(comment));
+            return response;
+        });
+    }
+
+    /**
+     * 递归统计评论的所有子孙评论数量
+     */
+    private long countRepliesRecursively(Comment comment) {
+        long count = 0;
+        List<Comment> children = commentRepository.findByParent(comment);
+        count += children.size();
+        for (Comment child : children) {
+            count += countRepliesRecursively(child);
+        }
+        return count;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CommentResponse> getReplies(Long commentId, Pageable pageable, UserDetails currentUser) {
+        // 获取父评论
+        Comment parentComment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到评论ID: " + commentId));
+
+        // 获取直接子评论（按创建时间升序排列）
+        Page<Comment> replies = commentRepository.findByParent(parentComment, pageable);
+
+        return replies.map(reply -> {
+            CommentResponse response = commentMapper.toResponse(reply);
+            // Set like count and user's like status
+            response.setLikeCount(likeService.getCommentLikeCount(reply.getId()));
+            response.setLiked(likeService.isCommentLikedByUser(reply.getId(), currentUser));
+            // Sub-comments don't need replyCount in the response (or set to 0)
+            response.setReplyCount(0L);
             return response;
         });
     }

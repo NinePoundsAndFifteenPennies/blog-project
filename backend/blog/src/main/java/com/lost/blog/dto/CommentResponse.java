@@ -7,6 +7,11 @@ public class CommentResponse {
     private String content;
     private Long postId;
     private String postTitle;
+    private Long parentId;
+    private Long replyToUserId;
+    private String replyToUsername;
+    private Integer level;
+    private Long replyCount;
     private String authorUsername;
     private String authorAvatarUrl;
     private LocalDateTime createdAt;
@@ -93,5 +98,45 @@ public class CommentResponse {
 
     public void setLiked(boolean liked) {
         isLiked = liked;
+    }
+
+    public Long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
+    }
+
+    public Long getReplyToUserId() {
+        return replyToUserId;
+    }
+
+    public void setReplyToUserId(Long replyToUserId) {
+        this.replyToUserId = replyToUserId;
+    }
+
+    public String getReplyToUsername() {
+        return replyToUsername;
+    }
+
+    public void setReplyToUsername(String replyToUsername) {
+        this.replyToUsername = replyToUsername;
+    }
+
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
+    }
+
+    public Long getReplyCount() {
+        return replyCount;
+    }
+
+    public void setReplyCount(Long replyCount) {
+        this.replyCount = replyCount;
     }
 }
