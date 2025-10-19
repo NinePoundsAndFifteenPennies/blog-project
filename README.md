@@ -56,6 +56,8 @@
   - [头像上传](docs/features/AVATAR_UPLOAD.md)
   - [点赞功能](docs/features/LIKES.md)
   - [评论功能](docs/features/COMMENTS.md)
+  - [子评论功能设计](docs/features/SUB_COMMENTS_DESIGN.md) - 评论回复功能完整设计方案
+  - [子评论功能摘要](docs/features/SUB_COMMENTS_SUMMARY.md) - 设计方案快速参考
 
 ## 项目进度
 
@@ -77,7 +79,7 @@
 - 用户个人资料编辑
 - 代码高亮优化
 - 响应式设计优化
-- 评论回复功能
+- 评论回复功能（设计已完成，详见[SUB_COMMENTS_DESIGN.md](docs/features/SUB_COMMENTS_DESIGN.md)）
 
 ## 技术栈
 
