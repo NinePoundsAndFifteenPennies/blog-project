@@ -50,6 +50,12 @@ const routes = [
     meta: { title: "我的评论", requiresAuth: true },
   },
   {
+    path: "/comment/:id/edit",
+    name: "CommentEdit",
+    component: () => import("@/views/CommentEdit.vue"),
+    meta: { title: "编辑评论", requiresAuth: true },
+  },
+  {
     path: "/:pathMatch(.*)*",
     name: "NotFound",
     component: () => import("@/views/NotFound.vue"),
@@ -61,11 +67,17 @@ const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes,
   scrollBehavior(to, from, savedPosition) {
+    // If there's a saved position (from browser back/forward), use it
     if (savedPosition) {
       return savedPosition;
-    } else {
-      return { top: 0 };
     }
+    // If navigating to the same route with different params (like pagination),
+    // don't scroll to top
+    if (to.path === from.path && to.query !== from.query) {
+      return false; // Keep current scroll position
+    }
+    // For new routes, scroll to top
+    return { top: 0 };
   },
 });
 

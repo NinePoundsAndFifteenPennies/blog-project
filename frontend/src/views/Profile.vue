@@ -432,31 +432,37 @@ export default {
       if (!currentUser.value) return
       loading.value = true
       try {
+        // Load all posts to properly filter by draft status
+        // This ensures pagination works correctly for each tab
         const res = await getMyPosts({ 
-          page: currentPage.value - 1, 
-          size: pageSize 
+          page: 0, 
+          size: 1000  // Load all posts
         })
-        const myPosts = res.content || []
+        const allPosts = res.content || []
+        
+        // Filter posts based on active tab
+        const filteredPosts = activeTab.value === 'drafts' 
+          ? allPosts.filter(p => p.draft)
+          : allPosts.filter(p => !p.draft)
+        
+        // Calculate pagination for filtered results
+        const startIndex = (currentPage.value - 1) * pageSize
+        const endIndex = startIndex + pageSize
+        const paginatedPosts = filteredPosts.slice(startIndex, endIndex)
 
-        posts.value = myPosts.map(p => ({
+        posts.value = paginatedPosts.map(p => ({
           ...p,
           summary: p.content?.replace(/[#*`\n]/g, '').slice(0, 100) || ''
         }))
 
-        totalPages.value = res.totalPages || 1
-        totalElements.value = res.totalElements || 0
+        // Update pagination based on filtered results
+        totalPages.value = Math.max(1, Math.ceil(filteredPosts.length / pageSize))
+        totalElements.value = filteredPosts.length
         
-        // Update stats only when explicitly requested or on first load
+        // Update stats
         if (updateStats) {
-          // Load total counts by fetching first page with large size to get accurate counts
-          try {
-            const statsRes = await getMyPosts({ page: 0, size: 100 })
-            const allPosts = statsRes.content || []
-            userStats.posts = allPosts.filter(p => !p.draft).length
-            userStats.drafts = allPosts.filter(p => p.draft).length
-          } catch (e) {
-            console.error('加载统计失败:', e)
-          }
+          userStats.posts = allPosts.filter(p => !p.draft).length
+          userStats.drafts = allPosts.filter(p => p.draft).length
         }
       } catch (e) {
         console.error('加载失败:', e)
@@ -585,9 +591,8 @@ export default {
       if (activeTab.value === 'comments') {
         return []
       }
-      return activeTab.value === 'drafts' 
-        ? posts.value.filter(p => p.draft) 
-        : posts.value.filter(p => !p.draft)
+      // Posts are already filtered and paginated in loadPosts
+      return posts.value
     })
 
     // Comment edit/delete functions
