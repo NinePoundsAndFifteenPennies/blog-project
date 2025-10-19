@@ -1,6 +1,6 @@
 # 头像显示问题 - 问题与解决方案对比
 
-## 问题：CORS跨域导致头像无法加载
+## 问题：两个错误导致头像无法加载
 
 ### 错误的请求流程（修复前）
 
@@ -14,7 +14,14 @@ http://localhost:8080/uploads/1/avatars/xxx.jpg
 浏览器（运行在 localhost:3000）
 尝试直接访问 localhost:8080
          ↓
-❌ CORS 跨域错误！
+❌ 问题1：CORS 跨域错误！
+（绕过了代理）
+         ↓
+即使没有CORS问题...
+         ↓
+❌ 问题2：403 Forbidden
+Spring Security 阻止匿名访问
+/uploads/** 路径需要JWT token
          ↓
 <img> 加载失败
 触发 @error 事件
@@ -39,11 +46,16 @@ v-if="url && !avatarLoadError" = false
 http://localhost:3000/uploads/1/avatars/xxx.jpg
          ↓
 ✅ Vue Dev Server 代理拦截
+（解决了CORS问题）
          ↓
 ✅ 代理转发到后端
 http://localhost:8080/uploads/1/avatars/xxx.jpg
          ↓
-✅ 后端返回图片
+✅ Spring Security 检查
+/uploads/** → permitAll() → 通过！
+（解决了403问题）
+         ↓
+✅ 后端返回图片（状态码 200）
          ↓
 ✅ 代理返回给浏览器
          ↓
@@ -52,20 +64,20 @@ http://localhost:8080/uploads/1/avatars/xxx.jpg
 
 ## 关键代码修改
 
-### 修改前（错误）
+### 修改1：前端URL处理（frontend/src/utils/avatar.js）
+
+#### 修改前（错误）
 
 ```javascript
-// frontend/src/utils/avatar.js
 export function getFullAvatarUrl(avatarUrl) {
     const backendUrl = 'http://localhost:8080'
     return `${backendUrl}${avatarUrl}`  // ❌ 强制转换为绝对URL
 }
 ```
 
-### 修改后（正确）
+#### 修改后（正确）
 
 ```javascript
-// frontend/src/utils/avatar.js
 export function getFullAvatarUrl(avatarUrl) {
     if (!avatarUrl) return null
     
@@ -89,7 +101,54 @@ export function getFullAvatarUrl(avatarUrl) {
 }
 ```
 
-## 为什么会有CORS错误？
+### 修改2：后端安全配置（backend/.../SecurityConfig.java）
+
+#### 修改前（错误）
+
+```java
+@Bean
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http
+        .csrf(csrf -> csrf.disable())
+        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/api/users/register", "/api/users/login").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/**").permitAll()
+            // ❌ 缺少对 /uploads/** 的配置
+            .anyRequest().authenticated()  // 导致头像文件返回 403
+        );
+    
+    http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+    return http.build();
+}
+```
+
+#### 修改后（正确）
+
+```java
+@Bean
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http
+        .csrf(csrf -> csrf.disable())
+        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/api/users/register", "/api/users/login").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/posts/*/likes").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/comments/*/likes").permitAll()
+            // ✅ 新增：允许对上传文件的匿名访问
+            .requestMatchers("/uploads/**").permitAll()
+            .anyRequest().authenticated()
+        );
+    
+    http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+    return http.build();
+}
+```
+
+## 为什么会有这两个问题？
+
+### 问题1：CORS错误
 
 CORS（跨域资源共享）是浏览器的安全机制：
 
@@ -100,6 +159,21 @@ CORS（跨域资源共享）是浏览器的安全机制：
 5. 后端没有返回允许 `localhost:3000` 访问的CORS头
 6. **浏览器阻止请求**
 7. 图片加载失败
+
+### 问题2：403 Forbidden
+
+Spring Security的默认行为：
+
+1. 所有请求都需要认证（除非明确配置 `permitAll()`）
+2. `/uploads/**` 路径没有在 `permitAll()` 列表中
+3. 浏览器加载 `<img src="/uploads/xxx.jpg">` 时不会自动携带JWT token
+4. Spring Security 检查权限 → 发现没有token → **返回 403**
+5. 图片加载失败
+
+**为什么这不合理**：
+- 用户头像应该是公开资源
+- 游客（未登录用户）也应该能看到博客作者的头像
+- 这是博客/社交类应用的基本需求
 
 ## Vue Dev Server 代理的作用
 
