@@ -60,6 +60,7 @@
   - [头像显示问题修复](docs/AVATAR_DISPLAY_FIX.md) - 技术文档
   - [头像显示问题修复总结](docs/AVATAR_FIX_SUMMARY_CN.md) - 中文总结
   - [头像问题图解](docs/AVATAR_FIX_DIAGRAM.md) - 问题与解决方案对比图
+  - [头像修复测试指南](docs/AVATAR_FIX_TESTING.md) - 详细测试步骤
 
 ## 项目进度
 
