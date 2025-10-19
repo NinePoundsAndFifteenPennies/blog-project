@@ -7,9 +7,10 @@
           class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-gradient-primary"
         >
           <img 
-            v-if="comment.authorAvatarUrl && !avatarLoadError" 
-            :src="comment.authorAvatarUrl" 
+            v-if="displayAvatarUrl && !avatarLoadError" 
+            :src="displayAvatarUrl" 
             :alt="comment.authorUsername"
+            :key="displayAvatarUrl"
             class="w-full h-full object-cover"
             @error="handleAvatarError"
             @load="handleAvatarLoad"
@@ -123,6 +124,7 @@ import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { marked } from 'marked'
 import { updateComment, deleteComment, likeComment, unlikeComment } from '@/api/comments'
+import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'CommentItem',
@@ -145,11 +147,6 @@ export default {
     const store = useStore()
     const router = useRouter()
     const avatarLoadError = ref(false)
-    // 2. 添加对 comment prop 的 watch
-    watch(() => props.comment.authorAvatarUrl, () => {
-      // 当评论的头像 URL 变化时，重置错误状态
-      avatarLoadError.value = false
-    })
     const isEditing = ref(false)
     const editContent = ref('')
     const saving = ref(false)
@@ -167,6 +164,24 @@ export default {
 
     const canManage = computed(() => {
       return isCommentAuthor.value || isPostAuthor.value
+    })
+    
+    // Check if the comment author is the current user
+    const isCurrentUser = computed(() => {
+      return currentUser.value?.username === props.comment.authorUsername
+    })
+    
+    // Use current user's avatar if author is current user, otherwise use comment author's avatar
+    const displayAvatarUrl = computed(() => {
+      if (isCurrentUser.value && currentUser.value?.avatarUrl) {
+        return getFullAvatarUrl(currentUser.value.avatarUrl)
+      }
+      return props.comment.authorAvatarUrl
+    })
+    
+    // Reset avatar error when avatar URL changes
+    watch(displayAvatarUrl, () => {
+      avatarLoadError.value = false
     })
 
     const authorInitial = computed(() => {
@@ -288,6 +303,7 @@ export default {
 
     return {
       avatarLoadError,
+      displayAvatarUrl,
       isEditing,
       editContent,
       saving,
