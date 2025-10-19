@@ -1,5 +1,5 @@
 <template>
-  <div :id="`comment-${comment.id}`" class="border-b border-gray-100 py-6 last:border-b-0">
+  <div class="border-b border-gray-100 py-6 last:border-b-0">
     <div class="flex space-x-4">
       <!-- Avatar -->
       <div class="flex-shrink-0">
