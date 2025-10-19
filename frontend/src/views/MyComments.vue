@@ -73,7 +73,8 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import CommentItem from '@/components/CommentItem.vue'
 import Pagination from '@/components/Pagination.vue'
@@ -87,9 +88,12 @@ export default {
     Pagination
   },
   setup() {
+    const route = useRoute()
+    const router = useRouter()
     const loading = ref(false)
     const comments = ref([])
-    const currentPage = ref(1)
+    // Initialize page from URL query parameter
+    const currentPage = ref(parseInt(route.query.page) || 1)
     const totalPages = ref(1)
     const totalElements = ref(0)
     const pageSize = 10
@@ -146,9 +150,20 @@ export default {
 
     const handlePageChange = (page) => {
       currentPage.value = page
+      // Update URL with page parameter
+      router.push({ query: { ...route.query, page } })
       loadComments()
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
+
+    // Watch for route query changes (e.g., browser back/forward)
+    watch(() => route.query.page, (newPage) => {
+      const page = parseInt(newPage) || 1
+      if (page !== currentPage.value) {
+        currentPage.value = page
+        loadComments()
+      }
+    })
 
     onMounted(() => {
       loadComments()

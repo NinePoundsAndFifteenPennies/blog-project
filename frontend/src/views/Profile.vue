@@ -270,7 +270,7 @@
 
                   <!-- Post Link -->
                   <router-link
-                      :to="`/post/${comment.postId}`"
+                      :to="`/post/${comment.postId}#comment-${comment.id}`"
                       class="text-sm text-primary-600 hover:text-primary-700 flex items-center space-x-1 mb-2"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -367,6 +367,7 @@
 <script>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
+import { useRoute, useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import Pagination from '@/components/Pagination.vue'
 import { getMyPosts, deletePost } from '@/api/posts'
@@ -379,11 +380,14 @@ export default {
   components: { Header, Pagination },
   setup() {
     const store = useStore()
+    const route = useRoute()
+    const router = useRouter()
     const loading = ref(false)
     const posts = ref([])
     const comments = ref([])
-    const activeTab = ref('posts')
-    const currentPage = ref(1)
+    // Initialize from URL query parameters
+    const activeTab = ref(route.query.tab || 'posts')
+    const currentPage = ref(parseInt(route.query.page) || 1)
     const totalPages = ref(1)
     const totalElements = ref(0)
     const pageSize = 10
@@ -645,6 +649,8 @@ export default {
 
     const handlePageChange = (page) => {
       currentPage.value = page
+      // Update URL with both tab and page parameters
+      router.push({ query: { ...route.query, tab: activeTab.value, page } })
       if (activeTab.value === 'comments') {
         loadComments()
       } else {
@@ -654,8 +660,23 @@ export default {
     }
 
     // Watch for tab changes
-    watch(activeTab, () => {
+    watch(activeTab, (newTab) => {
+      currentPage.value = 1
+      // Update URL with new tab
+      router.push({ query: { tab: newTab, page: 1 } })
       loadData()
+    })
+
+    // Watch for route query changes (e.g., browser back/forward)
+    watch(() => route.query, (newQuery) => {
+      const tab = newQuery.tab || 'posts'
+      const page = parseInt(newQuery.page) || 1
+      
+      if (tab !== activeTab.value || page !== currentPage.value) {
+        activeTab.value = tab
+        currentPage.value = page
+        loadData()
+      }
     })
 
     onMounted(() => {

@@ -67,6 +67,24 @@ const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes,
   scrollBehavior(to, from, savedPosition) {
+    // If there's a hash (anchor), scroll to that element
+    if (to.hash) {
+      return new Promise((resolve) => {
+        // Wait a bit for the page to render before scrolling
+        setTimeout(() => {
+          const element = document.querySelector(to.hash)
+          if (element) {
+            resolve({
+              el: to.hash,
+              behavior: 'smooth',
+              top: 80 // Offset for fixed header
+            })
+          } else {
+            resolve({ top: 0 })
+          }
+        }, 300)
+      })
+    }
     // If there's a saved position (from browser back/forward), use it
     if (savedPosition) {
       return savedPosition;
