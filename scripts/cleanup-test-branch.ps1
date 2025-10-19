@@ -19,27 +19,23 @@ Write-Host ""
 
 # 检查是否已经在localdevelop分支
 if ($currentBranch -eq "localdevelop") {
-    Write-Host "您已经在 localdevelop 分支上" -ForegroundColor Yellow
-    Write-Host "You are already on localdevelop branch" -ForegroundColor Yellow
+    Write-Host "您已经在 localdevelop 分支上 / You are already on localdevelop branch" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "是否要删除其他测试分支？(y/n): " -NoNewline -ForegroundColor Cyan
-    Write-Host "Do you want to delete other test branches? (y/n): " -NoNewline -ForegroundColor Cyan
+    Write-Host "是否要删除其他测试分支？/ Do you want to delete other test branches? (y/n): " -NoNewline -ForegroundColor Cyan
     $deleteOther = Read-Host
     
     if ($deleteOther -ne 'y' -and $deleteOther -ne 'Y') {
-        Write-Host "操作已取消" -ForegroundColor Yellow
-        Write-Host "Operation cancelled" -ForegroundColor Yellow
+        Write-Host "操作已取消 / Operation cancelled" -ForegroundColor Yellow
         exit 0
     }
     
     # 显示所有本地分支（排除localdevelop和main）
     Write-Host ""
     Write-Host "本地分支列表 (Local branches):" -ForegroundColor Green
-    $branches = git branch | Where-Object { $_ -notmatch 'localdevelop' -and $_ -notmatch '\bmain\b' -and $_ -notmatch '\bmaster\b' } | ForEach-Object { $_.Trim() -replace '^\*\s*', '' }
+    $branches = git branch | Where-Object { $_ -notmatch '^\*?\s*localdevelop$' -and $_ -notmatch '^\*?\s*main$' -and $_ -notmatch '^\*?\s*master$' } | ForEach-Object { $_.Trim() -replace '^\*\s*', '' }
     
     if ($branches.Count -eq 0) {
-        Write-Host "没有可删除的测试分支" -ForegroundColor Yellow
-        Write-Host "No test branches to delete" -ForegroundColor Yellow
+        Write-Host "没有可删除的测试分支 / No test branches to delete" -ForegroundColor Yellow
         exit 0
     }
     
@@ -60,8 +56,7 @@ if ($currentBranch -eq "localdevelop") {
     if ($selection -match '^\d+$' -and [int]$selection -ge 1 -and [int]$selection -le $branchList.Count) {
         $branchToDelete = $branchList[[int]$selection - 1]
     } else {
-        Write-Host "错误: 无效的选择" -ForegroundColor Red
-        Write-Host "Error: Invalid selection" -ForegroundColor Red
+        Write-Host "错误: 无效的选择 / Error: Invalid selection" -ForegroundColor Red
         exit 1
     }
 } else {
@@ -72,14 +67,12 @@ if ($currentBranch -eq "localdevelop") {
     Write-Host "  2. 拉取最新代码 (Pull latest changes)" -ForegroundColor White
     Write-Host "  3. 删除测试分支: $branchToDelete (Delete test branch: $branchToDelete)" -ForegroundColor White
     Write-Host ""
-    Write-Host "是否继续？(y/n): " -NoNewline -ForegroundColor Yellow
-    Write-Host "Continue? (y/n): " -NoNewline -ForegroundColor Yellow
+    Write-Host "是否继续？/ Continue? (y/n): " -NoNewline -ForegroundColor Yellow
     $confirm = Read-Host
     
     if ($confirm -ne 'y' -and $confirm -ne 'Y') {
         Write-Host ""
-        Write-Host "操作已取消" -ForegroundColor Yellow
-        Write-Host "Operation cancelled" -ForegroundColor Yellow
+        Write-Host "操作已取消 / Operation cancelled" -ForegroundColor Yellow
         exit 0
     }
     
@@ -117,10 +110,8 @@ git branch -d $branchToDelete
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host ""
-    Write-Host "使用 -d 删除失败，该分支可能包含未合并的更改" -ForegroundColor Yellow
-    Write-Host "Failed with -d, the branch may contain unmerged changes" -ForegroundColor Yellow
-    Write-Host "是否强制删除？(y/n): " -NoNewline -ForegroundColor Yellow
-    Write-Host "Force delete? (y/n): " -NoNewline -ForegroundColor Yellow
+    Write-Host "使用 -d 删除失败，该分支可能包含未合并的更改 / Failed with -d, the branch may contain unmerged changes" -ForegroundColor Yellow
+    Write-Host "是否强制删除？/ Force delete? (y/n): " -NoNewline -ForegroundColor Yellow
     $forceDelete = Read-Host
     
     if ($forceDelete -eq 'y' -or $forceDelete -eq 'Y') {
@@ -128,26 +119,21 @@ if ($LASTEXITCODE -ne 0) {
         
         if ($LASTEXITCODE -eq 0) {
             Write-Host ""
-            Write-Host "成功强制删除分支 $branchToDelete！" -ForegroundColor Green
-            Write-Host "Successfully force deleted branch $branchToDelete!" -ForegroundColor Green
+            Write-Host "成功强制删除分支 $branchToDelete！/ Successfully force deleted branch $branchToDelete!" -ForegroundColor Green
         } else {
             Write-Host ""
-            Write-Host "错误: 强制删除分支失败" -ForegroundColor Red
-            Write-Host "Error: Failed to force delete branch" -ForegroundColor Red
+            Write-Host "错误: 强制删除分支失败 / Error: Failed to force delete branch" -ForegroundColor Red
             exit 1
         }
     } else {
         Write-Host ""
-        Write-Host "操作已取消，分支未被删除" -ForegroundColor Yellow
-        Write-Host "Operation cancelled, branch not deleted" -ForegroundColor Yellow
+        Write-Host "操作已取消，分支未被删除 / Operation cancelled, branch not deleted" -ForegroundColor Yellow
         exit 0
     }
 } else {
     Write-Host ""
-    Write-Host "成功删除分支 $branchToDelete！" -ForegroundColor Green
-    Write-Host "Successfully deleted branch $branchToDelete!" -ForegroundColor Green
+    Write-Host "成功删除分支 $branchToDelete！/ Successfully deleted branch $branchToDelete!" -ForegroundColor Green
 }
 
 Write-Host ""
-Write-Host "操作完成！" -ForegroundColor Green
-Write-Host "Operation completed!" -ForegroundColor Green
+Write-Host "操作完成！/ Operation completed!" -ForegroundColor Green

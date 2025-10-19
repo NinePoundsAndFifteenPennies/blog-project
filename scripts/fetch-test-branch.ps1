@@ -19,7 +19,7 @@ Write-Host "可用的远程分支 (Available remote branches):" -ForegroundColor
 Write-Host ""
 
 # 获取所有远程分支并显示（排除HEAD）
-$remoteBranches = git branch -r | Where-Object { $_ -notmatch 'HEAD' } | ForEach-Object { $_.Trim() }
+$remoteBranches = git branch -r | Where-Object { $_ -notmatch 'origin/HEAD' } | ForEach-Object { $_.Trim() }
 $branches = @()
 $index = 1
 
@@ -42,9 +42,9 @@ if ($selection -match '^\d+$' -and [int]$selection -ge 1 -and [int]$selection -l
     Write-Host "Checking out branch: $selectedBranch" -ForegroundColor Cyan
     
     # 检查本地是否已存在该分支
-    $localBranch = git branch --list $selectedBranch
+    $localBranch = (git branch --list $selectedBranch).Trim()
     
-    if ($localBranch) {
+    if ($localBranch -ne '') {
         # 如果本地已存在，切换并拉取最新
         git checkout $selectedBranch
         if ($LASTEXITCODE -eq 0) {
