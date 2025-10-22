@@ -170,15 +170,14 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public void deleteComment(Long commentId, UserDetails currentUser) {
-        // 获取当前用户
-        User user = userRepository.findByUsername(currentUser.getUsername())
-                .orElseThrow(() -> new ResourceNotFoundException("未找到用户: " + currentUser.getUsername()));
-
-        // 获取评论
+        // 1. 获取要删除的评论实体
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到评论ID: " + commentId));
 
-        // 检查权限：评论作者或文章作者可以删除
+        // 2. 验证用户权限 (逻辑保持不变)
+        User user = userRepository.findByUsername(currentUser.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("未找到用户: " + currentUser.getUsername()));
+
         boolean isCommentAuthor = comment.getUser().getId().equals(user.getId());
         boolean isPostAuthor = comment.getPost().getUser().getId().equals(user.getId());
 
@@ -187,44 +186,14 @@ public class CommentServiceImpl implements CommentService {
             throw new AccessDeniedException("您没有权限删除此评论");
         }
 
-        // 递归查找所有子孙评论ID
-        List<Long> descendantIds = findDescendantCommentIds(commentId);
-        logger.info("找到评论ID: {} 的 {} 个子孙评论", commentId, descendantIds.size());
-
-        // 删除所有子孙评论的点赞记录
-        for (Long id : descendantIds) {
-            Comment descendant = commentRepository.findById(id).orElse(null);
-            if (descendant != null) {
-                likeRepository.deleteByComment(descendant);
-                logger.debug("删除子孙评论ID: {} 的点赞记录", id);
-            }
-        }
-
-        // 删除该评论的所有点赞记录
-        likeRepository.deleteByComment(comment);
-        logger.info("删除评论ID: {} 的所有点赞记录", commentId);
-
-        // 删除评论（CASCADE会自动删除所有子孙评论）
+        // 3. 直接删除该评论
+        // 因为 Comment 实体中已正确配置了 cascade = CascadeType.ALL,
+        // JPA/Hibernate 现在知道当这个 comment 被删除时，
+        // 必须先删除所有引用它的 likes 和 replies (子评论)。
+        // 整条删除链会由JPA自动、安全、正确地执行。
         commentRepository.delete(comment);
-        logger.info("用户 {} 删除了评论ID: {} 及其所有子评论", user.getUsername(), commentId);
-    }
 
-    /**
-     * 递归查找所有子孙评论ID
-     */
-    private List<Long> findDescendantCommentIds(Long commentId) {
-        List<Long> result = new ArrayList<>();
-        Comment comment = commentRepository.findById(commentId).orElse(null);
-        if (comment == null) {
-            return result;
-        }
-
-        List<Comment> children = commentRepository.findByParent(comment);
-        for (Comment child : children) {
-            result.add(child.getId());
-            result.addAll(findDescendantCommentIds(child.getId())); // 递归
-        }
-        return result;
+        logger.info("用户 {} 成功删除评论ID: {}。JPA将根据实体定义自动处理所有级联删除。", user.getUsername(), commentId);
     }
 
     @Override
