@@ -82,8 +82,37 @@ export default {
     const PAGE_SIZE = 20
 
     const hasMore = computed(() => {
-      return replies.value.length < totalElements.value
+      // All replies are loaded recursively, so never show "load more"
+      return false
     })
+
+    // Recursively fetch all descendants of a comment
+    const fetchAllDescendants = async (commentId) => {
+      const allReplies = []
+      
+      try {
+        // Fetch direct children
+        const response = await getCommentReplies(commentId, {
+          page: 0,
+          size: 100  // Use a larger page size for recursive fetching
+        })
+        
+        const directChildren = response.content || []
+        
+        // For each direct child, recursively fetch its descendants
+        for (const child of directChildren) {
+          allReplies.push(child)
+          
+          // Recursively fetch descendants of this child
+          const descendants = await fetchAllDescendants(child.id)
+          allReplies.push(...descendants)
+        }
+      } catch (error) {
+        console.error(`加载评论${commentId}的回复失败:`, error)
+      }
+      
+      return allReplies
+    }
 
     const loadReplies = async (append = false) => {
       if (append) {
@@ -94,20 +123,21 @@ export default {
       }
       
       try {
-        const response = await getCommentReplies(props.commentId, {
-          page: currentPage.value,
-          size: PAGE_SIZE
-        })
+        // Recursively fetch all descendants
+        const allReplies = await fetchAllDescendants(props.commentId)
+        
+        // Sort by creation time (ascending - oldest first)
+        allReplies.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
 
         if (append) {
-          replies.value = [...replies.value, ...(response.content || [])]
+          replies.value = [...replies.value, ...allReplies]
         } else {
-          replies.value = response.content || []
+          replies.value = allReplies
         }
         
-        totalPages.value = response.totalPages || 1
-        totalElements.value = response.totalElements || 0
-        currentPage.value++
+        totalPages.value = 1  // All loaded in one go
+        totalElements.value = allReplies.length
+        currentPage.value = 1
 
         emit('reply-count-changed', totalElements.value)
       } catch (error) {
@@ -122,8 +152,8 @@ export default {
     }
 
     const loadMore = async () => {
-      if (loadingMore.value || !hasMore.value) return
-      await loadReplies(true)
+      // Load more is disabled since we load all replies recursively
+      return
     }
 
     const handleReplyUpdated = (updatedReply) => {

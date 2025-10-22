@@ -439,9 +439,9 @@ export default {
 
       submittingReply.value = true
       try {
-        // Always create replies as direct children of the top-level comment
-        // This ensures all replies are fetched by a single getReplies call
-        await createReply(props.comment.id, replyContent.value, replyToUserId.value)
+        // Use replyToCommentId if replying to a sub-comment, otherwise use the top-level comment ID
+        const targetCommentId = replyToCommentId.value || props.comment.id
+        await createReply(targetCommentId, replyContent.value, replyToUserId.value)
         replyContent.value = ''
         replyToUserId.value = null
         replyToUsername.value = ''
