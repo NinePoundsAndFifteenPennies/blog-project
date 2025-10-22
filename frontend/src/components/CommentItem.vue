@@ -237,6 +237,7 @@ export default {
     const submittingReply = ref(false)
     const replyToUserId = ref(null)
     const replyToUsername = ref('')
+    const replyToCommentId = ref(null) // Store the ID of the comment/reply being replied to
     const replyTextarea = ref(null)
     const replyListRef = ref(null)
     const localReplyCount = ref(props.comment.replyCount || 0)
@@ -412,6 +413,7 @@ export default {
       showReplyForm.value = !showReplyForm.value
       replyToUserId.value = null
       replyToUsername.value = ''
+      replyToCommentId.value = null // Reset when toggling
       
       if (showReplyForm.value) {
         nextTick(() => {
@@ -429,6 +431,7 @@ export default {
       replyContent.value = ''
       replyToUserId.value = null
       replyToUsername.value = ''
+      replyToCommentId.value = null // Reset when cancelling
     }
 
     const submitReply = async () => {
@@ -436,10 +439,13 @@ export default {
 
       submittingReply.value = true
       try {
-        await createReply(props.comment.id, replyContent.value, replyToUserId.value)
+        // Use replyToCommentId if replying to a sub-comment, otherwise use the top-level comment ID
+        const targetCommentId = replyToCommentId.value || props.comment.id
+        await createReply(targetCommentId, replyContent.value, replyToUserId.value)
         replyContent.value = ''
         replyToUserId.value = null
         replyToUsername.value = ''
+        replyToCommentId.value = null // Reset after submitting
         showReplyForm.value = false
         
         // Show replies section and reload
@@ -463,9 +469,10 @@ export default {
       localReplyCount.value = count
     }
 
-    const handleReplyToReply = ({ replyToUserId: userId, replyToUsername: username }) => {
+    const handleReplyToReply = ({ replyId, replyToUserId: userId, replyToUsername: username }) => {
       replyToUserId.value = userId
       replyToUsername.value = username
+      replyToCommentId.value = replyId // Store the reply ID to use when submitting
       showReplyForm.value = true
       
       nextTick(() => {
