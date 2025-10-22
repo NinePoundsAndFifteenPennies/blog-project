@@ -28,7 +28,10 @@
         <div class="flex items-center justify-between mb-1">
           <div class="flex items-center space-x-2">
             <span class="font-medium text-gray-900 text-sm">{{ reply.authorUsername }}</span>
-            <span class="text-gray-400 text-xs">{{ formatDate(reply.createdAt) }}</span>
+            <span v-if="reply.replyToUsername" class="text-gray-500 text-xs">
+              回复 <span class="text-primary-600">@{{ reply.replyToUsername }}</span>
+            </span>
+            <span class="text-gray-400 text-xs">{{ formatDate(reply.updatedAt || reply.createdAt) }}</span>
             <span v-if="reply.updatedAt" class="text-gray-400 text-xs">(已编辑)</span>
           </div>
           

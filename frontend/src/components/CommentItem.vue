@@ -25,7 +25,7 @@
         <div class="flex items-center justify-between mb-2">
           <div>
             <span class="font-semibold text-gray-900">{{ comment.authorUsername }}</span>
-            <span class="text-gray-400 text-sm ml-2">{{ formatDate(comment.createdAt) }}</span>
+            <span class="text-gray-400 text-sm ml-2">{{ formatDate(comment.updatedAt || comment.createdAt) }}</span>
             <span v-if="comment.updatedAt" class="text-gray-400 text-xs ml-2">(已编辑)</span>
           </div>
           
@@ -456,7 +456,9 @@ export default {
       } catch (error) {
         console.error('发表回复失败:', error)
         if (error.response?.status === 403) {
-          alert('无法回复草稿文章的评论')
+          // Parse the error message from backend
+          const errorMsg = error.response?.data || '操作被拒绝'
+          alert(errorMsg)
         } else {
           alert('发表回复失败，请稍后重试')
         }
