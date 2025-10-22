@@ -498,7 +498,7 @@ Authorization: Bearer {token}
 ```json
 {
   "likeCount": 5,
-  "isLiked": true
+  "liked": true
 }
 ```
 
@@ -524,7 +524,7 @@ Authorization: Bearer {token}
 ```json
 {
   "likeCount": 4,
-  "isLiked": false
+  "Liked": false
 }
 ```
 
@@ -549,13 +549,13 @@ GET /api/posts/{postId}/likes
 ```json
 {
   "likeCount": 5,
-  "isLiked": true
+  "Liked": true
 }
 ```
 
 **说明:**
 - 匿名用户可以访问此接口查看点赞数量
-- 对于匿名用户，`isLiked` 始终为 `false`
+- 对于匿名用户，`Liked` 始终为 `false`
 - 登录用户可以看到自己是否已点赞
 
 **错误响应:**

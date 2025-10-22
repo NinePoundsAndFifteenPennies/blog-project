@@ -56,30 +56,30 @@
   - [头像上传](docs/features/AVATAR_UPLOAD.md)
   - [点赞功能](docs/features/LIKES.md)
   - [评论功能](docs/features/COMMENTS.md)
-  - [子评论功能设计](docs/features/SUB_COMMENTS_DESIGN.md) - 评论回复功能完整设计方案
-  - [子评论功能摘要](docs/features/SUB_COMMENTS_SUMMARY.md) - 设计方案快速参考
+  - [子评论功能设计](docs/features/SUB_COMMENTS_DESIGN.md) 
+  
 
 ## 项目进度
-
-**当前状态**: 后端核心功能已完成，具备上线能力
 
 **已完成**:
 - 用户认证系统（注册、登录、JWT、自动刷新）
 - 文章 CRUD 与权限控制
-- 前后端完全对接
+- 前后端部分对接(还差一个子评论与子评论点赞功能的对接)
 - 增强的 Markdown 编辑器
 - 头像上传与管理系统
 - 文章点赞功能
 - 评论功能（CRUD、权限控制、级联删除）
 - 评论点赞功能
+- 后端评论回复及其点赞
 
 **未来计划**:
+- 评论回复功能前端（后端设计已完成，详见[SUB_COMMENTS_DESIGN.md](docs/features/SUB_COMMENTS_DESIGN.md)）
 - 文章分类和标签
 - 文章搜索
 - 用户个人资料编辑
 - 代码高亮优化
 - 响应式设计优化
-- 评论回复功能（设计已完成，详见[SUB_COMMENTS_DESIGN.md](docs/features/SUB_COMMENTS_DESIGN.md)）
+
 
 ## 技术栈
 
