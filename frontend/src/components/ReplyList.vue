@@ -91,6 +91,7 @@ export default {
       const allReplies = []
       
       try {
+        console.log(`[ReplyList] Fetching descendants for comment ${commentId}`)
         // Fetch direct children
         const response = await getCommentReplies(commentId, {
           page: 0,
@@ -98,6 +99,7 @@ export default {
         })
         
         const directChildren = response.content || []
+        console.log(`[ReplyList] Comment ${commentId} has ${directChildren.length} direct children`)
         
         // For each direct child, recursively fetch its descendants
         for (const child of directChildren) {
@@ -111,6 +113,7 @@ export default {
         console.error(`加载评论${commentId}的回复失败:`, error)
       }
       
+      console.log(`[ReplyList] Total descendants for comment ${commentId}: ${allReplies.length}`)
       return allReplies
     }
 
@@ -123,6 +126,7 @@ export default {
       }
       
       try {
+        console.log(`[ReplyList] Loading replies for comment ${props.commentId}`)
         // Recursively fetch all descendants
         const allReplies = await fetchAllDescendants(props.commentId)
         
@@ -134,6 +138,8 @@ export default {
         } else {
           replies.value = allReplies
         }
+        
+        console.log(`[ReplyList] Loaded ${allReplies.length} replies for comment ${props.commentId}`)
         
         totalPages.value = 1  // All loaded in one go
         totalElements.value = allReplies.length

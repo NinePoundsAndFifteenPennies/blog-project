@@ -26,13 +26,15 @@
       <div class="flex-1 min-w-0">
         <!-- Header -->
         <div class="flex items-center justify-between mb-1">
-          <div class="flex items-center space-x-2">
-            <span class="font-medium text-gray-900 text-sm">{{ reply.authorUsername }}</span>
-            <span v-if="reply.replyToUsername" class="text-gray-500 text-xs">
+          <div class="flex flex-col">
+            <div class="flex items-center space-x-2">
+              <span class="font-medium text-gray-900 text-sm">{{ reply.authorUsername }}</span>
+              <span class="text-gray-400 text-xs">{{ formatDate(reply.updatedAt || reply.createdAt) }}</span>
+              <span v-if="reply.updatedAt" class="text-gray-400 text-xs">(已编辑)</span>
+            </div>
+            <div v-if="reply.replyToUsername" class="text-gray-500 text-xs mt-0.5">
               回复 <span class="text-primary-600">@{{ reply.replyToUsername }}</span>
-            </span>
-            <span class="text-gray-400 text-xs">{{ formatDate(reply.updatedAt || reply.createdAt) }}</span>
-            <span v-if="reply.updatedAt" class="text-gray-400 text-xs">(已编辑)</span>
+            </div>
           </div>
           
           <!-- Actions for reply author or post author -->
