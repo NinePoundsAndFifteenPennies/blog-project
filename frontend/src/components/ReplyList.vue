@@ -12,7 +12,7 @@
     </div>
 
     <!-- Replies List -->
-    <div v-else-if="replies.length > 0" class="space-y-0 bg-gray-50 rounded-lg">
+    <div v-else-if="replies.length > 0" class="bg-gray-50 rounded-lg px-3 py-2">
       <ReplyItem
         v-for="reply in replies"
         :key="reply.id"

@@ -1,6 +1,6 @@
 <template>
   <div 
-    class="py-4 transition-all"
+    class="py-4 border-b border-gray-200 last:border-b-0 transition-all"
     :style="{ paddingLeft: indentLevel + 'px' }"
   >
     <div class="flex space-x-3">
