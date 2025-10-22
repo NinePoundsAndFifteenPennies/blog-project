@@ -70,6 +70,7 @@ Controller ──► Service ──► Repository ──► Database
 | DTO | └── LikeResponse.java | 点赞响应体 |
 | DTO | └── CommentRequest.java | 评论创建/更新请求体 |
 | DTO | └── CommentResponse.java | 评论响应体 |
+| DTO | └── ReplyRequest.java | 子评论创建请求体 |
 | 异常层 | **exception/** | 自定义异常类与全局异常处理 |
 | 异常处理器 | └── GlobalExceptionHandler.java | 统一捕获和处理异常 |
 | 异常类 | └── AccessDeniedException.java | 访问被拒绝异常 |
@@ -82,7 +83,7 @@ Controller ──► Service ──► Repository ──► Database
 | 实体 | └── User.java | 用户实体 |
 | 实体 | └── Post.java | 文章实体 |
 | 实体 | └── Like.java | 点赞实体（支持文章和评论点赞）|
-| 实体 | └── Comment.java | 评论实体 |
+| 实体 | └── Comment.java | 评论实体（支持顶层评论和子评论）|
 | 枚举 | └── ContentType.java | 内容类型枚举 |
 | 数据访问层 | **repository/** | 提供数据库操作接口 |
 | Repository | └── UserRepository.java | 用户数据访问接口 |
@@ -163,16 +164,19 @@ Service 层使用接口与实现分离：
 
 - **User**: 用户信息（用户名、密码、邮箱、头像URL）
 - **Post**: 文章信息（标题、内容、作者、创建时间、是否草稿）
-- **Like**: 点赞信息（用户、文章、创建时间）
-- **Comment**: 评论信息（内容、用户、文章、创建时间、更新时间）
+- **Like**: 点赞信息（用户、文章或评论、创建时间）
+- **Comment**: 评论信息（内容、用户、文章、父评论、被回复用户、层级、创建时间、更新时间）
 
 ### 关系设计
 
 - User ←─[一对多]─→ Post（一个用户可以有多篇文章）
-- User ←─[一对多]─→ Like（一个用户可以点赞多篇文章）
+- User ←─[一对多]─→ Like（一个用户可以点赞多篇文章或评论）
 - Post ←─[一对多]─→ Like（一篇文章可以有多个点赞）
 - User ←─[一对多]─→ Comment（一个用户可以发表多条评论）
 - Post ←─[一对多]─→ Comment（一篇文章可以有多条评论）
+- Comment ←─[一对多]─→ Comment（一条评论可以有多条子评论，自引用关系）
+- Comment ←─[一对多]─→ Like（一条评论可以有多个点赞）
+- User ←─[多对一]─→ Comment（通过reply_to_user_id，一个用户可以被多条评论@）
 
 ## 文件存储
 
@@ -218,7 +222,7 @@ uploads/
 ### 功能差异
 
 - **未实现**: 分类 (Category)、标签 (Tag)
-- **新增**: "记住我"功能、JWT自动刷新、增强的Markdown编辑器、头像上传系统、文章点赞功能、评论功能、评论点赞功能
+- **新增**: "记住我"功能、JWT自动刷新、增强的Markdown编辑器、头像上传系统、文章点赞功能、评论功能、评论点赞功能、子评论（回复）功能、子评论点赞功能
 
 ### 架构差异
 
