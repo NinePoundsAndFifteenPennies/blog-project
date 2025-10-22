@@ -719,56 +719,26 @@ FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE
   → 删除评论时，自动删除所有点赞（包括子评论点赞）
 ```
 
-### 5.3 Service层级联逻辑
+### 5.3 Service层级联逻辑 (修正后)
 
-**PostServiceImpl.deletePost()** - 保持不变
-```java
-@Transactional
-public void deletePost(Long postId, UserDetails currentUser) {
-    // 1. 权限检查
-    // 2. 删除文章点赞
-    likeRepository.deleteByPost(post);
-    // 3. 删除所有评论的点赞（包括子评论）
-    List<Comment> allComments = commentRepository.findByPost(post);
-    for (Comment comment : allComments) {
-        likeRepository.deleteByComment(comment);
-    }
-    // 4. 删除所有评论（包括子评论，CASCADE自动删除）
-    commentRepository.deleteByPost(post);
-    // 5. 删除文章
-    postRepository.delete(post);
-}
-```
+得益于在实体层（`Comment.java`）通过 `cascade = CascadeType.ALL` 和 `orphanRemoval = true` 声明了级联关系，Service层的删除逻辑变得非常简洁和健壮。
 
-**CommentServiceImpl.deleteComment()** - 需要增强
+**`CommentServiceImpl.deleteComment()` 核心逻辑:**
+
 ```java
 @Transactional
 public void deleteComment(Long commentId, UserDetails currentUser) {
-    // 1. 权限检查
-    // 2. 查找所有子孙评论ID（递归）
-    List<Long> descendantIds = findDescendantCommentIds(commentId);
-    // 3. 删除所有子孙评论的点赞
-    for (Long id : descendantIds) {
-        Comment descendant = commentRepository.findById(id).orElse(null);
-        if (descendant != null) {
-            likeRepository.deleteByComment(descendant);
-        }
-    }
-    // 4. 删除该评论的点赞
-    likeRepository.deleteByComment(comment);
-    // 5. 删除评论（CASCADE自动删除所有子孙评论）
-    commentRepository.delete(comment);
-}
+    // 1. 查找评论实体
+    Comment comment = commentRepository.findById(commentId).orElseThrow(...);
 
-// 辅助方法：递归查找所有子孙评论ID
-private List<Long> findDescendantCommentIds(Long commentId) {
-    List<Long> result = new ArrayList<>();
-    List<Comment> children = commentRepository.findByParentId(commentId);
-    for (Comment child : children) {
-        result.add(child.getId());
-        result.addAll(findDescendantCommentIds(child.getId())); // 递归
-    }
-    return result;
+    // 2. 权限检查 (评论作者或文章作者)
+    // ...
+
+    // 3. 直接删除评论实体
+    // JPA/Hibernate 会自动处理所有级联删除：
+    // a. 递归删除所有子评论 (replies)。
+    // b. 删除所有被删除评论（包括子评论）关联的点赞记录 (likes)。
+    commentRepository.delete(comment);
 }
 ```
 
