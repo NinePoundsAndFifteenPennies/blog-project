@@ -30,7 +30,7 @@
 
 ## 数据库设计
 
-### Comment 表
+### Comment 表(这是旧表，新表参考[SUB_COMMENTS.md](./SUB_COMMENTS.md))
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
