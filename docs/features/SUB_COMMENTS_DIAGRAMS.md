@@ -124,33 +124,23 @@ PostDetail.vue (文章详情页)
 ## 级联删除流程图
 
 ```
-用户操作: 删除文章
-  ├─→ 删除文章点赞 (likes where post_id = ?)
-  ├─→ 删除顶层评论 (comments where post_id = ? AND parent_id IS NULL)
-  │     ├─→ 删除一级子评论 (comments where parent_id = 顶层评论ID)
-  │     │     ├─→ 删除二级子评论 (comments where parent_id = 一级子评论ID)
-  │     │     │     ├─→ 删除三级子评论 (comments where parent_id = 二级子评论ID)
-  │     │     │     │     └─→ 删除三级子评论点赞 (likes where comment_id = 三级子评论ID)
-  │     │     │     └─→ 删除二级子评论点赞 (likes where comment_id = 二级子评论ID)
-  │     │     └─→ 删除一级子评论点赞 (likes where comment_id = 一级子评论ID)
-  │     └─→ 删除顶层评论点赞 (likes where comment_id = 顶层评论ID)
-  └─→ 删除文章本身 (posts where id = ?)
-
-用户操作: 删除顶层评论
-  ├─→ 递归删除所有子孙评论 (CASCADE自动完成)
-  ├─→ 删除所有子孙评论的点赞 (Service层手动删除)
-  └─→ 删除顶层评论及其点赞
-
-用户操作: 删除子评论
-  ├─→ 递归删除该子评论的所有后代 (CASCADE自动完成)
-  ├─→ 删除所有后代评论的点赞 (Service层手动删除)
-  └─→ 删除子评论及其点赞
-
-用户操作: 删除用户
-  ├─→ 删除该用户的所有评论 (CASCADE)
-  ├─→ 删除该用户的所有点赞 (CASCADE)
-  └─→ 其他评论的reply_to_user_id设为NULL (SET NULL)
-       前端显示: @[已删除用户]
+用户操作: 删除评论 (e.g., DELETE /api/comments/{id})
+  │
+  └─► CommentServiceImpl.deleteComment()
+        │
+        ├─► 1. 权限检查
+        │
+        └─► 2. commentRepository.delete(comment)
+              │
+              └─► JPA/Hibernate 自动触发级联删除
+                    │
+                    ├─► 自动删除所有关联的 Like 记录
+                    │     (因为 @OneToMany(cascade=ALL) on 'likes')
+                    │
+                    └─► 自动删除所有关联的子 Comment 记录 (Replies)
+                          (因为 @OneToMany(cascade=ALL) on 'replies')
+                          │
+                          └─► 对每个子评论，递归执行以上删除流程
 ```
 
 ---
@@ -247,21 +237,6 @@ PostDetail.vue (文章详情页)
 
 ---
 
-## 实施时间估算
-
-| 阶段 | 任务 | 预计工时 |
-|------|------|---------|
-| 后端开发 | 数据库迁移 | 0.5天 |
-| 后端开发 | 实体层修改 | 0.5天 |
-| 后端开发 | Repository/Service实现 | 1.5天 |
-| 后端开发 | Controller实现 | 0.5天 |
-| 后端开发 | 单元测试 | 1天 |
-| 前端开发 | API封装 | 0.5天 |
-| 前端开发 | 组件开发 | 2天 |
-| 前端开发 | 样式优化 | 1天 |
-| 前端开发 | 功能测试 | 1天 |
-| 文档更新 | 文档更新 | 0.5天 |
-| **总计** | | **9天** |
 
 ---
 

@@ -138,6 +138,31 @@ CREATE INDEX idx_comment_post_parent ON comments(post_id, parent_id); -- 复合�
 - level最大值限制（建议≤3）
 - reply_to_user_id不为NULL时，parent_id也不能为NULL
 
+**JPA/Hibernate 实体定义**:
+
+为了让JPA能够自动处理级联删除，`Comment.java` 实体类中必须建立对子评论和点赞的 `@OneToMany` 关联，并配置级联选项。这是实现自动化、无异常删除的关键。
+
+```java
+// In Comment.java
+@Entity
+public class Comment {
+    // ...
+
+    @ManyToOne
+    @JoinColumn(name = "parent_id")
+    private Comment parent;
+
+    // 关键: 声明对子评论的一对多关系，并设置级联删除
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> replies = new ArrayList<>();
+
+    // 关键: 声明对点赞的一对多关系，并设置级联删除
+    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Like> likes = new ArrayList<>();
+
+    // ...
+}
+
 ### 2.2 Like表结构
 
 **无需修改**！当前设计已支持评论点赞（参考[COMMENTS.md](./COMMENTS.md#like-表支持文章和评论点赞)）：
@@ -589,46 +614,27 @@ ORDER BY created_at ASC;
 
 ### 4.3 删除评论流程增强
 
-**删除顶层评论**：
-```
-1. 验证用户身份（必须登录）
-   ↓
-2. 查找评论（不存在则抛出404）
-   ↓
-3. 检查权限（评论作者或文章作者）
-   - 无权限 → 抛出403错误
-   - 有权限 → 继续
-   ↓
-4. 开启事务
-   ↓
-5. 递归查询所有子孙评论ID
-   WITH RECURSIVE reply_tree AS (
-     SELECT id FROM comments WHERE parent_id = ?
-     UNION ALL
-     SELECT c.id FROM comments c
-     INNER JOIN reply_tree rt ON c.parent_id = rt.id
-   )
-   SELECT id FROM reply_tree;
-   ↓
-6. 删除所有子孙评论的点赞记录
-   DELETE FROM likes WHERE comment_id IN (子孙评论ID列表);
-   ↓
-7. 删除该评论的点赞记录
-   DELETE FROM likes WHERE comment_id = ?;
-   ↓
-8. 删除所有子孙评论（利用CASCADE自动完成）
-   DELETE FROM comments WHERE id = ?;
-   ↓
-9. 提交事务
-   ↓
-10. 返回成功消息
-```
+**删除评论流程**：
 
-**删除子评论**：
-```
-流程与上述相同，区别在于：
-- 只影响该子评论及其后代
-- 不影响父评论和兄弟评论
+得益于在 `Comment.java` 实体中通过 `cascade = CascadeType.ALL` 声明了级联关系，Service层的删除逻辑变得极其简洁和健壮，完全避免了在应用层手动处理级联的复杂性和风险。
+
+**`CommentServiceImpl.deleteComment()` 核心逻辑:**
+
+```java
+@Transactional
+public void deleteComment(Long commentId, UserDetails currentUser) {
+    // 1. 查找评论实体
+    Comment comment = commentRepository.findById(commentId).orElseThrow(...);
+
+    // 2. 权限检查 (评论作者或文章作者)
+    // ... (权限检查逻辑)
+
+    // 3. 直接删除该评论实体
+    // JPA/Hibernate 会自动处理所有级联删除：
+    // a. 递归删除所有子评论 (replies)。
+    // b. 删除所有被删除评论（包括子评论）关联的点赞记录 (likes)。
+    commentRepository.delete(comment);
+}
 ```
 
 **关键点**：
@@ -1058,163 +1064,10 @@ Accept: application/vnd.blog.v1+json
 
 ---
 
-## 8. 实现步骤
 
-### 8.1 后端实现步骤（按顺序）
+## 8. 风险与应对
 
-#### 阶段1：数据库准备
-1. ✅ 编写数据库迁移SQL（添加parent_id、reply_to_user_id、level字段）
-2. ✅ 执行迁移脚本（开发环境测试）
-3. ✅ 验证外键约束和索引
-
-#### 阶段2：实体层修改
-4. ✅ 修改Comment.java实体类
-   - 添加parentId、replyToUser、level字段
-   - 添加@ManyToOne关联（parent、replyToUser）
-   - 添加getter/setter
-
-5. ✅ 修改CommentRepository.java
-   - 添加findByParentId()方法
-   - 添加findByParentIdAndPostId()方法
-   - 添加countByParentId()方法
-
-#### 阶段3：DTO层扩展
-6. ✅ 修改CommentResponse.java
-   - 添加parentId、replyToUserId、replyToUsername、level、replyCount字段
-
-7. ✅ 修改CommentRequest.java（或新建ReplyRequest.java）
-   - 添加replyToUserId字段（可选）
-
-#### 阶段4：Mapper层更新
-8. ✅ 修改CommentMapper.java
-   - toResponse()方法增加新字段映射
-   - 处理replyToUsername查询（关联User表）
-
-#### 阶段5：Service层实现
-9. ✅ 修改CommentService接口
-   - 添加createReply()方法
-   - 添加getReplies()方法
-   - 添加countReplies()方法
-
-10. ✅ 修改CommentServiceImpl类
-    - 实现createReply()（包含层级检查、replyToUser验证）
-    - 实现getReplies()（查询子评论）
-    - 实现countReplies()（统计子评论数）
-    - 修改deleteComment()（级联删除子评论）
-    - 修改getCommentsByPost()（过滤顶层评论，添加replyCount）
-
-#### 阶段6：Controller层扩展
-11. ✅ 修改CommentController.java
-    - 添加POST /api/comments/{commentId}/replies端点
-    - 添加GET /api/comments/{commentId}/replies端点
-    - 修改GET /api/posts/{postId}/comments端点（只返回顶层评论）
-
-#### 阶段7：测试
-12. ✅ 单元测试（Service层）
-13. ✅ 集成测试（Controller层）
-14. ✅ 级联删除测试
-15. ✅ 性能测试（大量子评论场景）
-
-### 8.2 前端实现步骤（按顺序）
-
-#### 阶段1：API封装
-1. ✅ 修改api/comments.js
-   - 添加createReply()方法
-   - 添加getReplies()方法
-   - 保持现有API接口不变
-
-#### 阶段2：组件开发
-2. ✅ 创建ReplyItem.vue组件
-   - 显示单条回复（包括@用户名）
-   - 点赞、编辑、删除功能
-   - 支持递归嵌套（显示子回复）
-
-3. ✅ 创建ReplyList.vue组件
-   - 显示回复列表
-   - 懒加载回复
-   - 分页加载更多
-
-4. ✅ 修改CommentItem.vue组件
-   - 添加"查看N条回复"按钮
-   - 集成ReplyList组件
-   - 添加"回复"按钮（创建一级回复）
-   - 展开/收起回复列表
-
-5. ✅ 修改CommentList.vue组件
-   - 过滤只显示顶层评论（前端无需修改，后端已过滤）
-   - 传递postAuthorUsername给子组件
-
-#### 阶段3：样式优化
-6. ✅ 设计嵌套层级样式
-   - 缩进效果（CSS实现）
-   - 背景色区分（层级渐变）
-   - 响应式适配（移动端）
-
-#### 阶段4：交互优化
-7. ✅ 实现回复输入框
-   - 点击"回复"按钮展开输入框
-   - 自动填充@用户名
-   - Markdown预览（复用现有逻辑）
-
-8. ✅ 实现展开/收起回复
-   - 默认收起回复列表
-   - 点击展开，懒加载数据
-   - 再次点击收起
-
-#### 阶段5：测试
-9. ✅ 功能测试（创建、编辑、删除回复）
-10. ✅ 交互测试（展开、收起、点赞）
-11. ✅ 样式测试（多层嵌套显示）
-12. ✅ 性能测试（大量回复场景）
-
-### 8.3 文档更新步骤
-
-1. ✅ 更新COMMENTS.md文档
-   - 添加子评论功能说明
-   - 更新数据库设计章节
-   - 更新API端点章节
-   - 更新级联删除章节
-
-2. ✅ 更新API.md文档
-   - 添加子评论API说明
-   - 更新现有API响应格式
-   - 添加错误码说明
-
-3. ✅ 更新ARCHITECTURE.md文档
-   - 更新组件结构图
-   - 说明子评论实现思路
-
-4. ✅ 编写本设计文档（SUB_COMMENTS_DESIGN.md）
-   - 完整设计方案
-   - 引用现有文档
-   - 提供实施指导
-
-### 8.4 发布与部署
-
-1. ✅ 数据库迁移（生产环境）
-   - 备份现有数据
-   - 执行ALTER TABLE语句
-   - 验证数据完整性
-
-2. ✅ 后端发布
-   - 打包新版本
-   - 灰度发布（10% → 50% → 100%）
-   - 监控错误日志
-
-3. ✅ 前端发布
-   - 构建生产版本
-   - CDN部署
-   - 缓存刷新
-
-4. ✅ 功能验证
-   - 冒烟测试
-   - 用户反馈收集
-
----
-
-## 9. 风险与应对
-
-### 9.1 技术风险
+### 8.1 技术风险
 
 | 风险 | 影响 | 概率 | 应对策略 |
 |------|------|------|---------|
@@ -1232,9 +1085,9 @@ Accept: application/vnd.blog.v1+json
 
 ---
 
-## 10. 总结
+## 9. 总结
 
-### 10.1 设计亮点
+### 9.1 设计亮点
 
 1. **向后兼容**：现有API行为不变，平滑升级
 2. **级联完整**：所有删除关系清晰，无数据残留
@@ -1243,7 +1096,7 @@ Accept: application/vnd.blog.v1+json
 5. **性能优化**：懒加载、分页、索引优化
 6. **文档复用**：引用现有文档，减少重复
 
-### 10.2 关键决策
+### 9.2 关键决策
 
 | 决策点 | 选择 | 理由 |
 |--------|------|------|
@@ -1253,15 +1106,8 @@ Accept: application/vnd.blog.v1+json
 | 删除策略 | 级联删除 | 保证数据一致性 |
 | UI布局 | 嵌套缩进 | 直观展示层级关系 |
 
-### 10.3 实施建议
 
-1. **分阶段实施**：先后端，后前端，逐步发布
-2. **充分测试**：特别关注级联删除和并发场景
-3. **灰度发布**：小流量验证后全量发布
-4. **监控告警**：关注性能指标和错误率
-5. **用户反馈**：收集意见，持续优化
-
-### 10.4 参考文档
+### 9.4 参考文档
 
 - [评论功能实现文档 (COMMENTS.md)](./COMMENTS.md)
 - [点赞功能实现文档 (LIKES.md)](./LIKES.md)
