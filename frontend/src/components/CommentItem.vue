@@ -82,6 +82,36 @@
             <span>{{ comment.likeCount || 0 }}</span>
           </button>
           
+          <!-- Reply Button (only for top-level comments and when not showing post link) -->
+          <button
+            v-if="!showPostLink && isLoggedIn && !isDraft && comment.level === 0"
+            @click="toggleReplies"
+            class="flex items-center space-x-1 text-gray-400 hover:text-primary-600 transition-colors"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <span>{{ displayReplyCount }}</span>
+          </button>
+
+          <!-- Show Replies Button (only when there are replies) -->
+          <button
+            v-if="!showPostLink && comment.level === 0 && (comment.replyCount > 0 || localReplyCount > 0)"
+            @click="toggleRepliesVisibility"
+            class="flex items-center space-x-1 text-primary-600 hover:text-primary-700 font-medium transition-colors"
+          >
+            <svg 
+              class="w-4 h-4 transition-transform"
+              :class="{ 'rotate-180': showReplies }"
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+            <span>{{ showReplies ? '收起回复' : `查看 ${displayReplyCount} 条回复` }}</span>
+          </button>
+          
           <!-- Show post title if this is from "My Comments" view -->
           <router-link
             v-if="comment.postId && comment.postTitle && showPostLink"
@@ -94,21 +124,89 @@
             <span class="truncate max-w-xs">{{ comment.postTitle }}</span>
           </router-link>
         </div>
+
+        <!-- Reply Form -->
+        <div v-if="showReplyForm && !showPostLink" class="mt-4">
+          <div class="flex space-x-3">
+            <div class="flex-shrink-0">
+              <div 
+                class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-gradient-primary"
+              >
+                <img 
+                  v-if="currentUserAvatarUrl && !replyAvatarLoadError" 
+                  :src="currentUserAvatarUrl" 
+                  :alt="currentUsername"
+                  class="w-full h-full object-cover"
+                  @error="handleReplyAvatarError"
+                  @load="handleReplyAvatarLoad"
+                />
+                <span v-else>{{ currentUserInitial }}</span>
+              </div>
+            </div>
+
+            <div class="flex-1">
+              <textarea
+                v-model="replyContent"
+                ref="replyTextarea"
+                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                rows="3"
+                :placeholder="replyPlaceholder"
+              ></textarea>
+
+              <div class="flex items-center justify-between mt-2">
+                <span class="text-xs text-gray-500">
+                  {{ replyContent.length }} / 3000
+                </span>
+                <div class="flex space-x-2">
+                  <button
+                    @click="cancelReply"
+                    class="px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button
+                    @click="submitReply"
+                    class="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    :disabled="!replyContent.trim() || replyContent.length > 3000 || submittingReply"
+                  >
+                    {{ submittingReply ? '发送中...' : '发送' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reply List -->
+        <ReplyList
+          v-if="showReplies && !showPostLink"
+          ref="replyListRef"
+          :comment-id="comment.id"
+          :post-author-username="postAuthorUsername"
+          :is-draft="isDraft"
+          :visible="showReplies"
+          @reply-count-changed="handleReplyCountChanged"
+          @reply-clicked="handleReplyToReply"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue' // 1. 导入 watch
+import { ref, computed, watch, nextTick } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { marked } from 'marked'
-import { deleteComment, likeComment, unlikeComment } from '@/api/comments'
+import { deleteComment, likeComment, unlikeComment, createReply } from '@/api/comments'
 import { getFullAvatarUrl } from '@/utils/avatar'
+import ReplyList from './ReplyList.vue'
 
 export default {
   name: 'CommentItem',
+  components: {
+    ReplyList
+  },
   props: {
     comment: {
       type: Object,
@@ -121,6 +219,10 @@ export default {
     showPostLink: {
       type: Boolean,
       default: false
+    },
+    isDraft: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['comment-updated', 'comment-deleted', 'like-changed'],
@@ -128,6 +230,16 @@ export default {
     const store = useStore()
     const router = useRouter()
     const avatarLoadError = ref(false)
+    const replyAvatarLoadError = ref(false)
+    const showReplyForm = ref(false)
+    const showReplies = ref(false)
+    const replyContent = ref('')
+    const submittingReply = ref(false)
+    const replyToUserId = ref(null)
+    const replyToUsername = ref('')
+    const replyTextarea = ref(null)
+    const replyListRef = ref(null)
+    const localReplyCount = ref(props.comment.replyCount || 0)
 
     const currentUser = computed(() => store.getters.currentUser)
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
@@ -155,6 +267,26 @@ export default {
         return getFullAvatarUrl(currentUser.value.avatarUrl)
       }
       return props.comment.authorAvatarUrl
+    })
+
+    const currentUserAvatarUrl = computed(() => getFullAvatarUrl(currentUser.value?.avatarUrl))
+    
+    const currentUsername = computed(() => currentUser.value?.username || '')
+
+    const currentUserInitial = computed(() => {
+      const name = currentUser.value?.username || ''
+      return name ? name.charAt(0).toUpperCase() : 'A'
+    })
+
+    const displayReplyCount = computed(() => {
+      return localReplyCount.value || props.comment.replyCount || 0
+    })
+
+    const replyPlaceholder = computed(() => {
+      if (replyToUsername.value) {
+        return `回复 @${replyToUsername.value}...`
+      }
+      return '写下你的回复...'
     })
     
     // Reset avatar error when avatar URL changes
@@ -190,6 +322,14 @@ export default {
 
     const handleAvatarLoad = () => {
       avatarLoadError.value = false
+    }
+
+    const handleReplyAvatarError = () => {
+      replyAvatarLoadError.value = true
+    }
+
+    const handleReplyAvatarLoad = () => {
+      replyAvatarLoadError.value = false
     }
 
     const formatDate = (dateString) => {
@@ -268,21 +408,108 @@ export default {
       }
     }
 
+    const toggleReplies = () => {
+      showReplyForm.value = !showReplyForm.value
+      replyToUserId.value = null
+      replyToUsername.value = ''
+      
+      if (showReplyForm.value) {
+        nextTick(() => {
+          replyTextarea.value?.focus()
+        })
+      }
+    }
+
+    const toggleRepliesVisibility = () => {
+      showReplies.value = !showReplies.value
+    }
+
+    const cancelReply = () => {
+      showReplyForm.value = false
+      replyContent.value = ''
+      replyToUserId.value = null
+      replyToUsername.value = ''
+    }
+
+    const submitReply = async () => {
+      if (!replyContent.value.trim() || replyContent.value.length > 3000) return
+
+      submittingReply.value = true
+      try {
+        await createReply(props.comment.id, replyContent.value, replyToUserId.value)
+        replyContent.value = ''
+        replyToUserId.value = null
+        replyToUsername.value = ''
+        showReplyForm.value = false
+        
+        // Show replies section and reload
+        showReplies.value = true
+        if (replyListRef.value) {
+          replyListRef.value.reload()
+        }
+      } catch (error) {
+        console.error('发表回复失败:', error)
+        if (error.response?.status === 403) {
+          alert('无法回复草稿文章的评论')
+        } else {
+          alert('发表回复失败，请稍后重试')
+        }
+      } finally {
+        submittingReply.value = false
+      }
+    }
+
+    const handleReplyCountChanged = (count) => {
+      localReplyCount.value = count
+    }
+
+    const handleReplyToReply = ({ replyToUserId: userId, replyToUsername: username }) => {
+      replyToUserId.value = userId
+      replyToUsername.value = username
+      showReplyForm.value = true
+      
+      nextTick(() => {
+        replyTextarea.value?.focus()
+      })
+    }
+
     return {
       avatarLoadError,
+      replyAvatarLoadError,
       displayAvatarUrl,
+      currentUserAvatarUrl,
+      currentUsername,
+      currentUserInitial,
       isCommentAuthor,
       isPostAuthor,
       canManage,
+      isLoggedIn,
       authorInitial,
       isMarkdown,
       renderedContent,
+      showReplyForm,
+      showReplies,
+      replyContent,
+      submittingReply,
+      replyPlaceholder,
+      replyTextarea,
+      replyListRef,
+      localReplyCount,
+      displayReplyCount,
       handleAvatarError,
       handleAvatarLoad,
+      handleReplyAvatarError,
+      handleReplyAvatarLoad,
       formatDate,
       handleEdit,
       handleDelete,
-      handleLike
+      handleLike,
+      toggleReplies,
+      toggleRepliesVisibility,
+      cancelReply,
+      submitReply,
+      handleReplyCountChanged,
+      handleReplyToReply
     }
   }
 }

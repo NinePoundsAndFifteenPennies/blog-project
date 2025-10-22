@@ -108,6 +108,7 @@
         :key="comment.id"
         :comment="comment"
         :post-author-username="postAuthorUsername"
+        :is-draft="isDraft"
         @comment-updated="handleCommentUpdated"
         @comment-deleted="handleCommentDeleted"
         @like-changed="handleLikeChanged"
