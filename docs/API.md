@@ -593,6 +593,11 @@ Content-Type: application/json
   "content": "这是评论内容",
   "postId": 10,
   "postTitle": "文章标题",
+  "parentId": null,
+  "replyToUserId": null,
+  "replyToUsername": null,
+  "level": 0,
+  "replyCount": 0,
   "authorUsername": "用户名",
   "authorAvatarUrl": "https://example.com/avatar.jpg",
   "createdAt": "2025-10-16T15:30:00",
@@ -610,9 +615,63 @@ Content-Type: application/json
 
 ---
 
+### 创建子评论（回复评论）
+
+在指定评论下创建回复（子评论）。
+
+```http
+POST /api/comments/{commentId}/replies
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**路径参数:**
+- `commentId`: 被回复的评论ID（可以是顶层评论或子评论）
+
+**请求体:**
+```json
+{
+  "content": "回复内容",
+  "replyToUserId": 123
+}
+```
+
+**字段说明:**
+- `content` (String, 必填): 回复内容，长度1-3000字符
+- `replyToUserId` (Long, 可选): 被@的用户ID，不填则回复评论本身
+
+**成功响应:** `201 Created`
+```json
+{
+  "id": 100,
+  "content": "回复内容",
+  "postId": 10,
+  "postTitle": "文章标题",
+  "parentId": 5,
+  "replyToUserId": 123,
+  "replyToUsername": "张三",
+  "level": 1,
+  "replyCount": 0,
+  "authorUsername": "李四",
+  "authorAvatarUrl": "/uploads/4/avatars/abc.jpg",
+  "createdAt": "2025-10-19T10:00:00",
+  "updatedAt": null,
+  "likeCount": 0,
+  "liked": false
+}
+```
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `403 Forbidden` - 尝试回复草稿文章的评论
+- `404 Not Found` - 父评论不存在或replyToUserId不存在
+- `400 Bad Request` - 内容长度不符合要求、层级超限
+
+---
+
 ### 获取文章评论
 
-获取指定文章的所有评论，支持分页。
+获取指定文章的所有顶层评论，支持分页。
 
 ```http
 GET /api/posts/{postId}/comments?page=0&size=20
@@ -634,6 +693,11 @@ GET /api/posts/{postId}/comments?page=0&size=20
       "content": "第一条评论",
       "postId": 10,
       "postTitle": "文章标题",
+      "parentId": null,
+      "replyToUserId": null,
+      "replyToUsername": null,
+      "level": 0,
+      "replyCount": 5,
       "authorUsername": "user1",
       "authorAvatarUrl": "https://example.com/avatar1.jpg",
       "createdAt": "2025-10-16T15:30:00",
@@ -655,17 +719,91 @@ GET /api/posts/{postId}/comments?page=0&size=20
 
 **说明:**
 - 匿名用户可以访问此接口查看评论
+- **仅返回顶层评论**（parentId为null）
 - 评论按创建时间升序排列（最早的在前）
-- 每条评论包含点赞数量和当前用户的点赞状态
+- 每条评论包含点赞数量、当前用户的点赞状态和子评论数量（replyCount）
 
 **错误响应:**
 - `404 Not Found` - 文章不存在
 
 ---
 
+### 获取评论的所有回复（子评论列表）
+
+获取指定评论的所有回复，支持分页。
+
+```http
+GET /api/comments/{commentId}/replies?page=0&size=20
+```
+
+**路径参数:**
+- `commentId`: 评论ID
+
+**查询参数:**
+- `page` (可选): 页码，从0开始，默认0
+- `size` (可选): 每页数量，默认20
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 100,
+      "content": "第一条回复",
+      "postId": 10,
+      "postTitle": "文章标题",
+      "parentId": 5,
+      "replyToUserId": null,
+      "replyToUsername": null,
+      "level": 1,
+      "replyCount": 0,
+      "authorUsername": "用户A",
+      "authorAvatarUrl": "/uploads/a/avatars/a.jpg",
+      "createdAt": "2025-10-19T10:00:00",
+      "updatedAt": null,
+      "likeCount": 3,
+      "liked": true
+    },
+    {
+      "id": 101,
+      "content": "@用户A 回复内容",
+      "postId": 10,
+      "postTitle": "文章标题",
+      "parentId": 5,
+      "replyToUserId": 200,
+      "replyToUsername": "用户A",
+      "level": 2,
+      "replyCount": 0,
+      "authorUsername": "用户B",
+      "authorAvatarUrl": "/uploads/b/avatars/b.jpg",
+      "createdAt": "2025-10-19T10:05:00",
+      "updatedAt": null,
+      "likeCount": 1,
+      "liked": false
+    }
+  ],
+  "pageable": { "pageNumber": 0, "pageSize": 20 },
+  "totalElements": 2,
+  "totalPages": 1,
+  "last": true,
+  "first": true
+}
+```
+
+**说明:**
+- 匿名用户可以访问此接口查看回复
+- 返回所有子评论（包括嵌套回复）
+- 按创建时间升序排列（最早的在前）
+- 包含点赞数和当前用户点赞状态
+
+**错误响应:**
+- `404 Not Found` - 评论不存在
+
+---
+
 ### 获取我的评论
 
-获取当前登录用户发表的所有评论。
+获取当前登录用户发表的所有评论（包括顶层评论和子评论）。
 
 ```http
 GET /api/comments/my?page=0&size=10
@@ -682,21 +820,47 @@ Authorization: Bearer {token}
   "content": [
     {
       "id": 1,
-      "content": "我的评论",
+      "content": "我的顶层评论",
       "postId": 10,
-      "postTitle": "文章标题A",
+      "postTitle": "文章A",
+      "parentId": null,
+      "replyToUserId": null,
+      "replyToUsername": null,
+      "level": 0,
+      "replyCount": 3,
       "authorUsername": "currentUser",
       "authorAvatarUrl": "https://example.com/my-avatar.jpg",
       "createdAt": "2025-10-16T15:30:00",
       "updatedAt": null,
       "likeCount": 5,
       "liked": true
+    },
+    {
+      "id": 100,
+      "content": "@张三 我的回复",
+      "postId": 20,
+      "postTitle": "文章B",
+      "parentId": 50,
+      "replyToUserId": 123,
+      "replyToUsername": "张三",
+      "level": 1,
+      "replyCount": 0,
+      "authorUsername": "currentUser",
+      "authorAvatarUrl": "https://example.com/my-avatar.jpg",
+      "createdAt": "2025-10-19T10:00:00",
+      "updatedAt": null,
+      "likeCount": 2,
+      "liked": false
     }
   ],
   "totalElements": 1,
   "totalPages": 1
 }
 ```
+
+**说明:**
+- 包含顶层评论和子评论
+- 可通过parentId和level字段区分评论类型
 
 **错误响应:**
 - `401 Unauthorized` - 未登录或 token 无效
@@ -730,6 +894,11 @@ Content-Type: application/json
   "content": "更新后的评论内容",
   "postId": 10,
   "postTitle": "文章标题",
+  "parentId": null,
+  "replyToUserId": null,
+  "replyToUsername": null,
+  "level": 0,
+  "replyCount": 2,
   "authorUsername": "用户名",
   "authorAvatarUrl": "https://example.com/avatar.jpg",
   "createdAt": "2025-10-16T15:30:00",
@@ -750,6 +919,8 @@ Content-Type: application/json
 
 删除一条评论。评论作者和文章作者都可以删除评论。
 
+**注意**：删除顶层评论会级联删除所有子评论及其点赞记录。
+
 ```http
 DELETE /api/comments/{commentId}
 Authorization: Bearer {token}
@@ -767,6 +938,10 @@ Authorization: Bearer {token}
 - 评论作者可以删除自己的评论
 - 文章作者可以删除自己文章下的任何评论
 
+**级联删除:**
+- 删除顶层评论时，会自动删除所有子评论及其点赞
+- 删除子评论时，会自动删除该子评论的所有子孙评论及其点赞
+
 **错误响应:**
 - `401 Unauthorized` - 未登录或 token 无效
 - `403 Forbidden` - 无权限删除此评论
@@ -776,7 +951,7 @@ Authorization: Bearer {token}
 
 ### 点赞评论
 
-给评论点赞。如果已经点赞，则不会重复添加。
+给评论点赞（支持顶层评论和子评论）。如果已经点赞，则不会重复添加。
 
 ```http
 POST /api/comments/{commentId}/likes

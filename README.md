@@ -7,7 +7,7 @@
 - **后端**: Spring Boot + Spring Security + JWT + JPA/Hibernate + MySQL
 - **前端**: Vue.js + Axios + TailwindCSS
 - **架构**: RESTful API + 前后端分离
-- **特色**: JWT认证、"记住我"功能、Markdown编辑器、文章管理、头像上传、点赞功能、评论功能、评论点赞
+- **特色**: JWT认证、"记住我"功能、Markdown编辑器、文章管理、头像上传、点赞功能、评论功能、评论点赞、子评论（回复）及点赞
 
 ## 核心功能
 
@@ -18,6 +18,8 @@
 - ✅ 文章点赞功能（点赞/取消点赞、点赞数显示）
 - ✅ 评论功能（CRUD、分页、权限控制、级联删除）
 - ✅ 评论点赞功能（点赞/取消点赞、点赞数显示、匿名查看）
+- ✅ 子评论功能（嵌套回复、@用户、层级限制、级联删除）
+- ✅ 子评论点赞功能（点赞/取消点赞、点赞数显示）
 - ✅ 全局异常处理与标准化错误响应
 
 ## 快速开始
@@ -56,7 +58,7 @@
   - [头像上传](docs/features/AVATAR_UPLOAD.md)
   - [点赞功能](docs/features/LIKES.md)
   - [评论功能](docs/features/COMMENTS.md)
-  - [子评论功能设计](docs/features/SUB_COMMENTS_DESIGN.md) 
+  - [子评论功能](docs/features/SUB_COMMENTS.md) 
   
 
 ## 项目进度
@@ -64,16 +66,15 @@
 **已完成**:
 - 用户认证系统（注册、登录、JWT、自动刷新）
 - 文章 CRUD 与权限控制
-- 前后端部分对接(还差一个子评论与子评论点赞功能的对接)
 - 增强的 Markdown 编辑器
 - 头像上传与管理系统
 - 文章点赞功能
 - 评论功能（CRUD、权限控制、级联删除）
 - 评论点赞功能
-- 后端评论回复及其点赞
+- 后端子评论（回复）及其点赞功能
 
 **未来计划**:
-- 评论回复功能前端（后端设计已完成，详见[SUB_COMMENTS_DESIGN.md](docs/features/SUB_COMMENTS_DESIGN.md)）
+- 子评论功能前端对接（后端已完成，详见[SUB_COMMENTS.md](docs/features/SUB_COMMENTS.md)）
 - 文章分类和标签
 - 文章搜索
 - 用户个人资料编辑
