@@ -114,11 +114,15 @@ public class CommentServiceImpl implements CommentService {
             throw new AccessDeniedException("回复层级过深，无法继续回复（最大层级: " + maxNestingLevel + "）");
         }
 
-        // 验证replyToUserId（如果提供）
+        // 验证replyToUserId或replyToUsername（如果提供）
         User replyToUser = null;
         if (replyRequest.getReplyToUserId() != null) {
             replyToUser = userRepository.findById(replyRequest.getReplyToUserId())
                     .orElseThrow(() -> new ResourceNotFoundException("未找到被回复的用户ID: " + replyRequest.getReplyToUserId()));
+        } else if (replyRequest.getReplyToUsername() != null && !replyRequest.getReplyToUsername().isEmpty()) {
+            // If userId not provided but username is, look up by username
+            replyToUser = userRepository.findByUsername(replyRequest.getReplyToUsername())
+                    .orElse(null);  // Don't throw error if username not found, just set to null
         }
 
         // 创建子评论

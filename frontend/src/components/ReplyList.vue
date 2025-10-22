@@ -130,8 +130,9 @@ export default {
         // Recursively fetch all descendants
         const allReplies = await fetchAllDescendants(props.commentId)
         
-        // Sort by creation time (ascending - oldest first)
-        allReplies.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+        // DON'T sort by createdAt - this destroys the tree structure!
+        // The recursive fetch already returns replies in tree order (depth-first)
+        // Just use them as-is to maintain parent-child visual relationship
 
         if (append) {
           replies.value = [...replies.value, ...allReplies]

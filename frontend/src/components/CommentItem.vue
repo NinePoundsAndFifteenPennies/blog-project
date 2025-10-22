@@ -441,7 +441,7 @@ export default {
       try {
         // Use replyToCommentId if replying to a sub-comment, otherwise use the top-level comment ID
         const targetCommentId = replyToCommentId.value || props.comment.id
-        await createReply(targetCommentId, replyContent.value, replyToUserId.value)
+        await createReply(targetCommentId, replyContent.value, replyToUserId.value, replyToUsername.value)
         replyContent.value = ''
         replyToUserId.value = null
         replyToUsername.value = ''
