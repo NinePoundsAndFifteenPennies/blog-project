@@ -281,8 +281,10 @@ export default {
     }
 
     const handleReply = () => {
+      // When replying to a reply, we'll create a reply under the same parent comment
+      // but without @mentioning since we don't have the author's user ID from the response
       emit('reply-clicked', {
-        replyToUserId: props.reply.authorUsername === currentUser.value?.username ? null : (props.reply.user?.id || props.reply.replyToUserId),
+        replyToUserId: null,
         replyToUsername: props.reply.authorUsername
       })
     }
