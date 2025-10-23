@@ -10,6 +10,8 @@ public class ReplyRequest {
     private String content;
 
     private Long replyToUserId;  // Optional: ID of the user being replied to
+    
+    private String replyToUsername;  // Optional: Username of the user being replied to (used when userId not available)
 
     // Getters and Setters
     public String getContent() {
@@ -26,5 +28,13 @@ public class ReplyRequest {
 
     public void setReplyToUserId(Long replyToUserId) {
         this.replyToUserId = replyToUserId;
+    }
+
+    public String getReplyToUsername() {
+        return replyToUsername;
+    }
+
+    public void setReplyToUsername(String replyToUsername) {
+        this.replyToUsername = replyToUsername;
     }
 }

@@ -188,13 +188,15 @@ Content-Type: application/json
 ```json
 {
   "content": "回复内容",
-  "replyToUserId": 123  // 可选：被@的用户ID，不填则回复评论本身
+  "replyToUserId": 123,  // 可选：被@的用户ID
+  "replyToUsername": "张三"  // 可选：被@的用户名（当userId不可用时使用）
 }
 ```
 
 **字段说明**：
 - `content`（必填）：回复内容，1-3000字符
-- `replyToUserId`（可选）：被@的用户ID
+- `replyToUserId`（可选）：被@的用户ID，优先使用此字段
+- `replyToUsername`（可选）：被@的用户名，当replyToUserId不可用时使用。系统会根据用户名查找用户
 
 **成功响应**：`201 Created`
 ```json
