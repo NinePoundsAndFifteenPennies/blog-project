@@ -74,8 +74,9 @@
 系统已支持使用 Docker 一键部署到生产服务器。
 
 **部署文档**：
-- **[DOCKER部署指南.md](./DOCKER部署指南.md)** - 完整的 Docker 部署教程
-- **[日常维护.md](./日常维护.md)** - 部署后的日常运维操作
+- **[Docker部署指南](./docs/deployment/DOCKER.md)** - 完整的 Docker 部署教程
+- **[日常维护指南](./docs/deployment/MAINTENANCE.md)** - 部署后的日常运维操作
+- **[部署说明](./docs/deployment/NOTES.txt)** - 部署要点总结
 
 **快速部署**：
 ```bash
