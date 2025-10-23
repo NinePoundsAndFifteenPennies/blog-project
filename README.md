@@ -76,7 +76,7 @@
 **部署文档**：
 - **[Docker部署指南](./docs/deployment/DOCKER.md)** - 完整的 Docker 部署教程
 - **[日常维护指南](./docs/deployment/MAINTENANCE.md)** - 部署后的日常运维操作
-- **[部署说明](./docs/deployment/NOTES.txt)** - 部署要点总结
+- **[端口冲突解决方案](./docs/PORT_CONFLICT_SOLUTION.md)** - 80端口冲突的解决方法
 
 **快速部署**：
 ```bash
@@ -100,6 +100,8 @@ docker-compose up -d
 docker-compose logs -f
 ```
 
+> **注意**：如果遇到 80 端口被占用的问题，请参考[端口冲突解决方案](./docs/PORT_CONFLICT_SOLUTION.md)。
+
 ## 本地开发注意事项
 
 为了方便在本机进行快速开发和测试，项目中存在一些简化配置，**这些配置不应用于生产环境**：
@@ -114,14 +116,10 @@ docker-compose logs -f
 
 - **[架构说明](docs/ARCHITECTURE.md)** - 项目架构、代码结构、设计模式
 - **[API 文档](docs/API.md)** - 完整的 API 接口文档
-- **[开发说明](docs/DEVELOPMENT.md)** - 本地开发、测试、注意事项
-- **[功能特性](docs/features/)** - 各功能模块的详细说明
-  - [编辑器改进](docs/features/EDITOR.md)
-  - [记住我功能](docs/features/REMEMBER_ME.md)
-  - [头像上传](docs/features/AVATAR_UPLOAD.md)
-  - [点赞功能](docs/features/LIKES.md)
-  - [评论功能](docs/features/COMMENTS.md)
-  - [子评论功能](docs/features/SUB_COMMENTS.md)
+- **[Docker部署指南](docs/deployment/DOCKER.md)** - Docker 部署详细步骤
+- **[日常维护指南](docs/deployment/MAINTENANCE.md)** - 运维操作手册
+- **[端口冲突解决方案](docs/PORT_CONFLICT_SOLUTION.md)** - 80端口冲突的解决方法
+- **[前端README](frontend/README.md)** - 前端项目说明和开发指南
 
 
 
