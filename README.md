@@ -48,7 +48,7 @@
 
 ### 后端运行
 
-1. 确保已安装 JDK 17+ 和 MySQL 8.0+
+1. 确保已安装 JDK 25 和 MySQL 8.0+
 2. 创建数据库：`CREATE DATABASE blog_db;`
 3. 修改配置文件 `backend/blog/src/main/resources/application.properties`
 4. 运行后端：
@@ -122,41 +122,7 @@ docker-compose logs -f
   - [评论功能](docs/features/COMMENTS.md)
   - [子评论功能](docs/features/SUB_COMMENTS.md)
 
-## API 接口概览
 
-**用户相关**
-- `POST /api/users/register` - 用户注册（公开）
-- `POST /api/users/login` - 用户登录（公开）
-- `GET /api/users/me` - 获取当前用户信息（需要认证）
-- `POST /api/users/refresh-token` - 刷新Token（需要认证）
-
-**文章相关**
-- `POST /api/posts` - 创建文章（需要认证）
-- `GET /api/posts` - 获取文章列表（公开，支持分页）
-- `GET /api/posts/my` - 获取我的文章（需要认证）
-- `GET /api/posts/{id}` - 获取文章详情（公开）
-- `PUT /api/posts/{id}` - 更新文章（需要认证，仅作者）
-- `DELETE /api/posts/{id}` - 删除文章（需要认证，仅作者）
-
-**点赞相关**
-- `POST /api/posts/{postId}/like` - 点赞文章（需要认证）
-- `DELETE /api/posts/{postId}/like` - 取消点赞（需要认证）
-
-**评论相关**
-- `POST /api/posts/{postId}/comments` - 创建评论（需要认证）
-- `GET /api/posts/{postId}/comments` - 获取评论列表（公开，支持分页）
-- `PUT /api/comments/{id}` - 更新评论（需要认证，仅作者）
-- `DELETE /api/comments/{id}` - 删除评论（需要认证，仅作者）
-- `POST /api/comments/{commentId}/like` - 点赞评论（需要认证）
-- `DELETE /api/comments/{commentId}/like` - 取消点赞（需要认证）
-
-**子评论相关**
-- `POST /api/comments/{parentId}/replies` - 创建回复（需要认证）
-- `GET /api/comments/{parentId}/replies` - 获取回复列表（公开，支持分页）
-- `POST /api/sub-comments/{subCommentId}/like` - 点赞回复（需要认证）
-- `DELETE /api/sub-comments/{subCommentId}/like` - 取消点赞（需要认证）
-
-详细的API文档请参考 [API.md](docs/API.md)
 
 ## 项目进度
 
@@ -168,10 +134,9 @@ docker-compose logs -f
 - ✅ 文章点赞功能
 - ✅ 评论功能（CRUD、权限控制、级联删除）
 - ✅ 评论点赞功能
-- ✅ 后端子评论（回复）及其点赞功能
+- ✅ 子评论（回复）及其点赞功能
 
 **未来计划**：
-- 子评论功能前端对接（后端已完成）
 - 文章分类和标签
 - 文章搜索
 - 用户个人资料编辑
