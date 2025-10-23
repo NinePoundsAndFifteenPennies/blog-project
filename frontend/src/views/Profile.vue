@@ -9,11 +9,55 @@
           <div class="card p-8 mb-8 backdrop-blur-sm bg-white/90 animate-fade-in">
             <div class="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
               <!-- Avatar -->
-              <div class="relative">
-                <div class="w-32 h-32 rounded-full bg-gradient-primary flex items-center justify-center text-white text-5xl font-bold shadow-glow-lg ring-8 ring-white transform hover:scale-110 transition-transform duration-300">
-                  {{ userInitial }}
+              <div class="relative group">
+                <!-- Avatar Image or Initial -->
+                <div 
+                  class="w-32 h-32 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-glow-lg ring-8 ring-white transform hover:scale-110 transition-transform duration-300 cursor-pointer overflow-hidden bg-gradient-primary"
+                  @click="triggerFileInput"
+                >
+                  <img 
+                    v-if="userAvatarUrl && !avatarLoadError" 
+                    :src="userAvatarUrl" 
+                    :alt="currentUser.username"
+                    :key="userAvatarUrl"
+                    class="w-full h-full object-cover"
+                    @error="handleAvatarError"
+                    @load="handleAvatarLoad"
+                  />
+                  <span v-else>{{ userInitial }}</span>
                 </div>
-                <div class="absolute -bottom-2 -right-2 w-12 h-12 bg-green-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
+                
+                <!-- Upload Overlay -->
+                <div 
+                  v-if="!uploadingAvatar"
+                  class="absolute inset-0 w-32 h-32 rounded-full bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
+                  @click="triggerFileInput"
+                >
+                  <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+
+                <!-- Uploading Indicator -->
+                <div 
+                  v-if="uploadingAvatar"
+                  class="absolute inset-0 w-32 h-32 rounded-full bg-black bg-opacity-70 flex items-center justify-center"
+                >
+                  <div class="animate-spin rounded-full w-10 h-10 border-4 border-gray-400 border-t-white"></div>
+                </div>
+
+                <!-- Hidden File Input -->
+                <input 
+                  ref="fileInput"
+                  type="file" 
+                  accept="image/jpeg,image/png,image/jpg"
+                  class="hidden"
+                  @change="handleFileSelect"
+                />
+
+                <!-- Only show checkmark badge if avatar exists -->
+                <div v-if="currentUser?.avatarUrl" class="absolute -bottom-2 -right-2 w-12 h-12 bg-green-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
                   <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
@@ -81,6 +125,18 @@
                 </span>
                 <div v-if="activeTab === 'drafts'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-primary"></div>
               </button>
+              <button
+                  :class="['px-8 py-4 font-semibold transition-all duration-200 relative', 
+                    activeTab === 'comments' ? 'text-primary-600' : 'text-gray-600 hover:text-gray-900']"
+                  @click="activeTab = 'comments'"
+              >
+                <span>我的评论</span>
+                <span class="ml-2 px-2.5 py-0.5 text-xs font-bold rounded-full" 
+                      :class="activeTab === 'comments' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'">
+                  {{ userStats.comments }}
+                </span>
+                <div v-if="activeTab === 'comments'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-primary"></div>
+              </button>
             </div>
           </div>
 
@@ -91,7 +147,7 @@
           </div>
 
           <!-- Posts List -->
-          <div v-else-if="visibleList.length" class="space-y-4 animate-slide-up" style="animation-delay: 0.2s;">
+          <div v-if="activeTab !== 'comments' && visibleList.length" class="space-y-4 animate-slide-up" style="animation-delay: 0.2s;">
             <div
                 v-for="post in visibleList"
                 :key="post.id"
@@ -133,6 +189,22 @@
                       更新: {{ formatDate(post.updatedAt) }}
                     </span>
                   </div>
+
+                  <!-- Stats -->
+                  <div class="flex items-center space-x-6 mt-3 text-sm">
+                    <span class="flex items-center text-red-500" :title="`${post.likeCount || 0} 个点赞`">
+                      <svg class="w-4 h-4 mr-1.5" :fill="post.isLiked ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                      {{ post.likeCount || 0 }}
+                    </span>
+                    <span class="flex items-center text-primary-500" :title="`${post.commentCount || 0} 条评论`">
+                      <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                      </svg>
+                      {{ post.commentCount || 0 }}
+                    </span>
+                  </div>
                 </div>
 
                 <div class="flex items-center space-x-2 ml-6">
@@ -159,25 +231,132 @@
             </div>
           </div>
 
+          <!-- Comments List -->
+          <div v-else-if="activeTab === 'comments' && comments.length" class="space-y-4 animate-slide-up" style="animation-delay: 0.2s;">
+            <div
+                v-for="comment in comments"
+                :key="comment.id"
+                class="card p-6 hover:shadow-glow transition-all duration-300 group backdrop-blur-sm bg-white/90"
+            >
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <!-- Comment Content -->
+                  <div v-if="!comment.isEditing" class="text-gray-700 mb-3 line-clamp-3">{{ comment.content }}</div>
+                  
+                  <!-- Edit Mode -->
+                  <div v-else class="mb-3">
+                    <textarea
+                      v-model="comment.editContent"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                      rows="4"
+                      placeholder="输入评论内容..."
+                    ></textarea>
+                    <div class="flex items-center justify-end space-x-2 mt-2">
+                      <button
+                        @click="cancelEditComment(comment)"
+                        class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        取消
+                      </button>
+                      <button
+                        @click="saveEditComment(comment)"
+                        class="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        :disabled="!comment.editContent || !comment.editContent.trim()"
+                      >
+                        保存
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Post Link -->
+                  <router-link
+                      :to="`/post/${comment.postId}`"
+                      class="text-sm text-primary-600 hover:text-primary-700 flex items-center space-x-1 mb-2"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span class="truncate">{{ comment.postTitle }}</span>
+                  </router-link>
+
+                  <!-- Comment Stats -->
+                  <div class="flex items-center space-x-6 text-sm text-gray-500">
+                    <span class="flex items-center">
+                      <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {{ formatCommentDate(comment.createdAt) }}
+                    </span>
+                    <span v-if="comment.updatedAt" class="text-xs text-gray-400">(已编辑)</span>
+                    <span class="flex items-center text-red-500">
+                      <svg class="w-4 h-4 mr-1.5" :fill="comment.liked ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                      {{ comment.likeCount || 0 }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Edit/Delete Actions -->
+                <div v-if="!comment.isEditing" class="flex items-center space-x-2 ml-4">
+                  <button
+                      @click="startEditComment(comment)"
+                      class="p-3 text-gray-600 hover:text-primary-600 hover:bg-gradient-to-br hover:from-primary-50 hover:to-purple-50 rounded-xl transition-all duration-200 transform hover:scale-110"
+                      title="编辑评论"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                      @click="handleDeleteComment(comment.id)"
+                      class="p-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 transform hover:scale-110"
+                      title="删除评论"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Empty State -->
           <div v-else class="card p-16 text-center backdrop-blur-sm bg-white/90 animate-scale-in">
             <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-primary-100 to-purple-100 mb-6 animate-float">
               <svg class="w-12 h-12 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <path v-if="activeTab === 'comments'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
             <h3 class="text-2xl font-bold text-gray-700 mb-3">
-              {{ activeTab === 'drafts' ? '草稿箱为空' : '还没有发布文章' }}
+              {{ activeTab === 'comments' ? '还没有评论' : activeTab === 'drafts' ? '草稿箱为空' : '还没有发布文章' }}
             </h3>
             <p class="text-gray-500 mb-8 text-lg">
-              {{ activeTab === 'drafts' ? '你还没有草稿，去创作第一篇草稿吧！' : '开始创作你的第一篇文章吧!' }}
+              {{ activeTab === 'comments' ? '去文章下面发表你的第一条评论吧！' : activeTab === 'drafts' ? '你还没有草稿，去创作第一篇草稿吧！' : '开始创作你的第一篇文章吧!' }}
             </p>
-            <router-link to="/post/create" class="btn-primary inline-flex items-center space-x-2">
+            <router-link v-if="activeTab !== 'comments'" to="/post/create" class="btn-primary inline-flex items-center space-x-2">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
               </svg>
               <span>创建文章</span>
             </router-link>
+            <router-link v-else to="/" class="btn-primary inline-flex items-center space-x-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              <span>浏览文章</span>
+            </router-link>
+          </div>
+
+          <!-- Pagination -->
+          <div v-if="totalPages > 1" class="mt-8">
+            <Pagination
+                :current-page="currentPage"
+                :total-pages="totalPages"
+                @page-change="handlePageChange"
+            />
           </div>
         </div>
       </div>
@@ -186,24 +365,43 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import Header from '@/components/Header.vue'
+import Pagination from '@/components/Pagination.vue'
 import { getMyPosts, deletePost } from '@/api/posts'
+import { getMyComments, updateComment, deleteComment } from '@/api/comments'
+import { uploadAvatar, updateAvatar, saveUserAvatar } from '@/api/files'
+import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'Profile',
-  components: { Header },
+  components: { Header, Pagination },
   setup() {
     const store = useStore()
     const loading = ref(false)
     const posts = ref([])
+    const comments = ref([])
     const activeTab = ref('posts')
+    const currentPage = ref(1)
+    const totalPages = ref(1)
+    const totalElements = ref(0)
+    const pageSize = 10
+    const fileInput = ref(null)
+    const uploadingAvatar = ref(false)
+    const avatarLoadError = ref(false)
 
     const currentUser = computed(() => store.getters.currentUser)
     const userInitial = computed(() => currentUser.value?.username?.charAt(0).toUpperCase() || 'U')
+    const userAvatarUrl = computed(() => getFullAvatarUrl(currentUser.value?.avatarUrl))
 
-    const userStats = reactive({ posts: 0, drafts: 0 })
+    // 2. 添加这个 watch 监听器
+    watch(userAvatarUrl, () => {
+      // 当头像 URL 变化时，重置错误状态
+      avatarLoadError.value = false
+    })
+
+    const userStats = reactive({ posts: 0, drafts: 0, comments: 0 })
 
     const formatDate = (str) => {
       if (!str) return ''
@@ -211,20 +409,61 @@ export default {
       return date.toLocaleString('zh-CN', { hour12: false })
     }
 
-    const loadPosts = async () => {
+    const formatCommentDate = (str) => {
+      if (!str) return ''
+      const date = new Date(str)
+      const now = new Date()
+      const diff = now - date
+      const minutes = Math.floor(diff / (1000 * 60))
+      const hours = Math.floor(diff / (1000 * 60 * 60))
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+
+      if (minutes < 1) return '刚刚'
+      if (minutes < 60) return `${minutes}分钟前`
+      if (hours < 24) return `${hours}小时前`
+      if (days < 7) return `${days}天前`
+      if (days < 30) return `${Math.floor(days / 7)}周前`
+      if (days < 365) return `${Math.floor(days / 30)}个月前`
+
+      return date.toLocaleDateString('zh-CN')
+    }
+
+    const loadPosts = async (updateStats = false) => {
       if (!currentUser.value) return
       loading.value = true
       try {
-        const res = await getMyPosts({ page: 0, size: 100 })
-        const myPosts = res.content || []
+        // Load all posts to properly filter by draft status
+        // This ensures pagination works correctly for each tab
+        const res = await getMyPosts({ 
+          page: 0, 
+          size: 1000  // Load all posts
+        })
+        const allPosts = res.content || []
+        
+        // Filter posts based on active tab
+        const filteredPosts = activeTab.value === 'drafts' 
+          ? allPosts.filter(p => p.draft)
+          : allPosts.filter(p => !p.draft)
+        
+        // Calculate pagination for filtered results
+        const startIndex = (currentPage.value - 1) * pageSize
+        const endIndex = startIndex + pageSize
+        const paginatedPosts = filteredPosts.slice(startIndex, endIndex)
 
-        posts.value = myPosts.map(p => ({
+        posts.value = paginatedPosts.map(p => ({
           ...p,
           summary: p.content?.replace(/[#*`\n]/g, '').slice(0, 100) || ''
         }))
 
-        userStats.drafts = posts.value.filter(p => p.draft).length
-        userStats.posts = posts.value.filter(p => !p.draft).length
+        // Update pagination based on filtered results
+        totalPages.value = Math.max(1, Math.ceil(filteredPosts.length / pageSize))
+        totalElements.value = filteredPosts.length
+        
+        // Update stats
+        if (updateStats) {
+          userStats.posts = allPosts.filter(p => !p.draft).length
+          userStats.drafts = allPosts.filter(p => p.draft).length
+        }
       } catch (e) {
         console.error('加载失败:', e)
       } finally {
@@ -232,13 +471,41 @@ export default {
       }
     }
 
+    const loadComments = async () => {
+      if (!currentUser.value) return
+      loading.value = true
+      try {
+        const res = await getMyComments({ 
+          page: currentPage.value - 1, 
+          size: pageSize 
+        })
+        
+        comments.value = res.content || []
+        totalPages.value = res.totalPages || 1
+        totalElements.value = res.totalElements || 0
+        userStats.comments = res.totalElements || 0
+      } catch (e) {
+        console.error('加载评论失败:', e)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    const loadData = () => {
+      currentPage.value = 1
+      if (activeTab.value === 'comments') {
+        loadComments()
+      } else {
+        loadPosts(false)
+      }
+    }
+
     const handleDelete = async (id) => {
       if (!confirm('确定删除该文章吗？')) return
       try {
         await deletePost(id)
-        posts.value = posts.value.filter(p => p.id !== id)
-        userStats.drafts = posts.value.filter(p => p.draft).length
-        userStats.posts = posts.value.filter(p => !p.draft).length
+        // Reload current page to update the list and stats
+        await loadPosts(true)
         alert('删除成功')
       } catch (e) {
         console.error(e)
@@ -246,13 +513,194 @@ export default {
       }
     }
 
-    const visibleList = computed(() =>
-        activeTab.value === 'drafts' ? posts.value.filter(p => p.draft) : posts.value.filter(p => !p.draft)
-    )
+    const triggerFileInput = () => {
+      if (fileInput.value) {
+        fileInput.value.click()
+      }
+    }
 
-    onMounted(loadPosts)
+    const handleAvatarError = () => {
+      // If image fails to load, show the initial instead
+      avatarLoadError.value = true
+    }
 
-    return { loading, posts, userStats, currentUser, userInitial, formatDate, handleDelete, activeTab, visibleList }
+    const handleAvatarLoad = () => {
+      // Reset error state when image loads successfully
+      avatarLoadError.value = false
+    }
+
+    const validateImageFile = (file) => {
+      // 检查文件类型
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png']
+      if (!validTypes.includes(file.type)) {
+        throw new Error('只支持 JPG 和 PNG 格式的图片')
+      }
+
+      // 检查文件大小 (5MB)
+      const maxSize = 5 * 1024 * 1024
+      if (file.size > maxSize) {
+        throw new Error('图片大小不能超过 5MB')
+      }
+    }
+
+    const handleFileSelect = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      try {
+        // 验证文件
+        validateImageFile(file)
+
+        uploadingAvatar.value = true
+        avatarLoadError.value = false // Reset error state when uploading new avatar
+
+        // 判断用户是否已有头像，使用不同的接口
+        let avatarUrl
+        if (currentUser.value?.avatarUrl) {
+          // 更新头像
+          avatarUrl = await updateAvatar(file)
+        } else {
+          // 首次上传头像
+          avatarUrl = await uploadAvatar(file)
+        }
+
+        // 保存头像URL到用户信息
+        await saveUserAvatar(avatarUrl)
+
+        // 更新Vuex store中的用户头像
+        store.commit('UPDATE_USER_AVATAR', avatarUrl)
+
+        // 重新获取用户信息以确保状态同步
+        await store.dispatch('fetchCurrentUser')
+
+        alert('头像更新成功！')
+      } catch (error) {
+        console.error('头像上传失败:', error)
+        const errorMessage = error.response?.data || error.message || '头像上传失败，请重试'
+        alert(errorMessage)
+      } finally {
+        uploadingAvatar.value = false
+        // 清空文件输入，允许重新选择相同文件
+        if (fileInput.value) {
+          fileInput.value.value = ''
+        }
+      }
+    }
+
+    const visibleList = computed(() => {
+      if (activeTab.value === 'comments') {
+        return []
+      }
+      // Posts are already filtered and paginated in loadPosts
+      return posts.value
+    })
+
+    // Comment edit/delete functions
+    const startEditComment = (comment) => {
+      comment.isEditing = true
+      comment.editContent = comment.content
+    }
+
+    const cancelEditComment = (comment) => {
+      comment.isEditing = false
+      comment.editContent = ''
+    }
+
+    const saveEditComment = async (comment) => {
+      if (!comment.editContent || !comment.editContent.trim()) return
+      
+      try {
+        const response = await updateComment(comment.id, comment.editContent)
+        // Update the comment in the list
+        const index = comments.value.findIndex(c => c.id === comment.id)
+        if (index !== -1) {
+          comments.value[index] = {
+            ...response,
+            isEditing: false,
+            editContent: ''
+          }
+        }
+        alert('评论更新成功')
+      } catch (error) {
+        console.error('更新评论失败:', error)
+        alert('更新评论失败，请稍后重试')
+      }
+    }
+
+    const handleDeleteComment = async (commentId) => {
+      if (!confirm('确定要删除这条评论吗？')) return
+      
+      try {
+        await deleteComment(commentId)
+        comments.value = comments.value.filter(c => c.id !== commentId)
+        userStats.comments = Math.max(0, userStats.comments - 1)
+        totalElements.value = Math.max(0, totalElements.value - 1)
+        alert('评论删除成功')
+        
+        // Reload if current page is empty and not the first page
+        if (comments.value.length === 0 && currentPage.value > 1) {
+          currentPage.value--
+          loadComments()
+        }
+      } catch (error) {
+        console.error('删除评论失败:', error)
+        alert('删除评论失败，请稍后重试')
+      }
+    }
+
+    const handlePageChange = (page) => {
+      currentPage.value = page
+      if (activeTab.value === 'comments') {
+        loadComments()
+      } else {
+        loadPosts()
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
+    // Watch for tab changes
+    watch(activeTab, () => {
+      loadData()
+    })
+
+    onMounted(() => {
+      loadPosts(true) // Load posts with stats update on mount
+      // Load comment count for the badge
+      getMyComments({ page: 0, size: 1 }).then(res => {
+        userStats.comments = res.totalElements || 0
+      }).catch(() => {
+        userStats.comments = 0
+      })
+    })
+
+    return { 
+      loading, 
+      posts,
+      comments,
+      userStats, 
+      currentUser, 
+      userInitial,
+      userAvatarUrl,
+      formatDate,
+      formatCommentDate,
+      handleDelete,
+      startEditComment,
+      cancelEditComment,
+      saveEditComment,
+      handleDeleteComment,
+      activeTab, 
+      visibleList,
+      currentPage,
+      totalPages,
+      handlePageChange,
+      fileInput,
+      uploadingAvatar,
+      avatarLoadError,
+      triggerFileInput,
+      handleFileSelect,
+      handleAvatarError,
+      handleAvatarLoad
+    }
   }
 }
 </script>
@@ -261,6 +709,13 @@ export default {
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

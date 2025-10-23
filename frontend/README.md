@@ -9,6 +9,9 @@
 - 🔐 **用户认证** - JWT Token认证,路由守卫保护,支持"记住我"功能
 - 🔄 **自动刷新Token** - token即将过期时自动刷新,无感知体验
 - ✍️ **Markdown编辑器** - 支持Markdown语法,实时预览
+- 💬 **评论系统** - 文章评论、评论编辑、评论删除、动态分页加载
+- 👍 **点赞功能** - 文章点赞、评论点赞、实时更新点赞状态
+- 🖼️ **头像上传** - 支持用户头像上传和更新，图片尺寸和格式验证
 - 🏷️ **标签分类** - 文章标签和分类管理
 - 💾 **草稿保存** - 支持保存草稿,避免内容丢失
 - 🎯 **SEO友好** - 页面标题动态设置
@@ -32,26 +35,33 @@ frontend/
 ├── src/
 │   ├── api/                # API接口封装
 │   │   ├── auth.js         # 认证接口 (register, login, getCurrentUser, refreshToken)
-│   │   └── posts.js        # 文章接口 (CRUD + 分页)
+│   │   ├── posts.js        # 文章接口 (CRUD + 分页)
+│   │   ├── comments.js     # 评论接口 (CRUD + 分页 + 点赞)
+│   │   ├── likes.js        # 文章点赞接口
+│   │   └── files.js        # 文件上传接口 (头像上传)
 │   ├── assets/             # 资源文件
 │   │   └── main.css        # 全局样式 (含Tailwind导入)
 │   ├── components/         # 公共组件
-│   │   ├── TheNavbar.vue   # 导航栏 (支持响应式、登录状态)
-│   │   ├── PostCard.vue    # 文章卡片 (展示文章信息)
+│   │   ├── Header.vue      # 顶部导航栏 (支持响应式、登录状态、头像显示)
+│   │   ├── PostCard.vue    # 文章卡片 (展示文章信息 + 点赞功能)
+│   │   ├── CommentList.vue # 评论列表 (分页加载、动态加载更多)
+│   │   ├── CommentItem.vue # 评论项 (编辑、删除、点赞功能)
 │   │   └── Pagination.vue  # 分页组件 (支持首页/末页/上下页)
 │   ├── router/             # 路由配置
 │   │   └── index.js        # 路由定义 + 导航守卫
 │   ├── store/              # Vuex状态管理
 │   │   └── index.js        # 认证状态管理 (token, user, rememberMe)
 │   ├── utils/              # 工具函数
-│   │   └── request.js      # Axios封装 (含JWT自动刷新、错误拦截)
+│   │   ├── request.js      # Axios封装 (含JWT自动刷新、错误拦截)
+│   │   └── avatar.js       # 头像辅助函数
 │   ├── views/              # 页面组件
-│   │   ├── Home.vue        # 首页 (文章列表 + 分页)
+│   │   ├── Home.vue        # 首页 (文章列表 + 分页 + 点赞)
 │   │   ├── Login.vue       # 登录页 (支持"记住我")
 │   │   ├── Register.vue    # 注册页
-│   │   ├── PostDetail.vue  # 文章详情 (Markdown渲染)
-│   │   ├── PostEdit.vue    # 文章编辑 (创建/更新)
-│   │   ├── Profile.vue     # 个人中心 (我的文章列表)
+│   │   ├── PostDetail.vue  # 文章详情 (Markdown渲染 + 评论 + 点赞)
+│   │   ├── PostEdit.vue    # 文章编辑 (创建/更新 + 草稿功能)
+│   │   ├── Profile.vue     # 个人中心 (我的文章 + 我的评论 + 头像上传)
+│   │   ├── MyComments.vue  # 我的评论列表
 │   │   └── NotFound.vue    # 404页面
 │   ├── App.vue             # 根组件
 │   └── main.js             # 入口文件
@@ -126,6 +136,20 @@ colors: {
 ```
 
 ## 🔌 API对接说明
+
+### 重要: 点赞字段命名差异
+
+**注意**: 后端对文章(Post)和评论(Comment)使用了不同的字段命名方式：
+
+**文章点赞字段**:
+- JSON响应字段名: `isLiked` (Boolean)
+- 使用示例: `post.isLiked`
+
+**评论点赞字段**:
+- JSON响应字段名: `liked` (Boolean)
+- 使用示例: `comment.liked`
+
+这是因为后端Java代码中，`CommentResponse`使用getter `isLiked()`会被Jackson序列化为`liked`，而`PostResponse`使用getter `getIsLiked()`会保留为`isLiked`。前端代码已按此规范实现。
 
 ### 需要实现的后端接口
 
@@ -339,6 +363,7 @@ colors: {
 - "记住我"功能 (1小时 vs 30天token)
 - JWT自动刷新机制
 - Token过期自动跳转登录页
+- 头像上传和更新功能
 
 ✅ **文章管理**:
 - 文章列表展示（支持分页）
@@ -346,6 +371,15 @@ colors: {
 - 创建、编辑、删除文章
 - 获取"我的文章"列表
 - Markdown内容支持
+- 文章点赞和取消点赞
+- 草稿功能
+
+✅ **评论系统**:
+- 发表评论、编辑评论、删除评论
+- 评论列表展示（分页加载）
+- 动态加载更多评论（首次10条，之后每次20条）
+- 评论点赞和取消点赞
+- 我的评论列表
 
 ✅ **状态管理**:
 - Vuex管理认证状态
@@ -355,8 +389,9 @@ colors: {
 ✅ **UI组件**:
 - 响应式导航栏
 - 文章卡片组件
+- 评论列表和评论项组件
 - 分页组件
-- 多个页面视图 (Home, Login, Register, Profile, PostDetail, PostEdit)
+- 多个页面视图 (Home, Login, Register, Profile, PostDetail, PostEdit, MyComments)
 
 ### 代码示例
 

@@ -36,6 +36,13 @@ export default createStore({
             }
         },
 
+        UPDATE_USER_AVATAR(state, avatarUrl) {
+            if (state.user) {
+                state.user.avatarUrl = avatarUrl
+                localStorage.setItem('user', JSON.stringify(state.user))
+            }
+        },
+
         CLEAR_AUTH(state) {
             state.user = null
             state.token = null
@@ -66,6 +73,7 @@ export default createStore({
         },
 
         // --- 注册操作 (重构) ---
+        // eslint-disable-next-line no-unused-vars
         async register({ commit }, userData) {
             // 注册API只返回成功消息，不自动登录
             // 我们只需要调用它，不做任何状态变更

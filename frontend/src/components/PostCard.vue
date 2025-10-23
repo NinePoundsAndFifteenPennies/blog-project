@@ -33,8 +33,19 @@
       <div class="flex items-center justify-between pt-4 border-t border-gray-100">
         <!-- 作者信息 -->
         <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white">
-            {{ authorInitial }}
+          <div 
+            class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-gradient-primary"
+          >
+            <img 
+              v-if="displayAvatarUrl && !avatarLoadError" 
+              :src="displayAvatarUrl" 
+              :alt="post.author.username"
+              :key="displayAvatarUrl"
+              class="w-full h-full object-cover"
+              @error="handleAvatarError"
+              @load="handleAvatarLoad"
+            />
+            <span v-else>{{ authorInitial }}</span>
           </div>
           <div>
             <p class="text-sm font-semibold text-gray-900">{{ post.author?.username || '匿名' }}</p>
@@ -44,7 +55,7 @@
           </div>
         </div>
 
-        <!-- 统计信息(仅显示图标,暂无实际数据) -->
+        <!-- 统计信息 -->
         <div class="flex items-center space-x-3 text-sm text-gray-400">
           <!-- 浏览量图标 -->
           <div class="flex items-center space-x-1 hover:text-primary-500 transition-colors" title="浏览量(功能开发中)">
@@ -54,18 +65,30 @@
             </svg>
           </div>
 
-          <!-- 点赞数图标 -->
-          <div class="flex items-center space-x-1 hover:text-red-500 transition-colors" title="点赞(功能开发中)">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <!-- 点赞数 -->
+          <button 
+            @click.stop="handleLike"
+            class="flex items-center space-x-1 hover:text-red-500 transition-colors"
+            :class="{ 'text-red-500': post.isLiked }"
+            :title="post.isLiked ? '取消点赞' : '点赞'"
+          >
+            <svg 
+              class="w-4 h-4" 
+              :fill="post.isLiked ? 'currentColor' : 'none'" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
-          </div>
+            <span>{{ post.likeCount || 0 }}</span>
+          </button>
 
           <!-- 评论数图标 -->
-          <div class="flex items-center space-x-1 hover:text-primary-500 transition-colors" title="评论(功能开发中)">
+          <div class="flex items-center space-x-1 hover:text-primary-500 transition-colors" :title="`${post.commentCount || 0} 条评论`">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
             </svg>
+            <span>{{ post.commentCount || 0 }}</span>
           </div>
         </div>
       </div>
@@ -74,8 +97,11 @@
 </template>
 
 <script>
-import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useStore } from 'vuex'
+import { likePost, unlikePost } from '@/api/likes'
+import { ref, computed, watch } from 'vue'
+import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'PostCard',
@@ -85,13 +111,45 @@ export default {
       required: true
     }
   },
-  setup(props) {
+  emits: ['like-changed'],
+  setup(props, { emit }) {
     const router = useRouter()
+    const store = useStore()
+    const avatarLoadError = ref(false)
+    
+    const isLoggedIn = computed(() => store.getters.isLoggedIn)
+    const currentUser = computed(() => store.getters.currentUser)
+    
+    // Check if the post author is the current user
+    const isCurrentUser = computed(() => {
+      return currentUser.value?.username === props.post.author?.username
+    })
+    
+    // Use current user's avatar if author is current user, otherwise use post author's avatar
+    const displayAvatarUrl = computed(() => {
+      if (isCurrentUser.value && currentUser.value?.avatarUrl) {
+        return getFullAvatarUrl(currentUser.value.avatarUrl)
+      }
+      return props.post.author?.avatarUrl
+    })
+    
+    // Reset avatar error when avatar URL changes
+    watch(displayAvatarUrl, () => {
+      avatarLoadError.value = false
+    })
 
     const authorInitial = computed(() => {
       const name = props.post.author?.username || ''
       return name ? name.charAt(0).toUpperCase() : 'A'
     })
+
+    const handleAvatarError = () => {
+      avatarLoadError.value = true
+    }
+
+    const handleAvatarLoad = () => {
+      avatarLoadError.value = false
+    }
 
     const formatDate = (dateString) => {
       if (!dateString) return ''
@@ -119,34 +177,91 @@ export default {
     }
 
     const displayDate = computed(() => {
-      const d = props.post?.updatedAt || props.post?.createdAt
-      return formatDate(d)
+      // Show updatedAt if exists and different from publishedAt/createdAt, otherwise show publishedAt or createdAt
+      if (props.post?.updatedAt) {
+        return formatDate(props.post.updatedAt)
+      }
+      return formatDate(props.post?.publishedAt || props.post?.createdAt)
     })
 
     const dateLabel = computed(() => {
-      return props.post?.updatedAt ? '更新于' : '创建于'
+      // If updatedAt exists and is different, show "更新于"
+      if (props.post?.updatedAt) {
+        return '更新于'
+      } else if (props.post?.publishedAt) {
+        return '发布于'
+      }
+      return '创建于'
     })
 
     const titleAttr = computed(() => {
       const created = formatFullDate(props.post?.createdAt)
+      const published = formatFullDate(props.post?.publishedAt)
       const updated = formatFullDate(props.post?.updatedAt)
-      if (props.post?.updatedAt) {
-        return `创建：${created}\n更新：${updated}`
+      
+      let tooltip = `创建：${created}`
+      if (props.post?.publishedAt && props.post.publishedAt !== props.post.createdAt) {
+        tooltip += `\n发布：${published}`
       }
-      return `创建：${created}`
+      if (props.post?.updatedAt) {
+        tooltip += `\n更新：${updated}`
+      }
+      return tooltip
     })
 
     const goToDetail = () => {
       router.push(`/post/${props.post.id}`)
     }
 
+    // 点赞功能
+    const handleLike = async () => {
+      // 检查是否登录
+      if (!isLoggedIn.value) {
+        // 未登录，跳转到登录页面
+        router.push({
+          path: '/login',
+          query: {
+            redirect: `/post/${props.post.id}`,
+            message: '请先登录后再点赞'
+          }
+        })
+        return
+      }
+
+      try {
+        let response
+        if (props.post.isLiked) {
+          // 已点赞，取消点赞
+          response = await unlikePost(props.post.id)
+        } else {
+          // 未点赞，点赞
+          response = await likePost(props.post.id)
+        }
+
+        // 更新本地状态
+        emit('like-changed', {
+          postId: props.post.id,
+          likeCount: response.likeCount,
+          isLiked: response.liked
+        })
+      } catch (error) {
+        console.error('点赞操作失败:', error)
+        // 可以添加用户提示
+      }
+    }
+
     return {
       authorInitial,
+      avatarLoadError,
+      displayAvatarUrl,
       formatDate,
       displayDate,
       dateLabel,
       titleAttr,
-      goToDetail
+      goToDetail,
+      handleAvatarError,
+      handleAvatarLoad,
+      handleLike
     }
   }
 }

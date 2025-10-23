@@ -32,23 +32,34 @@
             <!-- Author Info Card -->
             <div class="card p-6 md:p-8 flex items-center justify-between flex-wrap gap-4 backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.1s;">
               <div class="flex items-center space-x-4">
-                <div class="w-14 h-14 rounded-full bg-gradient-primary flex items-center justify-center text-white font-bold text-xl shadow-lg ring-4 ring-white">
-                  {{ authorInitial }}
+                <div 
+                  class="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg ring-4 ring-white overflow-hidden bg-gradient-primary"
+                >
+                  <img 
+                    v-if="authorAvatarUrl && !avatarLoadError" 
+                    :src="authorAvatarUrl" 
+                    :alt="post.author.username || '匿名'"
+                    :key="authorAvatarUrl"
+                    class="w-full h-full object-cover"
+                    @error="handleAvatarError"
+                    @load="handleAvatarLoad"
+                  />
+                  <span v-else>{{ authorInitial }}</span>
                 </div>
                 <div>
                   <p class="font-bold text-lg text-gray-900">{{ post.author?.username || '匿名' }}</p>
                   <div class="flex items-center space-x-4 text-sm text-gray-500">
-                    <span class="flex items-center">
+                    <span class="flex items-center" :title="`创建时间: ${formatFullDate(post.createdAt)}`">
                       <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      {{ formatDate(post.createdAt) }}
+                      发布于 {{ formatDate(post.publishedAt || post.createdAt) }}
                     </span>
-                    <span class="flex items-center">
+                    <span v-if="post.updatedAt" class="flex items-center" :title="`更新时间: ${formatFullDate(post.updatedAt)}`">
                       <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
-                      阅读时间 5 分钟
+                      更新于 {{ formatDate(post.updatedAt) }}
                     </span>
                   </div>
                 </div>
@@ -86,24 +97,31 @@
           <!-- Article Footer Actions -->
           <div class="card p-6 flex items-center justify-between backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.3s;">
             <div class="flex items-center space-x-6 text-gray-400">
-              <!-- Like Button (暂未实现) -->
+              <!-- Like Button -->
               <button
-                  class="flex items-center space-x-2 hover:text-red-500 transition-colors cursor-not-allowed"
-                  title="点赞功能开发中"
+                  @click="handleLike"
+                  class="flex items-center space-x-2 hover:text-red-500 transition-colors"
+                  :class="{ 'text-red-500': post.isLiked }"
+                  :title="post.isLiked ? '取消点赞' : '点赞'"
               >
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg 
+                  class="w-6 h-6" 
+                  :fill="post.isLiked ? 'currentColor' : 'none'" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
-                <span class="font-medium">点赞</span>
+                <span class="font-medium">{{ post.isLiked ? '已点赞' : '点赞' }} ({{ post.likeCount || 0 }})</span>
               </button>
 
-              <!-- Comment Button (暂未实现) -->
-              <button class="flex items-center space-x-2 hover:text-primary-500 transition-colors cursor-not-allowed" title="评论功能开发中">
+              <!-- Comment Count -->
+              <div class="flex items-center space-x-2 text-gray-400">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                 </svg>
-                <span class="font-medium">评论</span>
-              </button>
+                <span class="font-medium">评论 ({{ commentCount }})</span>
+              </div>
             </div>
 
             <!-- Share Button (暂未实现) -->
@@ -113,6 +131,17 @@
               </svg>
               <span>分享</span>
             </button>
+          </div>
+
+          <!-- Comment Section -->
+          <div class="mt-8 animate-slide-up" style="animation-delay: 0.4s;">
+            <CommentList
+              v-if="post"
+              :post-id="post.id"
+              :post-author-username="post.authorUsername"
+              :is-draft="post.draft"
+              @comment-count-changed="handleCommentCountChanged"
+            />
           </div>
         </div>
       </div>
@@ -162,12 +191,16 @@ import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { marked } from 'marked'
 import Header from '@/components/Header.vue'
+import CommentList from '@/components/CommentList.vue'
 import { getPostById, deletePost } from '@/api/posts'
+import { likePost, unlikePost } from '@/api/likes'
+import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'PostDetail',
   components: {
-    Header
+    Header,
+    CommentList
   },
   setup() {
     const route = useRoute()
@@ -177,8 +210,11 @@ export default {
     const loading = ref(true)
     const post = ref(null)
     const showBackToTop = ref(false)
+    const avatarLoadError = ref(false)
+    const commentCount = ref(0)
 
     const currentUser = computed(() => store.getters.currentUser)
+    const isLoggedIn = computed(() => store.getters.isLoggedIn)
     const isAuthor = computed(() => {
       return currentUser.value && post.value?.authorUsername === currentUser.value.username
     })
@@ -186,6 +222,23 @@ export default {
     const authorInitial = computed(() => {
       return post.value?.authorUsername?.charAt(0).toUpperCase() || 'A'
     })
+
+    // Use current user's avatar if author is current user, otherwise use post author's avatar
+    const authorAvatarUrl = computed(() => {
+      if (isAuthor.value && currentUser.value?.avatarUrl) {
+        return getFullAvatarUrl(currentUser.value.avatarUrl)
+      }
+      return getFullAvatarUrl(post.value?.author?.avatarUrl)
+    })
+
+    // 处理头像加载错误
+    const handleAvatarError = () => {
+      avatarLoadError.value = true
+    }
+
+    const handleAvatarLoad = () => {
+      avatarLoadError.value = false
+    }
 
     // Markdown渲染
     const renderedContent = computed(() => {
@@ -197,11 +250,37 @@ export default {
     const formatDate = (dateString) => {
       if (!dateString) return ''
       const date = new Date(dateString)
+      const now = new Date()
+      const diff = now - date
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+
+      if (days === 0) return '今天'
+      if (days === 1) return '昨天'
+      if (days < 7) return `${days}天前`
+      if (days < 30) return `${Math.floor(days / 7)}周前`
+      if (days < 365) return `${Math.floor(days / 30)}个月前`
+
       return date.toLocaleDateString('zh-CN', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
       })
+    }
+
+    const formatFullDate = (dateString) => {
+      if (!dateString) return ''
+      try {
+        return new Date(dateString).toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        })
+      } catch (e) {
+        return dateString
+      }
     }
 
     // 加载文章详情
@@ -219,11 +298,18 @@ export default {
           content: response.content,
           authorUsername: response.authorUsername,
           author: {
-            username: response.authorUsername
+            username: response.authorUsername,
+            avatarUrl: response.authorAvatarUrl  // 使用后端返回的作者头像
           },
           createdAt: response.createdAt,
-          updatedAt: response.updatedAt
+          updatedAt: response.updatedAt,
+          publishedAt: response.publishedAt,
+          draft: response.draft || false,
+          likeCount: response.likeCount || 0,  // 从后端获取点赞数
+          isLiked: response.isLiked || false   // 从后端获取是否已点赞
         }
+        
+        commentCount.value = response.commentCount || 0
       } catch (error) {
         console.error('加载文章失败:', error)
         post.value = null
@@ -246,6 +332,40 @@ export default {
       }
     }
 
+    // 点赞功能
+    const handleLike = async () => {
+      // 检查是否登录
+      if (!isLoggedIn.value) {
+        // 未登录，跳转到登录页面
+        router.push({
+          path: '/login',
+          query: {
+            redirect: route.fullPath,
+            message: '请先登录后再点赞'
+          }
+        })
+        return
+      }
+
+      try {
+        let response
+        if (post.value.isLiked) {
+          // 已点赞，取消点赞
+          response = await unlikePost(post.value.id)
+        } else {
+          // 未点赞，点赞
+          response = await likePost(post.value.id)
+        }
+
+        // 更新本地状态
+        post.value.likeCount = response.likeCount
+        post.value.isLiked = response.liked
+      } catch (error) {
+        console.error('点赞操作失败:', error)
+        // 可以添加用户提示
+      }
+    }
+
     // 回到顶部
     const scrollToTop = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -254,6 +374,10 @@ export default {
     // 监听滚动
     const handleScroll = () => {
       showBackToTop.value = window.scrollY > 300
+    }
+
+    const handleCommentCountChanged = (count) => {
+      commentCount.value = count
     }
 
     onMounted(() => {
@@ -270,11 +394,19 @@ export default {
       post,
       isAuthor,
       authorInitial,
+      authorAvatarUrl,
+      avatarLoadError,
       renderedContent,
       showBackToTop,
+      commentCount,
       formatDate,
+      formatFullDate,
       handleDelete,
-      scrollToTop
+      handleLike,
+      scrollToTop,
+      handleAvatarError,
+      handleAvatarLoad,
+      handleCommentCountChanged
     }
   }
 }

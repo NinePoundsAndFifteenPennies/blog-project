@@ -59,8 +59,19 @@
                 @click="showUserMenu = !showUserMenu"
                 class="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200"
             >
-              <div class="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center text-white font-semibold">
-                {{ userInitial }}
+              <div 
+                class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold overflow-hidden bg-gradient-primary"
+              >
+                <img 
+                  v-if="userAvatarUrl && !avatarLoadError" 
+                  :src="userAvatarUrl" 
+                  :alt="currentUser.username"
+                  :key="userAvatarUrl"
+                  class="w-full h-full object-cover"
+                  @error="handleAvatarError"
+                  @load="handleAvatarLoad"
+                />
+                <span v-else>{{ userInitial }}</span>
               </div>
               <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -175,9 +186,10 @@
 </template>
 
 <script>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
+import { getFullAvatarUrl } from '@/utils/avatar'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue' // 1. 导入 watch
 
 export default {
   name: 'Header',
@@ -189,11 +201,19 @@ export default {
     const showUserMenu = ref(false)
     const showMobileMenu = ref(false)
     const searchQuery = ref('')
+    const avatarLoadError = ref(false)
 
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
     const currentUser = computed(() => store.getters.currentUser)
     const userInitial = computed(() => {
       return currentUser.value?.username?.charAt(0).toUpperCase() || 'U'
+    })
+    const userAvatarUrl = computed(() => getFullAvatarUrl(currentUser.value?.avatarUrl))
+
+    // 2. 添加这个 watch 监听器
+    watch(userAvatarUrl, () => {
+      // 当头像 URL 变化时，重置错误状态
+      avatarLoadError.value = false
     })
 
     // 处理搜索
@@ -204,6 +224,16 @@ export default {
         searchQuery.value = ''
       }
     }
+
+    // 处理头像加载错误
+    const handleAvatarError = () => {
+      avatarLoadError.value = true
+    }
+
+    const handleAvatarLoad = () => {
+      avatarLoadError.value = false
+    }
+
     // 处理登出
     const handleLogout = () => {
       store.dispatch('logout')
@@ -242,8 +272,12 @@ export default {
       isLoggedIn,
       currentUser,
       userInitial,
+      userAvatarUrl,
+      avatarLoadError,
       handleSearch,
-      handleLogout
+      handleLogout,
+      handleAvatarError,
+      handleAvatarLoad
     }
   }
 }

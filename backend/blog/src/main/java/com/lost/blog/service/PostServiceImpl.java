@@ -27,14 +27,20 @@ public class PostServiceImpl implements PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final PostMapper postMapper;
+    private final com.lost.blog.repository.CommentRepository commentRepository;
+    private final com.lost.blog.repository.LikeRepository likeRepository;
 
     @Autowired
     public PostServiceImpl(PostRepository postRepository,
                            UserRepository userRepository,
-                           PostMapper postMapper) {
+                           PostMapper postMapper,
+                           com.lost.blog.repository.CommentRepository commentRepository,
+                           com.lost.blog.repository.LikeRepository likeRepository) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.postMapper = postMapper;
+        this.commentRepository = commentRepository;
+        this.likeRepository = likeRepository;
     }
 
     @Override
@@ -60,7 +66,7 @@ public class PostServiceImpl implements PostService {
         logger.info("用户 {} 创建了新文章，ID: {}，是否草稿: {}",
                 user.getUsername(), savedPost.getId(), savedPost.getDraft());
 
-        return postMapper.toResponse(savedPost);
+        return postMapper.toResponse(savedPost, currentUser);
     }
 
     @Override
@@ -82,17 +88,17 @@ public class PostServiceImpl implements PostService {
             }
         }
 
-        return postMapper.toResponse(post);
+        return postMapper.toResponse(post, currentUser);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<PostResponse> getAllPosts(Pageable pageable) {
+    public Page<PostResponse> getAllPosts(Pageable pageable, UserDetails currentUser) {
         // 只返回已发布的文章（draft = false）
         Page<Post> postsPage = postRepository.findByDraftFalse(pageable);
         logger.debug("查询已发布文章列表，页码: {}，数量: {}",
                 pageable.getPageNumber(), postsPage.getTotalElements());
-        return postsPage.map(postMapper::toResponse);
+        return postsPage.map(post -> postMapper.toResponse(post, currentUser));
     }
 
     @Override
@@ -105,7 +111,7 @@ public class PostServiceImpl implements PostService {
         logger.debug("查询用户 {} 的所有文章（包括草稿），总数: {}",
                 user.getUsername(), postsPage.getTotalElements());
         
-        return postsPage.map(postMapper::toResponse);
+        return postsPage.map(post -> postMapper.toResponse(post, currentUser));
     }
 
     @Override
@@ -151,7 +157,7 @@ public class PostServiceImpl implements PostService {
             logger.info("文章 {} 从已发布变为草稿", id);
         }
 
-        return postMapper.toResponse(updatedPost);
+        return postMapper.toResponse(updatedPost, currentUser);
     }
 
     @Override
@@ -164,6 +170,21 @@ public class PostServiceImpl implements PostService {
             logger.warn("用户 {} 尝试删除他人文章，ID: {}", currentUser.getUsername(), id);
             throw new AccessDeniedException("无权删除该文章");
         }
+
+        // 先删除该文章的所有点赞（级联删除）
+        likeRepository.deleteByPost(post);
+        logger.info("删除文章ID: {} 的所有文章点赞", id);
+
+        // 获取该文章的所有评论，并删除每个评论的点赞
+        var comments = commentRepository.findByPost(post, org.springframework.data.domain.Pageable.unpaged());
+        comments.forEach(comment -> {
+            likeRepository.deleteByComment(comment);
+            logger.info("删除评论ID: {} 的所有点赞", comment.getId());
+        });
+
+        // 再删除该文章的所有评论（级联删除）
+        commentRepository.deleteByPost(post);
+        logger.info("删除文章ID: {} 的所有评论", id);
 
         postRepository.delete(post);
         logger.info("用户 {} 删除了文章，ID: {}，标题: {}",

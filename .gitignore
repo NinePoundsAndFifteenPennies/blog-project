@@ -6,6 +6,7 @@ target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+*.class
 
 ### STS ###
 .apt_generated
@@ -61,6 +62,7 @@ node_modules/
 /dist-ssr/
 /build/
 /coverage/
+frontend/dist/
 
 # Local env files
 .env.local
@@ -80,3 +82,8 @@ node_modules/
 /.eslintcache
 /.stylelintcache
 /.tsbuildinfo
+
+# =========================
+# User Uploads
+# =========================
+uploads/

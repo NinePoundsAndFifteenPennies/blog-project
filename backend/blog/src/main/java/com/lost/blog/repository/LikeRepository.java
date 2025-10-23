@@ -1,0 +1,49 @@
+package com.lost.blog.repository;
+
+import com.lost.blog.model.Comment;
+import com.lost.blog.model.Like;
+import com.lost.blog.model.Post;
+import com.lost.blog.model.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface LikeRepository extends JpaRepository<Like, Long> {
+    
+    // Check if a user has liked a specific post
+    boolean existsByUserAndPost(User user, Post post);
+    
+    // Find a like by user and post
+    Optional<Like> findByUserAndPost(User user, Post post);
+    
+    // Count likes for a specific post
+    long countByPost(Post post);
+    
+    // Delete a like by user and post
+    void deleteByUserAndPost(User user, Post post);
+    
+    // Delete all likes for a specific post (for cascade deletion)
+    void deleteByPost(Post post);
+    
+    // Check if a user has liked a specific comment
+    boolean existsByUserAndComment(User user, Comment comment);
+    
+    // Find a like by user and comment
+    Optional<Like> findByUserAndComment(User user, Comment comment);
+    
+    // Count likes for a specific comment
+    long countByComment(Comment comment);
+    
+    // Delete a like by user and comment
+    void deleteByUserAndComment(User user, Comment comment);
+    
+    // Delete all likes for a specific comment (for cascade deletion)
+    void deleteByComment(Comment comment);
+
+}

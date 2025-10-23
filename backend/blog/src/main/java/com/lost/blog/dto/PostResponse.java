@@ -8,11 +8,15 @@ public class PostResponse {
     private String title;
     private String content;
     private String authorUsername;
+    private String authorAvatarUrl;  // 新增：作者头像URL
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime publishedAt;  // 新增
     private ContentType contentType;
     private Boolean draft;  // 新增
+    private Long likeCount;  // 点赞数
+    private Boolean isLiked;  // 当前用户是否已点赞
+    private Long commentCount;  // 评论数
 
     // Getters and Setters
     public Long getId() { return id; }
@@ -26,6 +30,9 @@ public class PostResponse {
 
     public String getAuthorUsername() { return authorUsername; }
     public void setAuthorUsername(String authorUsername) { this.authorUsername = authorUsername; }
+
+    public String getAuthorAvatarUrl() { return authorAvatarUrl; }
+    public void setAuthorAvatarUrl(String authorAvatarUrl) { this.authorAvatarUrl = authorAvatarUrl; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
@@ -41,4 +48,13 @@ public class PostResponse {
 
     public Boolean getDraft() { return draft; }
     public void setDraft(Boolean draft) { this.draft = draft; }
+
+    public Long getLikeCount() { return likeCount; }
+    public void setLikeCount(Long likeCount) { this.likeCount = likeCount; }
+
+    public Boolean getIsLiked() { return isLiked; }
+    public void setIsLiked(Boolean isLiked) { this.isLiked = isLiked; }
+
+    public Long getCommentCount() { return commentCount; }
+    public void setCommentCount(Long commentCount) { this.commentCount = commentCount; }
 }
