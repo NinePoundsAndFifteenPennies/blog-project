@@ -284,9 +284,6 @@ export default {
     })
 
     const replyPlaceholder = computed(() => {
-      if (replyToUsername.value) {
-        return `回复 @${replyToUsername.value}...`
-      }
       return '写下你的回复...'
     })
     
@@ -441,7 +438,9 @@ export default {
       try {
         // Use replyToCommentId if replying to a sub-comment, otherwise use the top-level comment ID
         const targetCommentId = replyToCommentId.value || props.comment.id
-        await createReply(targetCommentId, replyContent.value, replyToUserId.value, replyToUsername.value)
+        // Always set replyToUsername - if not set (replying to top comment), use the comment author's username
+        const usernameToReply = replyToUsername.value || props.comment.authorUsername
+        await createReply(targetCommentId, replyContent.value, replyToUserId.value, usernameToReply)
         replyContent.value = ''
         replyToUserId.value = null
         replyToUsername.value = ''
@@ -457,7 +456,9 @@ export default {
         console.error('发表回复失败:', error)
         if (error.response?.status === 403) {
           // Parse the error message from backend
-          const errorMsg = error.response?.data || '操作被拒绝'
+          const errorMsg = typeof error.response?.data === 'string' 
+            ? error.response.data 
+            : error.response?.data?.message || '操作被拒绝'
           alert(errorMsg)
         } else {
           alert('发表回复失败，请稍后重试')

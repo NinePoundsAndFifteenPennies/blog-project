@@ -63,11 +63,6 @@
 
         <!-- Content Display -->
         <div>
-          <!-- Show @mention if replying to a user -->
-          <span v-if="reply.replyToUsername" class="text-primary-600 font-medium">
-            @{{ reply.replyToUsername }}
-          </span>
-          <span> </span>
           <!-- Render based on content type -->
           <span v-if="isMarkdown" class="markdown-body text-gray-700 text-sm inline" v-html="renderedContent"></span>
           <span v-else class="text-gray-700 text-sm whitespace-pre-wrap">{{ reply.content }}</span>
