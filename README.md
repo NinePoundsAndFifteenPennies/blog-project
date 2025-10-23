@@ -26,7 +26,7 @@
 
 ### 后端运行
 
-1. 确保已安装 JDK 17+ 和 MySQL 8.0+
+1. 确保已安装 JDK 25 和 MySQL 8.0+
 2. 创建数据库：`CREATE DATABASE blog_db;`
 3. 修改配置文件 `backend/blog/src/main/resources/application.properties`
 4. 运行后端：
