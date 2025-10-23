@@ -2,10 +2,10 @@
 
 本指南专门针对使用 Docker 将博客系统部署到租用服务器的场景。按照本指南操作，你可以让博客系统在服务器上持续运行，并对外提供服务。
 
-> **📢 重要更新**：
-> - ✅ **已解决 SSL 证书自动续期问题**：提供了 webroot 和 standalone 两种方法来处理前端占用 80 端口的问题
-> - ✅ **修复了配置更新方法**：修改环境变量后需要使用 `docker-compose up -d --build` 而非 `restart`
-> - 📖 **日常运维操作已独立**：查看日志、更新代码等日常操作请参考 [日常维护指南](./MAINTENANCE.md)
+> **📢 重要说明**：
+> - ✅ **默认使用8000端口**：避免与服务器上已有的nginx服务冲突
+> - ✅ **简化的配置**：移除了容器内的SSL配置，推荐使用服务器nginx做反向代理
+> - 📖 **日常运维操作**：查看日志、更新代码等日常操作请参考 [日常维护指南](./MAINTENANCE.md)
 
 ## 📋 前置准备
 
@@ -157,23 +157,6 @@ cd ../..
 
 然后重新运行构建命令。
 
-### 第三步（可选）：配置域名
-
-如果你有自己的域名，需要修改前端 Nginx 配置中的 `server_name`：
-
-```bash
-# 编辑 Nginx 配置文件
-nano frontend/nginx.conf
-
-# 找到并修改以下行：
-server_name myblogsystem.icu;  # 改为你的域名，如 yourdomain.com
-```
-
-**注意**：
-- 如果没有域名，可以暂时保持默认配置，通过 IP 地址访问
-- 配置 HTTPS 需要有域名（详见后续步骤）
-- 修改后需要重新构建前端容器才能生效
-
 ### 第四步：启动所有服务
 
 现在可以一键启动所有服务（MySQL 数据库、后端应用、前端应用）：
@@ -222,7 +205,7 @@ docker-compose logs -f mysql
 ```
 NAME                IMAGE                       STATUS              PORTS
 blog-backend        blog-project-backend        Up 2 minutes        0.0.0.0:8080->8080/tcp
-blog-frontend       blog-project-frontend       Up 2 minutes        0.0.0.0:80->80/tcp
+blog-frontend       blog-project-frontend       Up 2 minutes        0.0.0.0:8000->80/tcp
 blog-mysql          mysql:8.0                   Up 2 minutes        0.0.0.0:3306->3306/tcp
 ```
 
@@ -232,8 +215,7 @@ blog-mysql          mysql:8.0                   Up 2 minutes        0.0.0.0:3306
 
 ```bash
 # 如果使用 UFW 防火墙（Ubuntu 默认）
-sudo ufw allow 80/tcp    # HTTP 端口
-sudo ufw allow 443/tcp   # HTTPS 端口（如果配置了 SSL）
+sudo ufw allow 8000/tcp  # 前端端口
 sudo ufw allow 8080/tcp  # 后端 API 端口（可选，如果需要直接访问）
 
 # 启用防火墙
@@ -249,14 +231,69 @@ sudo ufw status
 
 部署完成！现在可以通过以下地址访问你的博客：
 
-- **前端页面**: `http://你的服务器IP地址`
+- **前端页面**: `http://你的服务器IP地址:8000`
 - **后端 API**: `http://你的服务器IP地址:8080/api`
 
 例如，如果你的服务器 IP 是 `192.168.1.100`：
-- 前端: http://192.168.1.100
+- 前端: http://192.168.1.100:8000
 - 后端: http://192.168.1.100:8080/api
 
-如果你有域名（如 `blog.example.com`），可以配置域名解析指向服务器 IP，然后通过域名访问。
+## 🌐 配置域名和HTTPS（推荐）
+
+如果你有域名并且希望使用标准的80/443端口以及HTTPS，建议在服务器上配置nginx反向代理：
+
+### 方法：使用服务器nginx反向代理（推荐）
+
+1. **安装nginx**（如果还没安装）：
+
+```bash
+sudo apt install nginx -y
+```
+
+2. **创建nginx配置文件**：
+
+```bash
+sudo nano /etc/nginx/sites-available/blog
+```
+
+3. **添加以下配置**：
+
+```nginx
+server {
+    listen 80;
+    server_name yourdomain.com;  # 改为你的域名
+
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+4. **启用配置**：
+
+```bash
+sudo ln -s /etc/nginx/sites-available/blog /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+5. **配置HTTPS（使用Let's Encrypt）**：
+
+```bash
+# 安装certbot
+sudo apt install certbot python3-certbot-nginx -y
+
+# 获取并配置SSL证书
+sudo certbot --nginx -d yourdomain.com
+```
+
+certbot会自动修改nginx配置，添加HTTPS支持和HTTP到HTTPS的重定向。
+
+现在你可以通过 `https://yourdomain.com` 访问你的博客了！
 
 ## 🔒 重要：部署后的安全设置
 
@@ -276,128 +313,7 @@ DDL_AUTO=validate
 docker-compose up -d --build backend
 ```
 
-### 2. 配置 HTTPS（强烈推荐）
-
-使用 HTTPS 可以加密传输，保护用户数据安全。以下是使用免费 Let's Encrypt 证书的方法：
-
-#### 步骤 A：安装 Certbot
-
-```bash
-sudo apt install certbot python3-certbot-nginx -y
-```
-
-#### 步骤 B：停止前端容器（临时）
-
-```bash
-docker-compose stop frontend
-```
-
-#### 步骤 C：获取 SSL 证书
-
-```bash
-# 替换 blog.example.com 为你的域名
-sudo certbot certonly --standalone -d blog.example.com
-```
-
-按照提示输入邮箱并同意服务条款。证书会保存在 `/etc/letsencrypt/live/blog.example.com/` 目录下。
-
-#### 步骤 D：配置 Nginx 使用 SSL
-
-编辑前端 Nginx 配置文件：
-
-```bash
-nano frontend/nginx.conf
-```
-
-添加 HTTPS 配置：
-
-```nginx
-server {
-    listen 80;
-    listen 443 ssl;
-    server_name blog.example.com;  # 改为你的域名
-
-    # SSL 证书配置
-    ssl_certificate /etc/letsencrypt/live/blog.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/blog.example.com/privkey.pem;
-
-    # HTTP 重定向到 HTTPS
-    if ($scheme = http) {
-        return 301 https://$host$request_uri;
-    }
-
-    root /usr/share/nginx/html;
-    index index.html;
-
-    # 前端路由支持
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # 后端 API 代理
-    location /api {
-        proxy_pass http://backend:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-修改 `docker-compose.yml`，挂载证书目录：
-
-```yaml
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: blog-frontend
-    restart: always
-    depends_on:
-      - backend
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-    networks:
-      - blog-network
-```
-
-#### 步骤 E：重新构建和启动
-
-```bash
-docker-compose up -d --build frontend
-```
-
-现在你的博客已经支持 HTTPS 访问了！
-
-#### 步骤 F：自动续期证书
-
-Let's Encrypt 证书 90 天有效，需要定期续期。
-
-**重要提示**：由于前端容器占用了 80 端口，`certbot renew --nginx` 命令会失败。我们需要使用 `--webroot` 或 `--standalone` 模式，并在续期时临时停止前端容器。
-
-**推荐方法 1：使用 webroot 插件（推荐）**
-
-修改 Nginx 配置以支持 webroot 验证：
-
-```bash
-# 编辑前端 Nginx 配置
-nano frontend/nginx.conf
-```
-
-在 server 块中添加：
-
-```nginx
-    # Let's Encrypt 验证目录
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-```
-
-修改 `docker-compose.yml`，挂载 certbot webroot 目录：
+### 2. 定期备份数据
 
 ```yaml
   frontend:
@@ -481,82 +397,9 @@ cd /path/to/blog-project  # 修改为你的项目路径
 docker-compose stop frontend
 
 # 使用 standalone 模式续期证书
-certbot renew --standalone --quiet
+### 2. 定期备份数据
 
-# 重新启动前端容器
-docker-compose start frontend
-
-echo "证书续期完成: $(date)"
-```
-
-添加执行权限和定时任务：
-
-```bash
-# 添加执行权限
-sudo chmod +x /usr/local/bin/renew-cert-standalone.sh
-
-# 添加定时任务（每天凌晨 2 点检查并续期）
-sudo crontab -e
-
-# 添加以下行
-0 2 * * * /usr/local/bin/renew-cert-standalone.sh >> /var/log/certbot-renew.log 2>&1
-```
-
-**测试续期**：
-
-```bash
-# 测试 webroot 模式（方法 1）
-sudo certbot renew --webroot -w /var/www/certbot --dry-run
-
-# 或测试 standalone 模式（方法 2）
-docker-compose stop frontend
-sudo certbot renew --standalone --dry-run
-docker-compose start frontend
-```
-
-### 3. 定期备份数据库
-
-设置定期备份可以防止数据丢失：
-
-```bash
-# 创建备份脚本
-sudo nano /usr/local/bin/backup-blog-db.sh
-```
-
-添加以下内容：
-
-```bash
-#!/bin/bash
-BACKUP_DIR="/backup/blog"
-DATE=$(date +%Y%m%d_%H%M%S)
-
-# 创建备份目录
-mkdir -p $BACKUP_DIR
-
-# 导出数据库（从容器中）
-docker exec blog-mysql mysqldump -u root -p你的MySQL根密码 blog > $BACKUP_DIR/blog_$DATE.sql
-
-# 压缩备份文件
-gzip $BACKUP_DIR/blog_$DATE.sql
-
-# 保留最近 30 天的备份
-find $BACKUP_DIR -name "blog_*.sql.gz" -mtime +30 -delete
-
-echo "数据库备份完成: blog_$DATE.sql.gz"
-```
-
-保存后，添加执行权限和定时任务：
-
-```bash
-# 添加执行权限
-sudo chmod +x /usr/local/bin/backup-blog-db.sh
-
-# 添加定时任务（每天凌晨 3 点备份）
-sudo crontab -e
-
-# 添加以下行
-0 3 * * * /usr/local/bin/backup-blog-db.sh
-```
+设置定期备份可以防止数据丢失。详细的备份操作请参考 [日常维护指南](./MAINTENANCE.md)。
 
 ## 🛠️ 日常维护
 
@@ -594,7 +437,28 @@ docker-compose restart backend
 
 ## 🐛 常见问题排查
 
-### 问题 1：无法访问前端页面
+### 问题 1：端口被占用
+
+**错误信息**：
+```
+ERROR: for blog-frontend  Cannot start service frontend: failed to bind host port for 0.0.0.0:8000
+```
+
+**解决方法**：
+
+```bash
+# 1. 查看端口占用情况
+sudo lsof -i :8000
+
+# 2. 如果端口被占用，可以选择：
+# 选项A：停止占用端口的服务
+sudo systemctl stop <服务名>
+
+# 选项B：修改docker-compose.yml使用其他端口
+# 将 "8000:80" 改为 "8001:80" 或其他可用端口
+```
+
+### 问题 2：无法访问前端页面
 
 **检查步骤**：
 
@@ -605,17 +469,17 @@ docker-compose ps
 # 2. 查看前端日志
 docker-compose logs frontend
 
-# 3. 检查防火墙是否开放 80 端口
+# 3. 检查防火墙是否开放端口
 sudo ufw status
 
 # 4. 测试端口是否可访问
-curl http://localhost
+curl http://localhost:8000
 
 # 5. 检查服务器安全组（云服务器）
-# 在云服务商控制台检查是否开放了 80 端口
+# 在云服务商控制台检查是否开放了 8000 端口
 ```
 
-### 问题 2：后端无法连接数据库
+### 问题 3：后端无法连接数据库
 
 **检查步骤**：
 
@@ -634,7 +498,7 @@ docker exec -it blog-mysql mysql -u bloguser -p
 # 输入 .env 中配置的 DATABASE_PASSWORD
 ```
 
-### 问题 3：前端无法调用后端 API
+### 问题 4：前端无法调用后端 API
 
 **检查步骤**：
 
@@ -655,7 +519,7 @@ docker exec -it blog-frontend cat /etc/nginx/conf.d/default.conf
 docker-compose logs frontend
 ```
 
-### 问题 4：容器频繁重启
+### 问题 5：容器频繁重启
 
 **检查步骤**：
 
@@ -669,7 +533,7 @@ cat .env
 # 3. 确认 JWT_SECRET 等配置项已正确设置
 ```
 
-### 问题 5：数据库表未创建
+### 问题 6：数据库表未创建
 
 **解决方法**：
 
@@ -733,29 +597,23 @@ sudo netstat -tlnp | grep -E '80|8080|3306'
 
 关于性能监控、资源清理和优化建议，请参考 [日常维护指南](./MAINTENANCE.md) 中的相关章节。
 
+docker-compose up -d --build backend
+
+# 4. 查看日志确认表已创建
+docker-compose logs backend | grep -i "table"
+```
+
 ## 💡 生产环境优化建议
 
-### 1. 使用域名访问
+### 1. 使用域名和HTTPS
 
-购买域名并配置 DNS 解析，然后配置 HTTPS，提供更好的用户体验。
+购买域名并配置 DNS 解析，然后使用服务器nginx配置HTTPS反向代理（参见上文"配置域名和HTTPS"章节），提供更好的用户体验和安全性。
 
 ### 2. 配置 CDN
 
 如果你的博客有大量静态资源，可以使用 CDN 加速访问。
 
-### 3. 配置反向代理缓存
-
-在 Nginx 配置中添加缓存可以提升性能：
-
-```nginx
-# 在 frontend/nginx.conf 中添加
-location ~* \.(jpg|jpeg|png|gif|ico|css|js)$ {
-    expires 1y;
-    add_header Cache-Control "public, immutable";
-}
-```
-
-### 4. 定期更新系统和 Docker
+### 3. 定期更新系统和 Docker
 
 ```bash
 # 更新系统
@@ -769,6 +627,10 @@ docker-compose pull
 docker-compose up -d
 ```
 
+### 4. 监控和日志
+
+定期检查容器状态和日志，及时发现和解决问题。详见 [日常维护指南](./MAINTENANCE.md)。
+
 ## 🎉 总结
 
 按照本指南，你已经成功使用 Docker 将博客系统部署到服务器上了！
@@ -778,8 +640,7 @@ docker-compose up -d
 - ✅ 配置了环境变量和密钥
 - ✅ 构建并启动了所有服务
 - ✅ 配置了防火墙允许外部访问
-- ✅ （可选）配置了 HTTPS 加密和自动续期
-- ✅ 设置了数据库备份
+- ✅ 了解了如何配置HTTPS（使用服务器nginx）
 
 **后续维护**：
 - 查看 [日常维护指南](./MAINTENANCE.md) 了解如何进行日常运维操作
@@ -789,8 +650,9 @@ docker-compose up -d
 - 关注服务器资源使用情况
 
 **重要提醒**：
+- 前端默认运行在 8000 端口，避免与服务器nginx冲突
+- 如需使用80/443端口，请配置服务器nginx反向代理
 - 修改环境变量或配置文件后，需要使用 `docker-compose up -d --build` 重新构建容器
-- SSL 证书需要定期续期，已配置自动续期脚本
 - 生产环境应将数据库表管理模式设置为 `validate`
 
 如果遇到问题，请参考"常见问题排查"章节，或查看容器日志获取详细错误信息。

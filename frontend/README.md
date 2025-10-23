@@ -105,6 +105,46 @@ npm run build
 yarn build
 ```
 
+## 🐳 Docker 部署
+
+本项目支持使用 Docker 一键部署。前端应用会被构建为静态文件，然后通过 Nginx 容器提供服务。
+
+### 端口配置
+
+- **容器内部**: Nginx 监听 80 端口
+- **默认映射**: 宿主机 8000 端口映射到容器 80 端口（避免与服务器已有nginx冲突）
+- **生产环境**: 建议使用服务器nginx反向代理到 8000 端口，并配置HTTPS
+
+### HTTPS 配置
+
+推荐在服务器上使用nginx进行反向代理和SSL终止：
+
+```nginx
+# /etc/nginx/sites-available/blog
+server {
+    listen 80;
+    server_name yourdomain.com;
+    
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+然后使用 Let's Encrypt 配置HTTPS：
+
+```bash
+sudo certbot --nginx -d yourdomain.com
+```
+
+详细的部署步骤请参考：
+- [Docker 部署指南](../docs/deployment/DOCKER.md)
+- [日常维护指南](../docs/deployment/MAINTENANCE.md)
+
 ## ⚙️ 配置说明
 
 ### 后端API代理配置
