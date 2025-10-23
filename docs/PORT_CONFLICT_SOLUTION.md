@@ -9,11 +9,16 @@ driver failed programming external connectivity on endpoint blog-frontend:
 failed to bind host port for 0.0.0.0:80:172.18.0.4:80/tcp: address already in use
 ```
 
-原因：服务器上的 Nginx（系统级）已经占用了 80 端口。
+原因：服务器上的系统 Nginx 已经占用了 80 端口（用于 HTTPS 和证书管理）。
 
 ## 解决方案
 
-使用系统 Nginx 作为反向代理，Docker 容器使用内部端口。
+使用系统 Nginx 作为反向代理，Docker 容器使用内部端口 8081。
+
+**重要说明**：
+- ✅ **你的域名继续有效**：系统 Nginx 继续监听 80/443 端口，域名访问不受影响
+- ✅ **证书自动续期正常**：certbot 通过系统 Nginx 的 webroot 方式续期，不需要停止任何服务
+- ✅ **HTTPS 继续工作**：所有 SSL 配置保持在系统 Nginx，无需修改证书配置
 
 ### 步骤 1：修改 docker-compose.yml
 
@@ -31,14 +36,11 @@ failed to bind host port for 0.0.0.0:80:172.18.0.4:80/tcp: address already in us
       - backend
     ports:
       - "8081:80"  # 改为 8081:80，不直接使用 80 端口
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/www/certbot:/var/www/certbot:ro
     networks:
       - blog-network
 ```
 
-**说明**：前端容器内部仍然使用 80 端口，但映射到宿主机的 8081 端口。
+**说明**：前端容器内部使用 80 端口，映射到宿主机的 8081 端口。证书文件由系统 Nginx 直接访问，不需要挂载到容器。
 
 ### 步骤 2：配置系统 Nginx
 
@@ -131,6 +133,40 @@ sudo systemctl status nginx
 curl -I https://myblogsystem.icu
 ```
 
+## 证书自动续期配置
+
+**重要**：使用这个方案后，证书续期变得更简单，因为不需要停止任何容器。
+
+### 证书续期方式
+
+系统 Nginx 配置中已经包含了 `/.well-known/acme-challenge/` 路径，certbot 可以直接通过这个路径验证域名所有权。
+
+```bash
+# 测试证书续期（不会真正续期）
+sudo certbot renew --dry-run
+
+# 实际续期
+sudo certbot renew
+```
+
+### 自动续期设置
+
+如果还没有设置自动续期，可以添加定时任务：
+
+```bash
+# 编辑 crontab
+sudo crontab -e
+
+# 添加以下行（每天凌晨 2 点检查并续期）
+0 2 * * * certbot renew --quiet && systemctl reload nginx
+```
+
+**说明**：
+- certbot 会自动检查证书是否需要续期（30天内过期才续期）
+- 续期后自动重新加载 Nginx 配置
+- 整个过程不需要停止任何 Docker 容器
+- 你的域名 `myblogsystem.icu` 会一直有效
+
 ## 配置说明
 
 ### 端口分配
@@ -176,15 +212,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-### Q3: 证书续期会不会有问题？
-不会。使用 webroot 模式续期证书时，certbot 会访问 `/.well-known/acme-challenge/` 路径，系统 Nginx 已经配置了这个路径，不需要停止任何服务。
-
-```bash
-# 测试续期
-sudo certbot renew --dry-run
-```
-
-### Q4: 如何回滚到之前的配置？
+### Q3: 如何回滚到之前的配置？
 如果遇到问题，可以快速回滚：
 
 ```bash
