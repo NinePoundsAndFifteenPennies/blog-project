@@ -76,7 +76,6 @@
 **部署文档**：
 - **[Docker部署指南](./docs/deployment/DOCKER.md)** - 完整的 Docker 部署教程
 - **[日常维护指南](./docs/deployment/MAINTENANCE.md)** - 部署后的日常运维操作
-- **[部署说明](./docs/deployment/NOTES.txt)** - 部署要点总结
 
 **快速部署**：
 ```bash
@@ -100,6 +99,13 @@ docker-compose up -d
 docker-compose logs -f
 ```
 
+前端将运行在 `http://你的服务器IP:8000`
+
+**重要提示**：
+- 如果你的服务器已经有其他服务占用80端口（如nginx），本项目默认使用8000端口
+- 如需使用域名和HTTPS，请在服务器上配置nginx反向代理到8000端口
+- SSL证书和HTTPS配置应在服务器的nginx上完成，而不是在Docker容器内
+
 ## 本地开发注意事项
 
 为了方便在本机进行快速开发和测试，项目中存在一些简化配置，**这些配置不应用于生产环境**：
@@ -114,30 +120,12 @@ docker-compose logs -f
 
 - **[架构说明](docs/ARCHITECTURE.md)** - 项目架构、代码结构、设计模式
 - **[API 文档](docs/API.md)** - 完整的 API 接口文档
-- **[开发说明](docs/DEVELOPMENT.md)** - 本地开发、测试、注意事项
-- **[功能特性](docs/features/)** - 各功能模块的详细说明
-  - [编辑器改进](docs/features/EDITOR.md)
-  - [记住我功能](docs/features/REMEMBER_ME.md)
-  - [头像上传](docs/features/AVATAR_UPLOAD.md)
-  - [点赞功能](docs/features/LIKES.md)
-  - [评论功能](docs/features/COMMENTS.md)
-  - [子评论功能](docs/features/SUB_COMMENTS.md)
-
-
+- **[前端文档](frontend/README.md)** - 前端项目说明和技术栈
+- **[Docker部署](docs/deployment/DOCKER.md)** - Docker 部署详细步骤
+- **[日常维护](docs/deployment/MAINTENANCE.md)** - 运维操作手册
 
 ## 项目进度
 
-**已完成**:
-- 用户认证系统（注册、登录、JWT、自动刷新）
-- 文章 CRUD 与权限控制
-- 增强的 Markdown 编辑器
-- 头像上传与管理系统
-- 文章点赞功能
-- 评论功能（CRUD、权限控制、级联删除）
-- 评论点赞功能
-- 子评论（回复）及其点赞功能
-
-**未来计划**:
 **已完成**：
 - ✅ 用户认证系统（注册、登录、JWT、自动刷新）
 - ✅ 文章 CRUD 与权限控制
@@ -147,6 +135,7 @@ docker-compose logs -f
 - ✅ 评论功能（CRUD、权限控制、级联删除）
 - ✅ 评论点赞功能
 - ✅ 子评论（回复）及其点赞功能
+- ✅ Docker 部署支持
 
 **未来计划**：
 - 文章分类和标签
@@ -154,23 +143,6 @@ docker-compose logs -f
 - 用户个人资料编辑
 - 代码高亮优化
 - 响应式设计优化
-
-## 与原始方案的差异
-
-**功能模块差异**
-- 已实现核心功能：用户认证、文章管理、点赞、评论、子评论
-- 未实现功能：分类 (Category) 和标签 (Tag) 功能
-
-**API 路径调整**
-- 用户认证相关 API 从 `/auth/` 调整为 `/api/users/`
-- 新增 `/api/users/refresh-token` 接口支持JWT自动刷新
-- 新增 `/api/posts/my` 接口获取当前用户的所有文章
-
-**未完成部分**
-- Swagger 或 OpenAPI 文档集成
-- 数据库初始化脚本及迁移工具支持（如 Flyway/Liquibase）
-- 更细粒度的角色与权限体系设计（如管理员、普通用户区分）
-- CI/CD 流水线自动化部署
 
 ## 技术栈
 
