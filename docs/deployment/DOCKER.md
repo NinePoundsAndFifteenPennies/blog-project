@@ -2,6 +2,37 @@
 
 本指南专门针对使用 Docker 将博客系统部署到租用服务器的场景。按照本指南操作，你可以让博客系统在服务器上持续运行，并对外提供服务。
 
+## 🏗️ 统一的部署架构
+
+本项目采用**系统 Nginx 作为唯一公网入口**的部署架构，确保安全性和可维护性：
+
+### 端口分配表
+
+| 服务 | 端口 | 绑定地址 | 说明 |
+|------|------|----------|------|
+| **系统 Nginx** | 80/443 | 0.0.0.0 | 公网访问入口，处理 HTTPS |
+| **前端容器** | 8081 | 127.0.0.1 | 仅本机访问，由系统 Nginx 反代 |
+| **后端容器** | 8080 | 127.0.0.1 | 仅本机访问，由系统 Nginx 反代 |
+| **MySQL 容器** | 3306 | 127.0.0.1 | 仅本机访问，不对外暴露 |
+
+### 架构图
+
+```
+互联网
+   ↓
+系统 Nginx (80/443)
+   ├─→ / → 前端容器 (127.0.0.1:8081)
+   ├─→ /api → 后端容器 (127.0.0.1:8080)
+   └─→ /uploads → 后端容器 (127.0.0.1:8080)
+```
+
+### 核心原则
+
+1. **单一入口**：系统 Nginx 为唯一公网入口，统一处理 80/443 端口
+2. **容器隔离**：所有容器端口仅绑定 127.0.0.1，不直接暴露到公网
+3. **证书管理**：证书由系统 certbot 管理，不挂载到容器内
+4. **数据持久化**：上传文件通过宿主目录 `./data/uploads` 挂载到后端容器
+
 ## 📋 前置准备
 
 ### 1. 服务器要求
@@ -9,11 +40,42 @@
 - **操作系统**: Linux 系统（推荐 Ubuntu 20.04+ 或 CentOS 7+）
 - **内存**: 至少 2GB RAM
 - **磁盘空间**: 至少 10GB 可用空间
-- **网络**: 确保服务器有公网 IP 或域名
+- **域名**: 必须有域名（HTTPS 证书需要域名，**禁止用 IP 访问 HTTPS**）
 
-### 2. 安装 Docker 和 Docker Compose
+### 2. 域名配置
 
-在你的服务器上执行以下命令安装 Docker：
+在部署前，请确保：
+
+1. **购买域名**：如 `myblogsystem.icu`
+2. **配置 DNS A 记录**：将域名指向服务器公网 IP
+3. **域名生效验证**：
+   ```bash
+   ping myblogsystem.icu
+   # 确认返回的 IP 是你的服务器 IP
+   ```
+
+**重要提示**：
+- 域名、DNS、Nginx `server_name`、证书 CN/SAN 必须完全一致
+- 如需支持 `www` 子域，需同时配置 `www.myblogsystem.icu` 的 A 记录
+- 建议使用 301 重定向将 www 统一到主域名或反之
+
+### 3. 安装系统 Nginx
+
+系统 Nginx 作为公网入口，必须安装在宿主机上：
+
+```bash
+# 安装 Nginx
+sudo apt update
+sudo apt install nginx -y
+
+# 验证安装
+nginx -v
+
+# 确认 Nginx 正在运行
+sudo systemctl status nginx
+```
+
+### 4. 安装 Docker 和 Docker Compose
 
 ```bash
 # 更新系统软件包
@@ -152,24 +214,21 @@ cd ../..
 
 然后重新运行构建命令。
 
-### 第三步（可选）：配置域名
+### 第四步：创建上传目录
 
-如果你有自己的域名，需要修改前端 Nginx 配置中的 `server_name`：
+为头像和其他上传文件创建持久化存储目录：
 
 ```bash
-# 编辑 Nginx 配置文件
-nano frontend/nginx.conf
+# 在项目根目录创建 data/uploads 目录
+mkdir -p data/uploads
 
-# 找到并修改以下行：
-server_name myblogsystem.icu;  # 改为你的域名，如 yourdomain.com
+# 确保目录权限正确
+chmod 755 data/uploads
 ```
 
-**注意**：
-- 如果没有域名，可以暂时保持默认配置，通过 IP 地址访问
-- 配置 HTTPS 需要有域名（详见后续步骤）
-- 修改后需要重新构建前端容器才能生效
+这个目录将被挂载到后端容器的 `/app/uploads`，确保上传的文件持久保存在宿主机上。
 
-### 第四步：启动所有服务
+### 第五步：启动 Docker 容器
 
 现在可以一键启动所有服务（MySQL 数据库、后端应用、前端应用）：
 
@@ -184,8 +243,8 @@ docker-compose up -d
 这个命令会：
 1. 自动构建前端和后端的 Docker 镜像
 2. 启动 MySQL 数据库容器
-3. 启动后端应用容器
-4. 启动前端应用容器
+3. 启动后端应用容器（端口 127.0.0.1:8080）
+4. 启动前端应用容器（端口 127.0.0.1:8081）
 5. 自动创建所需的网络和数据卷
 
 **首次启动说明**：
@@ -193,7 +252,7 @@ docker-compose up -d
 - 后端应用会自动创建数据库表（因为 `DDL_AUTO=update`）
 - 整个过程可能需要 1-3 分钟，请耐心等待
 
-### 第五步：查看服务状态
+### 第六步：查看服务状态
 
 ```bash
 # 查看所有容器的运行状态
@@ -216,20 +275,134 @@ docker-compose logs -f mysql
 
 ```
 NAME                IMAGE                       STATUS              PORTS
-blog-backend        blog-project-backend        Up 2 minutes        0.0.0.0:8080->8080/tcp
-blog-frontend       blog-project-frontend       Up 2 minutes        0.0.0.0:80->80/tcp
-blog-mysql          mysql:8.0                   Up 2 minutes        0.0.0.0:3306->3306/tcp
+blog-backend        blog-project-backend        Up 2 minutes        127.0.0.1:8080->8080/tcp
+blog-frontend       blog-project-frontend       Up 2 minutes        127.0.0.1:8081->80/tcp
+blog-mysql          mysql:8.0                   Up 2 minutes        127.0.0.1:3306->3306/tcp
 ```
 
-### 第六步：配置防火墙（重要）
+注意：所有端口都绑定在 127.0.0.1，不直接暴露到公网，这是正常的。
 
-为了让外网能访问你的博客，需要开放相应的端口：
+### 第七步：配置系统 Nginx
+
+系统 Nginx 作为公网入口，需要创建站点配置文件。
+
+#### Nginx 目录规范
+
+- **sites-available**: 存放所有站点配置文件（可编辑）
+- **sites-enabled**: 存放启用站点的软链接（不要直接拷贝文件）
+- 避免创建拼错的目录如 `sites-enable`（少了 d）
+
+#### 创建 Nginx 配置文件
+
+```bash
+# 创建站点配置文件
+sudo nano /etc/nginx/sites-available/blog
+```
+
+添加以下内容（将 `myblogsystem.icu` 替换为你的域名）：
+
+```nginx
+# HTTP 服务器 - 重定向到 HTTPS
+server {
+    listen 80;
+    listen [::]:80;
+    server_name myblogsystem.icu www.myblogsystem.icu;
+
+    # 重定向所有 HTTP 请求到 HTTPS
+    return 301 https://$server_name$request_uri;
+}
+
+# HTTPS 服务器 - 主域名
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name myblogsystem.icu;
+
+    # SSL 证书配置（证书获取后会自动配置）
+    ssl_certificate /etc/letsencrypt/live/myblogsystem.icu/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/myblogsystem.icu/privkey.pem;
+
+    # SSL 优化配置
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    # 前端代理到容器
+    location / {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # 后端 API 代理到容器
+    location /api {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # 上传文件代理到后端（避免头像 404）
+    location ^~ /uploads/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # 可选：添加缓存头
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+    }
+}
+
+# HTTPS 服务器 - www 子域名重定向到主域名
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name www.myblogsystem.icu;
+
+    ssl_certificate /etc/letsencrypt/live/myblogsystem.icu/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/myblogsystem.icu/privkey.pem;
+
+    # 301 重定向到主域名
+    return 301 https://myblogsystem.icu$request_uri;
+}
+```
+
+#### 启用站点配置
+
+```bash
+# 创建软链接到 sites-enabled（不要直接拷贝文件）
+sudo ln -s /etc/nginx/sites-available/blog /etc/nginx/sites-enabled/
+
+# 删除默认站点配置（如果存在）
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# 测试 Nginx 配置语法
+sudo nginx -t
+
+# 如果提示证书文件不存在，暂时不用担心，获取证书后会自动生效
+```
+
+#### 重要提示
+
+- **禁止用 IP 访问 HTTPS**：HTTPS 证书颁发给域名，用 IP 访问会出现 `ERR_CERT_COMMON_NAME_INVALID` 错误
+- **域名一致性**：确保 DNS A 记录、Nginx `server_name`、证书 CN/SAN 完全一致
+- **www 子域名**：如需支持 www，必须在证书申请时包含，或使用 301 重定向统一
+- **使用软链接**：sites-enabled 中只放软链接，不要直接拷贝配置文件
+
+### 第八步：配置防火墙
+
+为了让外网能访问你的博客，需要开放 80 和 443 端口：
 
 ```bash
 # 如果使用 UFW 防火墙（Ubuntu 默认）
 sudo ufw allow 80/tcp    # HTTP 端口
-sudo ufw allow 443/tcp   # HTTPS 端口（如果配置了 SSL）
-sudo ufw allow 8080/tcp  # 后端 API 端口（可选，如果需要直接访问）
+sudo ufw allow 443/tcp   # HTTPS 端口
 
 # 启用防火墙
 sudo ufw enable
@@ -238,22 +411,167 @@ sudo ufw enable
 sudo ufw status
 ```
 
-**注意**：不要开放 3306 端口（MySQL），数据库只应在容器内部访问。
+**注意**：
+- 不要开放 8080、8081、3306 端口，这些端口仅供本机访问
+- 云服务器还需在控制台的安全组中开放 80 and 443 端口
 
-### 第七步：访问你的博客
+## 🔒 配置 HTTPS 证书
 
-部署完成！现在可以通过以下地址访问你的博客：
+使用 HTTPS 可以加密传输，保护用户数据安全。本项目采用 **系统 certbot + nginx 插件 + systemd timer + deploy hook** 的方案。
 
-- **前端页面**: `http://你的服务器IP地址`
-- **后端 API**: `http://你的服务器IP地址:8080/api`
+### 安装 Certbot 和 Nginx 插件
 
-例如，如果你的服务器 IP 是 `192.168.1.100`：
-- 前端: http://192.168.1.100
-- 后端: http://192.168.1.100:8080/api
+```bash
+# 安装 certbot 和 nginx 插件
+sudo apt install certbot python3-certbot-nginx -y
 
-如果你有域名（如 `blog.example.com`），可以配置域名解析指向服务器 IP，然后通过域名访问。
+# 验证安装
+certbot --version
+```
 
-## 🔒 重要：部署后的安全设置
+### 获取 SSL 证书
+
+使用 certbot 的 nginx 插件获取证书，它会自动验证域名所有权：
+
+```bash
+# 获取证书（替换为你的域名）
+sudo certbot --nginx -d myblogsystem.icu -d www.myblogsystem.icu
+
+# 按照提示操作：
+# 1. 输入邮箱地址（用于证书到期提醒）
+# 2. 同意服务条款（输入 Y）
+# 3. 选择是否分享邮箱给 EFF（可选）
+# 4. 如果已有证书，选择 "2: Renew & replace" 替换现有证书
+```
+
+**重要说明**：
+- 必须确保域名已经解析到服务器 IP，否则验证会失败
+- 如果需要支持 www 子域，必须在命令中同时包含（使用多个 `-d` 参数）
+- certbot 会自动修改 Nginx 配置文件，添加证书路径
+
+### 验证证书安装
+
+```bash
+# 测试 Nginx 配置
+sudo nginx -t
+
+# 重新加载 Nginx
+sudo systemctl reload nginx
+
+# 测试 HTTPS 访问
+curl -I https://myblogsystem.icu
+
+# 查看证书信息
+sudo certbot certificates
+```
+
+访问 `https://你的域名` 确认证书已生效。
+
+### 配置自动续期
+
+Let's Encrypt 证书有效期为 90 天，需要配置自动续期。
+
+#### 启用 systemd timer
+
+Ubuntu 18.04+ 默认使用 systemd timer 管理 certbot 自动续期：
+
+```bash
+# 查看 certbot timer 状态
+sudo systemctl status certbot.timer
+
+# 如果未启用，启用它
+sudo systemctl enable certbot.timer
+sudo systemctl start certbot.timer
+
+# 查看下次续期时间
+sudo systemctl list-timers | grep certbot
+```
+
+#### 配置 deploy hook 自动重载 Nginx
+
+创建 deploy hook 脚本，在证书续期后自动重载 Nginx：
+
+```bash
+# 创建 deploy hook 脚本
+sudo nano /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+```
+
+添加以下内容：
+
+```bash
+#!/bin/bash
+# 证书续期后自动重载 Nginx
+
+echo "证书已更新，重载 Nginx 配置..."
+systemctl reload nginx
+echo "Nginx 重载完成: $(date)"
+```
+
+添加执行权限：
+
+```bash
+sudo chmod +x /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+```
+
+#### 验证续期配置
+
+```bash
+# 测试续期流程（dry-run 模式，不会实际更新证书）
+sudo certbot renew --dry-run
+
+# 如果测试成功，你会看到类似输出：
+# Congratulations, all simulated renewals succeeded
+```
+
+**如果 dry-run 失败**，检查以下几点：
+1. 确认 80 端口未被占用（系统 Nginx 应该正常运行）
+2. 查看 `/etc/letsencrypt/renewal/*.conf` 文件，确认 `authenticator = nginx`
+3. 确认域名解析正常
+
+#### 检查续期配置文件
+
+```bash
+# 查看续期配置文件
+sudo cat /etc/letsencrypt/renewal/myblogsystem.icu.conf
+
+# 确认 authenticator 为 nginx
+# 应该看到类似：
+# authenticator = nginx
+```
+
+#### 查看自动续期日志
+
+```bash
+# 查看 certbot 服务日志
+sudo journalctl -u certbot.service
+
+# 查看 certbot timer 日志
+sudo journalctl -u certbot.timer
+
+# 实时查看日志
+sudo journalctl -u certbot.service -f
+```
+
+#### 移除旧的 crontab 续期任务（如果有）
+
+```bash
+# 查看当前 crontab
+sudo crontab -l
+
+# 如果有 certbot renew 相关的任务，删除它们
+sudo crontab -e
+# 删除所有 certbot renew 相关行（保留数据库备份等其他任务）
+```
+
+**重要提示**：
+- ❌ 不要使用 webroot 或 standalone 模式，它们与容器架构不兼容
+- ❌ 不要将 `/etc/letsencrypt` 挂载到容器内
+- ❌ 不要在续期时停止容器
+- ✅ systemd timer 会在每天随机时间自动检查并续期证书
+- ✅ 证书会在到期前 30 天内自动续期
+- ✅ 续期成功后会自动执行 deploy hook 重载 Nginx
+
+## 🔒 部署后的安全设置
 
 ### 1. 修改数据库表管理模式
 
@@ -271,245 +589,7 @@ DDL_AUTO=validate
 docker-compose up -d --build backend
 ```
 
-### 2. 配置 HTTPS（强烈推荐）
-
-使用 HTTPS 可以加密传输，保护用户数据安全。以下是使用免费 Let's Encrypt 证书的方法：
-
-#### 步骤 A：安装 Certbot
-
-```bash
-sudo apt install certbot python3-certbot-nginx -y
-```
-
-#### 步骤 B：停止前端容器（临时）
-
-```bash
-docker-compose stop frontend
-```
-
-#### 步骤 C：获取 SSL 证书
-
-```bash
-# 替换 blog.example.com 为你的域名
-sudo certbot certonly --standalone -d blog.example.com
-```
-
-按照提示输入邮箱并同意服务条款。证书会保存在 `/etc/letsencrypt/live/blog.example.com/` 目录下。
-
-#### 步骤 D：配置 Nginx 使用 SSL
-
-编辑前端 Nginx 配置文件：
-
-```bash
-nano frontend/nginx.conf
-```
-
-添加 HTTPS 配置：
-
-```nginx
-server {
-    listen 80;
-    listen 443 ssl;
-    server_name blog.example.com;  # 改为你的域名
-
-    # SSL 证书配置
-    ssl_certificate /etc/letsencrypt/live/blog.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/blog.example.com/privkey.pem;
-
-    # HTTP 重定向到 HTTPS
-    if ($scheme = http) {
-        return 301 https://$host$request_uri;
-    }
-
-    root /usr/share/nginx/html;
-    index index.html;
-
-    # 前端路由支持
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # 后端 API 代理
-    location /api {
-        proxy_pass http://backend:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-修改 `docker-compose.yml`，挂载证书目录：
-
-```yaml
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: blog-frontend
-    restart: always
-    depends_on:
-      - backend
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-    networks:
-      - blog-network
-```
-
-#### 步骤 E：重新构建和启动
-
-```bash
-docker-compose up -d --build frontend
-```
-
-现在你的博客已经支持 HTTPS 访问了！
-
-#### 步骤 F：自动续期证书
-
-Let's Encrypt 证书 90 天有效，需要定期续期。
-
-**重要提示**：由于前端容器占用了 80 端口，`certbot renew --nginx` 命令会失败。我们需要使用 `--webroot` 或 `--standalone` 模式，并在续期时临时停止前端容器。
-
-**推荐方法 1：使用 webroot 插件（推荐）**
-
-修改 Nginx 配置以支持 webroot 验证：
-
-```bash
-# 编辑前端 Nginx 配置
-nano frontend/nginx.conf
-```
-
-在 server 块中添加：
-
-```nginx
-    # Let's Encrypt 验证目录
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-```
-
-修改 `docker-compose.yml`，挂载 certbot webroot 目录：
-
-```yaml
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: blog-frontend
-    restart: always
-    depends_on:
-      - backend
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/www/certbot:/var/www/certbot:ro
-    networks:
-      - blog-network
-```
-
-重新构建前端容器：
-
-```bash
-docker-compose up -d --build frontend
-```
-
-创建续期脚本：
-
-```bash
-sudo nano /usr/local/bin/renew-cert.sh
-```
-
-添加以下内容：
-
-```bash
-#!/bin/bash
-# SSL 证书续期脚本
-
-# 创建 webroot 目录
-mkdir -p /var/www/certbot
-
-# 使用 webroot 模式续期证书
-certbot renew --webroot -w /var/www/certbot --quiet
-
-# 重新加载前端 Nginx 配置
-docker-compose restart frontend
-
-echo "证书续期完成: $(date)"
-```
-
-添加执行权限和定时任务：
-
-```bash
-# 添加执行权限
-sudo chmod +x /usr/local/bin/renew-cert.sh
-
-# 添加定时任务（每天凌晨 2 点检查并续期）
-sudo crontab -e
-
-# 添加以下行
-0 2 * * * /usr/local/bin/renew-cert.sh >> /var/log/certbot-renew.log 2>&1
-```
-
-**推荐方法 2：临时停止容器续期**
-
-创建续期脚本：
-
-```bash
-sudo nano /usr/local/bin/renew-cert-standalone.sh
-```
-
-添加以下内容：
-
-```bash
-#!/bin/bash
-# SSL 证书续期脚本（standalone 模式）
-
-cd /path/to/blog-project  # 修改为你的项目路径
-
-# 停止前端容器释放 80 端口
-docker-compose stop frontend
-
-# 使用 standalone 模式续期证书
-certbot renew --standalone --quiet
-
-# 重新启动前端容器
-docker-compose start frontend
-
-echo "证书续期完成: $(date)"
-```
-
-添加执行权限和定时任务：
-
-```bash
-# 添加执行权限
-sudo chmod +x /usr/local/bin/renew-cert-standalone.sh
-
-# 添加定时任务（每天凌晨 2 点检查并续期）
-sudo crontab -e
-
-# 添加以下行
-0 2 * * * /usr/local/bin/renew-cert-standalone.sh >> /var/log/certbot-renew.log 2>&1
-```
-
-**测试续期**：
-
-```bash
-# 测试 webroot 模式（方法 1）
-sudo certbot renew --webroot -w /var/www/certbot --dry-run
-
-# 或测试 standalone 模式（方法 2）
-docker-compose stop frontend
-sudo certbot renew --standalone --dry-run
-docker-compose start frontend
-```
-
-### 3. 定期备份数据库
+### 2. 定期备份数据库
 
 设置定期备份可以防止数据丢失：
 
@@ -689,7 +769,146 @@ USE blog;
 SHOW TABLES;
 ```
 
-### 问题 6：内存不足
+### 问题 6：头像显示 404 (GET /uploads/...)
+
+**症状**：
+- 上传头像成功，数据库中有记录
+- 但浏览器访问 `/uploads/...` 返回 404
+
+**根本原因**：
+- 后端通过 WebMvc 映射 `/uploads/**` 为静态资源
+- 系统 Nginx 未将 `/uploads/**` 反代到后端，导致 Nginx 找不到文件
+
+**解决方法**：
+
+1. 检查系统 Nginx 配置中是否有 `/uploads/` 反代配置：
+
+```bash
+sudo cat /etc/nginx/sites-available/blog | grep -A 10 "uploads"
+```
+
+应该看到类似：
+
+```nginx
+location ^~ /uploads/ {
+    proxy_pass http://127.0.0.1:8080;
+    # ...
+}
+```
+
+2. 如果没有，编辑配置文件添加：
+
+```bash
+sudo nano /etc/nginx/sites-available/blog
+```
+
+在 HTTPS server 块中添加：
+
+```nginx
+    # 上传文件代理到后端（避免头像 404）
+    location ^~ /uploads/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # 可选：添加缓存头
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+    }
+```
+
+3. 测试并重载 Nginx：
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+4. 验证上传目录挂载：
+
+```bash
+# 检查宿主机上传目录
+ls -la data/uploads
+
+# 检查容器内上传目录
+docker exec blog-backend ls -la /app/uploads
+```
+
+### 问题 7：CORS 错误 (403 Invalid CORS request)
+
+**症状**：
+- 线上域名发起的头像上传 POST/PUT 报 403 Invalid CORS request
+- 浏览器控制台显示 CORS 策略阻止
+
+**根本原因**：
+- WebConfig 仅放行 `http://localhost:3000`（本地开发）
+- 生产环境域名未加入 `allowedOrigins`
+
+**解决方法**：
+
+**最佳方案：生产环境使用同源（推荐）**
+
+前端生产环境应该使用相对路径 `/api`，这样请求与页面同源，不会触发 CORS：
+
+```javascript
+// 前端代码中
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? '/api'  // 生产环境：同源，不触发 CORS
+  : 'http://localhost:8080/api';  // 开发环境：跨域，需要 CORS
+```
+
+**临时方案：后端放行生产域名**
+
+如果必须跨域访问，检查后端配置：
+
+1. 检查 SecurityConfig.java 是否启用了 CORS：
+
+```bash
+cat backend/blog/src/main/java/com/lost/blog/config/SecurityConfig.java | grep -A 5 "cors"
+```
+
+应该看到：
+
+```java
+.cors(Customizer.withDefaults())
+```
+
+2. 检查 WebConfig.java 是否包含生产域名：
+
+```bash
+cat backend/blog/src/main/java/com/lost/blog/config/WebConfig.java | grep -A 10 "allowedOrigins"
+```
+
+应该看到：
+
+```java
+.allowedOrigins(
+    "https://myblogsystem.icu",
+    "https://www.myblogsystem.icu",
+    "http://localhost:3000"
+)
+```
+
+3. 如果配置正确但仍有问题，重新构建后端：
+
+```bash
+cd backend/blog
+./mvnw clean package -DskipTests
+cd ../..
+docker-compose up -d --build backend
+```
+
+**本地开发 CORS 配置**：
+
+在本地开发时，前端通过代理或直接跨域访问后端。确保：
+
+1. WebConfig 中已包含 `http://localhost:3000`
+2. SecurityConfig 中启用了 CORS
+3. 前端配置了正确的 API 地址
+
+### 问题 8：内存不足
 
 如果服务器内存较小（2GB），可能会出现内存不足的问题。
 
@@ -710,19 +929,24 @@ ENTRYPOINT ["java", "-Xms256m", "-Xmx512m", "-jar", "app.jar"]
 docker-compose up -d --build backend
 ```
 
-### 问题 7：端口被占用
+### 问题 9：端口被占用
 
 **解决方法**：
 
 ```bash
 # 查看端口占用情况
-sudo netstat -tlnp | grep -E '80|8080|3306'
+sudo netstat -tlnp | grep -E '80|443|8080|8081|3306'
 
-# 如果端口被占用，可以修改 docker-compose.yml 中的端口映射
-# 例如将前端从 80 改为 8000：
-#   ports:
-#     - "8000:80"
+# 如果 80 或 443 被占用，检查是什么进程
+sudo lsof -i :80
+sudo lsof -i :443
+
+# 如果是其他服务占用，停止它或修改 Nginx 配置使用其他端口
 ```
+
+**注意**：
+- 80 和 443 端口应该由系统 Nginx 占用，这是正常的
+- 8080、8081、3306 应该只在 127.0.0.1 上监听，不在 0.0.0.0 上监听
 
 ## 📊 性能监控与优化
 
@@ -732,25 +956,16 @@ sudo netstat -tlnp | grep -E '80|8080|3306'
 
 ### 1. 使用域名访问
 
-购买域名并配置 DNS 解析，然后配置 HTTPS，提供更好的用户体验。
+- ✅ 必须使用域名（HTTPS 证书需要域名）
+- ✅ 配置 DNS A 记录指向服务器 IP
+- ✅ 域名、DNS、Nginx server_name、证书 CN/SAN 保持一致
+- ❌ 禁止用 IP 访问 HTTPS（会出现 ERR_CERT_COMMON_NAME_INVALID 错误）
 
 ### 2. 配置 CDN
 
 如果你的博客有大量静态资源，可以使用 CDN 加速访问。
 
-### 3. 配置反向代理缓存
-
-在 Nginx 配置中添加缓存可以提升性能：
-
-```nginx
-# 在 frontend/nginx.conf 中添加
-location ~* \.(jpg|jpeg|png|gif|ico|css|js)$ {
-    expires 1y;
-    add_header Cache-Control "public, immutable";
-}
-```
-
-### 4. 定期更新系统和 Docker
+### 3. 定期更新系统和 Docker
 
 ```bash
 # 更新系统
@@ -769,12 +984,22 @@ docker-compose up -d
 按照本指南，你已经成功使用 Docker 将博客系统部署到服务器上了！
 
 **完成的工作**：
+- ✅ 配置了统一的部署架构（系统 Nginx 作为唯一公网入口）
 - ✅ 安装了 Docker 和 Docker Compose
 - ✅ 配置了环境变量和密钥
-- ✅ 构建并启动了所有服务
+- ✅ 构建并启动了所有容器服务
+- ✅ 配置了系统 Nginx（前端、后端 API、上传文件反代）
 - ✅ 配置了防火墙允许外部访问
-- ✅ （可选）配置了 HTTPS 加密和自动续期
-- ✅ 设置了数据库备份
+- ✅ 获取并配置了 HTTPS 证书（certbot + nginx 插件）
+- ✅ 配置了证书自动续期（systemd timer + deploy hook）
+- ✅ 设置了数据库定期备份
+
+**部署架构要点**：
+- 系统 Nginx（80/443）→ 前端容器（127.0.0.1:8081）
+- 系统 Nginx（/api）→ 后端容器（127.0.0.1:8080）
+- 系统 Nginx（/uploads）→ 后端容器（127.0.0.1:8080）
+- MySQL 容器（127.0.0.1:3306）仅本机访问
+- 上传文件持久化到宿主机 ./data/uploads
 
 **后续维护**：
 - 查看 [日常维护指南](./MAINTENANCE.md) 了解如何进行日常运维操作
@@ -782,11 +1007,14 @@ docker-compose up -d
 - 定期备份数据库
 - 定期更新系统和应用
 - 关注服务器资源使用情况
+- 监控证书续期日志
 
 **重要提醒**：
 - 修改环境变量或配置文件后，需要使用 `docker-compose up -d --build` 重新构建容器
-- SSL 证书需要定期续期，已配置自动续期脚本
+- SSL 证书由 systemd timer 自动续期，不需要手动干预
 - 生产环境应将数据库表管理模式设置为 `validate`
+- 所有容器端口仅绑定 127.0.0.1，不直接暴露到公网
+- 必须使用域名访问 HTTPS，禁止用 IP 访问
 
 如果遇到问题，请参考"常见问题排查"章节，或查看容器日志获取详细错误信息。
 
