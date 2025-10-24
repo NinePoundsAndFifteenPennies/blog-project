@@ -10,18 +10,22 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 配置静态资源映射，使得上传的文件可以通过URL访问
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:uploads/");
     }
 
-    // 新增CORS全局配置
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**") // 对所有API路径生效
-                .allowedOrigins("http://localhost:3000") // 允许前端开发服务器的源
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // 允许的方法
-                .allowedHeaders("*") // 允许所有请求头
-                .allowCredentials(true); // 允许携带凭证
+        registry.addMapping("/**")
+                // 关键：加入你的线上域名（可按需加 www）
+                .allowedOrigins(
+                        "https://myblogsystem.icu",
+                        "https://www.myblogsystem.icu",
+                        "http://localhost:3000"
+                )
+                .allowedMethods("GET","POST","PUT","PATCH","DELETE","OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
     }
 }
