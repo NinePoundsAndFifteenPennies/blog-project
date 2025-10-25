@@ -69,6 +69,66 @@
 ```
 3. 前端服务运行在 `http://localhost:5173`
 
+## 生产环境部署
+
+系统已支持使用 Docker 一键部署到生产服务器。
+
+**部署文档**：
+- **[Docker部署指南](./docs/deployment/DOCKER.md)** - 完整的 Docker 部署教程
+- **[日常维护指南](./docs/deployment/MAINTENANCE.md)** - 部署后的日常运维操作
+
+
+**快速部署**：
+```bash
+# 1. 克隆项目
+git clone https://github.com/NinePoundsAndFifteenPennies/blog-project.git 
+cd blog-project
+
+# 2. 配置环境变量
+cp .env.docker.example .env
+nano .env  # 修改数据库密码、JWT密钥等
+
+# 3. 构建后端
+cd backend/blog
+./mvnw clean package -DskipTests
+cd ../..
+
+# 4. 启动所有服务
+docker-compose up -d
+
+# 5. 查看日志
+docker-compose logs -f
+```
+
+## 本地开发注意事项
+
+为了方便在本机进行快速开发和测试，项目中存在一些简化配置，**这些配置不应用于生产环境**：
+
+1. **数据库自动更新**：配置了 `spring.jpa.hibernate.ddl-auto=update`，生产环境应改为 `validate` 或使用专业的数据库迁移工具
+
+2. **JWT 密钥设置**：JWT密钥硬编码在 `application.properties` 中，生产环境必须通过环境变量注入
+
+3. **简化的安全权限**：文章相关的GET请求统一设置为公开访问，复杂场景需要更细粒度的权限控制
+
+## 文档导航
+
+- **[架构说明](docs/ARCHITECTURE.md)** - 项目架构、代码结构、设计模式
+- **[API 文档](docs/API.md)** - 完整的 API 接口文档
+- **[Docker部署指南](docs/deployment/DOCKER.md)** - Docker 部署详细步骤
+- **[日常维护指南](docs/deployment/MAINTENANCE.md)** - 运维操作手册
+- **[前端README](frontend/README.md)** - 前端项目说明和开发指南
+
+
+
+## 项目进度
+
+**已完成**:
+- 用户认证系统（注册、登录、JWT、自动刷新）
+- 文章 CRUD 与权限控制
+- 增强的 Markdown 编辑器
+- 头像上传与管理系统
+- 文章点赞功能
+- 评论功能（CRUD、权限控制、级联删除）
 - 评论点赞功能
 - 子评论（回复）及其点赞功能
 
