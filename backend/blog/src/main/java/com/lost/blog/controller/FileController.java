@@ -32,7 +32,7 @@ public class FileController {
         this.fileService = fileService;
     }
 
-    @PostMapping(value = "/upload/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/upload/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "上传头像", description = "上传用户头像文件（需登录）",
                security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
@@ -65,7 +65,7 @@ public class FileController {
         }
     }
 
-    @PutMapping(value = "/update/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/update/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "更新头像", description = "更新用户头像文件（需登录，会删除旧头像）",
                security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses(value = {
