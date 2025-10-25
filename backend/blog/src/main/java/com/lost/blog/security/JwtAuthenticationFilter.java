@@ -31,11 +31,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
-        // 跳过 Swagger UI 和 OpenAPI 文档相关的路径
-        return path.startsWith("/swagger-ui") ||
+        boolean shouldSkip = path.startsWith("/swagger-ui") ||
                path.startsWith("/v3/api-docs") ||
                path.startsWith("/swagger-resources") ||
-               path.startsWith("/webjars");
+               path.startsWith("/webjars") ||
+               path.equals("/favicon.ico");
+        
+        if (shouldSkip) {
+            logger.debug("Skipping JWT filter for path: {}", path);
+        }
+        
+        return shouldSkip;
     }
 
     @Override

@@ -8,12 +8,12 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.http.HttpMethod; // 导入 HttpMethod
 
 @Configuration
@@ -36,20 +36,21 @@ public class SecurityConfig {
     }
 
     @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        // 完全忽略 Swagger 相关路径，不经过 Spring Security 过滤器链
-        return (web) -> web.ignoring()
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", 
-                                "/swagger-resources/**", "/webjars/**");
-    }
-
-    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // --- 权限规则调整 ---
+                        // 完全放行 Swagger 相关路径（使用 permitAll）
+                        .requestMatchers(
+                                new AntPathRequestMatcher("/swagger-ui.html"),
+                                new AntPathRequestMatcher("/swagger-ui/**"),
+                                new AntPathRequestMatcher("/v3/api-docs/**"),
+                                new AntPathRequestMatcher("/swagger-resources/**"),
+                                new AntPathRequestMatcher("/webjars/**"),
+                                new AntPathRequestMatcher("/favicon.ico")
+                        ).permitAll()
                         // 允许对登录和注册接口的匿名访问
                         .requestMatchers("/api/users/register", "/api/users/login").permitAll()
                         // 允许对所有文章相关的GET请求的匿名访问（列表和详情）
