@@ -131,6 +131,10 @@ mvn spring-boot:run
 
 启动成功后，在浏览器中访问：
 ```
+http://localhost:8080/swagger-ui/index.html
+```
+或
+```
 http://localhost:8080/swagger-ui.html
 ```
 
@@ -138,6 +142,8 @@ http://localhost:8080/swagger-ui.html
 - 5个API分组（用户管理、文章管理、评论管理、点赞管理、文件管理）
 - 每个接口的详细描述
 - 可以直接在UI中测试接口
+
+**如果遇到 403 错误**：请查看文档末尾的"遇到的问题和解决方案"部分。
 
 ### 4. 测试认证功能
 
@@ -188,6 +194,18 @@ http://localhost:8080/swagger-ui.html
 - 对所有 `@AuthenticationPrincipal UserDetails` 参数添加 `@Parameter(hidden = true)` 注解
 - 这样 Swagger UI 中不会显示这些由 Spring Security 自动注入的参数
 
+### 问题4：访问 /v3/api-docs 返回 403 错误
+
+**现象**：后端正常运行，但访问 Swagger UI 时显示 "Fetch error response status is 403 /v3/api-docs"
+
+**原因**：Spring Security 的请求匹配器顺序问题，Swagger 路径没有被正确放行
+
+**解决方案**：
+1. 将 Swagger 相关的路径匹配器移到 SecurityConfig 的最前面，确保优先匹配
+2. 添加额外的 Swagger 资源路径：`/swagger-resources/**`, `/webjars/**`
+3. 更新 WebConfig 的 CORS 配置，使用 `allowedOriginPatterns("*")` 代替 `allowedOrigins`
+4. 重启应用后问题解决
+
 ## 技术亮点
 
 1. **现代化选择**：使用 SpringDoc 而非已停止维护的 Springfox
@@ -196,6 +214,7 @@ http://localhost:8080/swagger-ui.html
 4. **用户友好**：创建了详细的使用文档
 5. **最小改动**：只添加必要的功能，不影响现有代码
 6. **安全验证**：通过 CodeQL 扫描，无安全漏洞
+7. **问题修复**：快速解决了 403 权限问题
 
 ## 预期效果
 

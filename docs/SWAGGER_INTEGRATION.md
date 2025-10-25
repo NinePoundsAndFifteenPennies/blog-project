@@ -251,6 +251,55 @@ SpringDoc 会自动扫描所有 `@RestController` 和 `@RequestMapping` 注解�
 - [OpenAPI 3.0 规范](https://swagger.io/specification/)
 - [Swagger UI 使用指南](https://swagger.io/tools/swagger-ui/)
 
+## 故障排除
+
+### 问题：访问 /v3/api-docs 返回 403 错误
+
+**症状**：浏览器显示 "Fetch error response status is 403 /v3/api-docs"
+
+**原因**：Spring Security 的请求匹配器顺序问题，或者 CORS 配置不正确
+
+**解决方案**：
+
+1. **确保 Swagger 路径匹配器在最前面**：在 `SecurityConfig.java` 中，将 Swagger 相关的路径放在其他规则之前：
+
+```java
+.authorizeHttpRequests(auth -> auth
+    // Swagger路径必须放在最前面
+    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", 
+                     "/swagger-resources/**", "/webjars/**").permitAll()
+    // 其他路径...
+    .requestMatchers("/api/users/register", "/api/users/login").permitAll()
+    // ...
+)
+```
+
+2. **更新 CORS 配置**：在 `WebConfig.java` 中使用 `allowedOriginPatterns` 而不是 `allowedOrigins`：
+
+```java
+@Override
+public void addCorsMappings(CorsRegistry registry) {
+    registry.addMapping("/**")
+            .allowedOriginPatterns("*") // 允许所有来源
+            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            .allowedHeaders("*")
+            .allowCredentials(true);
+}
+```
+
+3. **重启应用**：修改配置后需要重新编译和启动应用
+
+### 问题：Swagger UI 页面显示空白
+
+**可能原因**：
+- SpringDoc 依赖未正确下载
+- 静态资源路径配置问题
+
+**解决方案**：
+1. 清理并重新构建项目：`mvn clean install`
+2. 确认依赖已下载：检查 `~/.m2/repository/org/springdoc/`
+3. 尝试访问不同的路径：`/swagger-ui/index.html` 或 `/swagger-ui.html`
+
 ## 总结
 
 通过以上改动，博客系统现在已经集成了完整的 Swagger/OpenAPI 文档支持。开发者和 API 使用者可以通过友好的 Web 界面查看和测试所有 API 接口，大大提高了开发效率和 API 的可用性。
