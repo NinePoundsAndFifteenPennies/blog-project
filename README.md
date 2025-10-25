@@ -58,7 +58,7 @@
 
 启动后端服务后，可以通过以下方式访问交互式 API 文档：
 
-- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
+- **Swagger UI**: `http://localhost:8080/swagger-ui/index.html` 或 `http://localhost:8080/swagger-ui.html`
 - **OpenAPI JSON**: `http://localhost:8080/v3/api-docs`
 - **OpenAPI YAML**: `http://localhost:8080/v3/api-docs.yaml`
 
