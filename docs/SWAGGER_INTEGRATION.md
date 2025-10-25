@@ -257,24 +257,37 @@ SpringDoc 会自动扫描所有 `@RestController` 和 `@RequestMapping` 注解�
 
 **症状**：浏览器显示 "Fetch error response status is 403 /v3/api-docs"
 
-**原因**：Spring Security 的请求匹配器顺序问题，或者 CORS 配置不正确
+**原因**：Spring Security 拦截了 Swagger 相关的请求
 
-**解决方案**：
+**最佳解决方案**（已实现）：
 
-1. **确保 Swagger 路径匹配器在最前面**：在 `SecurityConfig.java` 中，将 Swagger 相关的路径放在其他规则之前：
+1. **完全绕过 Spring Security**：在 `SecurityConfig.java` 中添加 `WebSecurityCustomizer` bean：
 
 ```java
-.authorizeHttpRequests(auth -> auth
-    // Swagger路径必须放在最前面
-    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", 
-                     "/swagger-resources/**", "/webjars/**").permitAll()
-    // 其他路径...
-    .requestMatchers("/api/users/register", "/api/users/login").permitAll()
-    // ...
-)
+@Bean
+public WebSecurityCustomizer webSecurityCustomizer() {
+    // 完全忽略 Swagger 相关路径，不经过 Spring Security 过滤器链
+    return (web) -> web.ignoring()
+            .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", 
+                            "/swagger-resources/**", "/webjars/**");
+}
 ```
 
-2. **更新 CORS 配置**：在 `WebConfig.java` 中使用 `allowedOriginPatterns` 而不是 `allowedOrigins`：
+2. **在 JWT 过滤器中跳过 Swagger 路径**：在 `JwtAuthenticationFilter.java` 中重写 `shouldNotFilter` 方法：
+
+```java
+@Override
+protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+    String path = request.getRequestURI();
+    // 跳过 Swagger UI 和 OpenAPI 文档相关的路径
+    return path.startsWith("/swagger-ui") ||
+           path.startsWith("/v3/api-docs") ||
+           path.startsWith("/swagger-resources") ||
+           path.startsWith("/webjars");
+}
+```
+
+3. **更新 CORS 配置**：在 `WebConfig.java` 中使用 `allowedOriginPatterns` 而不是 `allowedOrigins`：
 
 ```java
 @Override
@@ -287,7 +300,18 @@ public void addCorsMappings(CorsRegistry registry) {
 }
 ```
 
-3. **重启应用**：修改配置后需要重新编译和启动应用
+4. **重启应用**：修改配置后需要重新编译和启动应用：
+
+```bash
+cd backend/blog
+mvn clean install
+mvn spring-boot:run
+```
+
+**说明**：
+- `WebSecurityCustomizer` 使 Swagger 路径完全绕过 Spring Security 过滤器链
+- `shouldNotFilter` 确保即使有其他过滤器也不会处理 Swagger 请求
+- 这是处理 Swagger 403 错误最可靠的方法
 
 ### 问题：Swagger UI 页面显示空白
 

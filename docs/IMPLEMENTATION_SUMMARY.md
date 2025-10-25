@@ -194,17 +194,42 @@ http://localhost:8080/swagger-ui.html
 - 对所有 `@AuthenticationPrincipal UserDetails` 参数添加 `@Parameter(hidden = true)` 注解
 - 这样 Swagger UI 中不会显示这些由 Spring Security 自动注入的参数
 
-### 问题4：访问 /v3/api-docs 返回 403 错误
+### 问题4：访问 /v3/api-docs 返回 403 错误（持续性问题）
 
 **现象**：后端正常运行，但访问 Swagger UI 时显示 "Fetch error response status is 403 /v3/api-docs"
 
-**原因**：Spring Security 的请求匹配器顺序问题，Swagger 路径没有被正确放行
+**原因**：Spring Security 拦截了 Swagger 相关的请求，即使使用 `.permitAll()` 也可能因为过滤器链的执行顺序而失败
 
-**解决方案**：
-1. 将 Swagger 相关的路径匹配器移到 SecurityConfig 的最前面，确保优先匹配
-2. 添加额外的 Swagger 资源路径：`/swagger-resources/**`, `/webjars/**`
-3. 更新 WebConfig 的 CORS 配置，使用 `allowedOriginPatterns("*")` 代替 `allowedOrigins`
-4. 重启应用后问题解决
+**最终解决方案**（多次迭代）：
+1. **第一次尝试**：将 Swagger 路径匹配器移到 SecurityConfig 最前面 → 部分用户仍有问题
+2. **第二次尝试**：添加额外的 Swagger 资源路径和更新 CORS 配置 → 仍有用户遇到 403
+3. **最终方案**（已实现）：
+   - 使用 `WebSecurityCustomizer` 完全绕过 Spring Security 过滤器链
+   - 在 `JwtAuthenticationFilter` 中重写 `shouldNotFilter()` 方法跳过 Swagger 路径
+   - 确保 Swagger 请求不经过任何安全过滤器处理
+
+**代码实现**：
+```java
+// SecurityConfig.java
+@Bean
+public WebSecurityCustomizer webSecurityCustomizer() {
+    return (web) -> web.ignoring()
+            .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", 
+                           "/swagger-ui.html", "/swagger-resources/**", "/webjars/**");
+}
+
+// JwtAuthenticationFilter.java
+@Override
+protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+    String path = request.getRequestURI();
+    return path.startsWith("/swagger-ui") ||
+           path.startsWith("/v3/api-docs") ||
+           path.startsWith("/swagger-resources") ||
+           path.startsWith("/webjars");
+}
+```
+
+**效果**：彻底解决 403 错误，Swagger 路径完全不经过安全验证
 
 ## 技术亮点
 
@@ -214,7 +239,8 @@ http://localhost:8080/swagger-ui.html
 4. **用户友好**：创建了详细的使用文档
 5. **最小改动**：只添加必要的功能，不影响现有代码
 6. **安全验证**：通过 CodeQL 扫描，无安全漏洞
-7. **问题修复**：快速解决了 403 权限问题
+7. **问题修复**：经过多次迭代彻底解决了 403 权限问题
+8. **健壮性**：使用双重保护机制确保 Swagger 路径可访问
 
 ## 预期效果
 
