@@ -51,6 +51,16 @@
 
 - **[架构说明](docs/ARCHITECTURE.md)** - 项目架构、代码结构、设计模式
 - **[API 文档](docs/API.md)** - 完整的 API 接口文档
+- **[Swagger 集成说明](docs/SWAGGER_INTEGRATION.md)** - Swagger/OpenAPI 集成指南
+- **[实施总结](docs/IMPLEMENTATION_SUMMARY.md)** - Swagger 集成实施总结
+
+## API 文档访问
+
+启动后端服务后，可以通过以下方式访问交互式 API 文档：
+
+- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
+- **OpenAPI JSON**: `http://localhost:8080/v3/api-docs`
+- **OpenAPI YAML**: `http://localhost:8080/v3/api-docs.yaml`
 
 ## 项目进度
 
@@ -63,6 +73,7 @@
 - 评论功能（CRUD、权限控制、级联删除）
 - 评论点赞功能
 - 子评论（回复）及其点赞功能
+- Swagger/OpenAPI 文档集成
 
 **未来计划**:
 - 文章分类和标签
@@ -81,6 +92,7 @@
 - MySQL 8.0+
 - JWT (io.jsonwebtoken)
 - BCrypt 密码加密
+- SpringDoc OpenAPI 2.2.0 (Swagger)
 
 ### 前端
 - Vue.js 3
