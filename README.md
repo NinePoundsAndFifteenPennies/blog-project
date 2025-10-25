@@ -45,21 +45,12 @@
    npm install
    npm run dev
    ```
-3. 前端服务运行在 `http://localhost:5173`
+3. 前端服务运行在 `http://localhost:3000`
 
 ## 文档导航
 
 - **[架构说明](docs/ARCHITECTURE.md)** - 项目架构、代码结构、设计模式
 - **[API 文档](docs/API.md)** - 完整的 API 接口文档
-- **[开发说明](docs/DEVELOPMENT.md)** - 本地开发、测试、注意事项
-- **[功能特性](docs/features/)** - 各功能模块的详细说明
-  - [编辑器改进](docs/features/EDITOR.md)
-  - [记住我功能](docs/features/REMEMBER_ME.md)
-  - [头像上传](docs/features/AVATAR_UPLOAD.md)
-  - [点赞功能](docs/features/LIKES.md)
-  - [评论功能](docs/features/COMMENTS.md)
-  - [子评论功能](docs/features/SUB_COMMENTS.md) 
-  
 
 ## 项目进度
 

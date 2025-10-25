@@ -71,6 +71,7 @@ frontend/dist/
 .DS_Store
 
 # Cache / Temp
+
 /.cache
 /.parcel-cache
 /.eslintcache
