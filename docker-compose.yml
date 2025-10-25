@@ -12,7 +12,7 @@ services:
       MYSQL_USER: ${DATABASE_USERNAME}
       MYSQL_PASSWORD: ${DATABASE_PASSWORD}
     ports:
-      - "127.0.0.1:3306:3306"
+      - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     networks:
@@ -45,8 +45,9 @@ services:
       # 评论最大嵌套层级（可选，默认为 3）
       COMMENT_MAX_NESTING_LEVEL: ${COMMENT_MAX_NESTING_LEVEL:-3}
     ports:
-      - "127.0.0.1:8080:8080"
+      - "8080:8080"
     volumes:
+      # 上传文件持久化存储
       - ./data/uploads:/app/uploads
     networks:
       - blog-network
@@ -61,7 +62,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "127.0.0.1:8081:80"
+      - "8081:80"  # 使用 8081 端口避免与系统 Nginx 冲突
     networks:
       - blog-network
 

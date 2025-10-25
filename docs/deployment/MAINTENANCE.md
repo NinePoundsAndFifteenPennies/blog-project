@@ -130,6 +130,8 @@ docker-compose logs -f backend | grep "api"
 
 ### 标准更新流程
 
+#### 生产环境更新（使用系统 Nginx 反向代理）
+
 ```bash
 # 1. 进入项目目录
 cd /path/to/blog-project
@@ -142,7 +144,28 @@ cd backend/blog
 ./mvnw clean package -DskipTests
 cd ../..
 
-# 4. 重新构建并启动所有服务
+# 4. 使用生产配置重新构建并启动所有服务
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+# 5. 查看日志确认更新成功
+docker-compose logs -f backend
+```
+
+#### 本地开发环境更新（直接访问容器）
+
+```bash
+# 1. 进入项目目录
+cd /path/to/blog-project
+
+# 2. 拉取最新代码
+git pull origin main
+
+# 3. 重新构建后端（如果修改了后端代码）
+cd backend/blog
+./mvnw clean package -DskipTests
+cd ../..
+
+# 4. 使用基础配置重新构建并启动所有服务
 docker-compose up -d --build
 
 # 5. 查看日志确认更新成功
@@ -152,49 +175,63 @@ docker-compose logs -f backend
 **重要提示**：
 - 使用 `docker-compose up -d --build` 会重新构建镜像并启动容器
 - 如果只修改了环境变量（.env 文件），不需要重新构建，只需要重启即可
+- **生产环境必须使用** `-f docker-compose.yml -f docker-compose.prod.yml` 参数
 
 ### 只更新前端
 
+#### 生产环境
+
 ```bash
-# 拉取最新代码
 git pull origin main
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build frontend
+docker-compose logs -f frontend
+```
 
-# 重新构建并启动前端
+#### 本地开发
+
+```bash
+git pull origin main
 docker-compose up -d --build frontend
-
-# 查看日志
 docker-compose logs -f frontend
 ```
 
 ### 只更新后端
 
-```bash
-# 拉取最新代码
-git pull origin main
+#### 生产环境
 
-# 重新构建后端 JAR 文件
+```bash
+git pull origin main
 cd backend/blog
 ./mvnw clean package -DskipTests
 cd ../..
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build backend
+docker-compose logs -f backend
+```
 
-# 重新构建并启动后端容器
+#### 本地开发
+
+```bash
+git pull origin main
+cd backend/blog
+./mvnw clean package -DskipTests
+cd ../..
 docker-compose up -d --build backend
-
-# 查看日志
 docker-compose logs -f backend
 ```
 
 ### 验证更新是否成功
 
+#### 生产环境（通过域名访问）
+
 ```bash
 # 1. 检查容器状态
 docker-compose ps
 
-# 2. 测试前端访问
-curl http://localhost
+# 2. 测试前端访问（通过域名）
+curl -I https://myblogsystem.icu
 
-# 3. 测试后端 API
-curl http://localhost:8080/api/health
+# 3. 测试后端 API（通过域名）
+curl https://myblogsystem.icu/api/health
 
 # 4. 查看最新日志
 docker-compose logs --tail=50 backend
