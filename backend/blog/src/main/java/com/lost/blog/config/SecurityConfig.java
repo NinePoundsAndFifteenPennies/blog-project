@@ -42,6 +42,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // --- 权限规则调整 ---
+                        // 允许访问Swagger UI和OpenAPI文档（放在最前面以确保优先匹配）
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-resources/**", "/webjars/**").permitAll()
                         // 允许对登录和注册接口的匿名访问
                         .requestMatchers("/api/users/register", "/api/users/login").permitAll()
                         // 允许对所有文章相关的GET请求的匿名访问（列表和详情）
@@ -52,8 +54,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/comments/*/likes").permitAll()
                         // 允许对上传文件（包括头像）的匿名访问
                         .requestMatchers("/uploads/**").permitAll()
-                        // 允许访问Swagger UI和OpenAPI文档
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         // 其他所有请求都需要认证
                         .anyRequest().authenticated()
                 );

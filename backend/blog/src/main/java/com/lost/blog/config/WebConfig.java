@@ -19,7 +19,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**") // 对所有API路径生效
-                .allowedOrigins("http://localhost:3000") // 允许前端开发服务器的源
+                .allowedOriginPatterns("*") // 允许所有来源（包括Swagger UI）
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // 允许的方法
                 .allowedHeaders("*") // 允许所有请求头
                 .allowCredentials(true); // 允许携带凭证
