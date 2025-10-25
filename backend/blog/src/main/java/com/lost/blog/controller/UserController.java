@@ -1,5 +1,11 @@
 package com.lost.blog.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -29,6 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/users")
+@Tag(name = "用户管理", description = "用户注册、登录、认证相关接口")
 public class UserController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
@@ -47,6 +54,11 @@ public class UserController {
     }
 
     @PostMapping("/register")
+    @Operation(summary = "用户注册", description = "创建新用户账号")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "注册成功"),
+            @ApiResponse(responseCode = "400", description = "参数验证失败或用户名已存在")
+    })
     public ResponseEntity<?> registerUser(@Valid @RequestBody UserRegistrationRequest registrationRequest) {
         // 直接调用，如果service抛出异常，会被GlobalExceptionHandler捕获
         userService.registerUser(
@@ -58,6 +70,11 @@ public class UserController {
     }
 
     @PostMapping("/login")
+    @Operation(summary = "用户登录", description = "使用用户名和密码登录，获取JWT Token")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "登录成功"),
+            @ApiResponse(responseCode = "401", description = "用户名或密码错误")
+    })
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -75,7 +92,14 @@ public class UserController {
 
     // -------- 获取当前用户信息 --------
     @GetMapping("/me")
-    public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal UserDetails currentUser) {
+    @Operation(summary = "获取当前用户信息", description = "获取当前登录用户的详细信息", 
+               security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功获取用户信息"),
+            @ApiResponse(responseCode = "401", description = "未登录")
+    })
+    public ResponseEntity<?> getCurrentUser(
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser) {
         if (currentUser == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未登录");
         }
@@ -87,8 +111,15 @@ public class UserController {
 
     // -------- 保存用户头像 --------
     @PostMapping("/me/avatar")
-    public ResponseEntity<?> saveUserAvatar(@AuthenticationPrincipal UserDetails currentUser,
-                                           @Valid @RequestBody AvatarUrlRequest avatarUrlRequest) {
+    @Operation(summary = "更新用户头像", description = "更新当前用户的头像URL",
+               security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "头像更新成功"),
+            @ApiResponse(responseCode = "401", description = "未登录")
+    })
+    public ResponseEntity<?> saveUserAvatar(
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser,
+            @Valid @RequestBody AvatarUrlRequest avatarUrlRequest) {
         if (currentUser == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未登录");
         }
@@ -110,8 +141,15 @@ public class UserController {
 
     // -------- 刷新Token --------
     @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(@AuthenticationPrincipal UserDetails currentUser,
-                                         @RequestBody(required = false) LoginRequest refreshRequest) {
+    @Operation(summary = "刷新Token", description = "刷新当前用户的JWT Token",
+               security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Token刷新成功"),
+            @ApiResponse(responseCode = "401", description = "未登录")
+    })
+    public ResponseEntity<?> refreshToken(
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails currentUser,
+            @RequestBody(required = false) LoginRequest refreshRequest) {
         if (currentUser == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未登录");
         }
