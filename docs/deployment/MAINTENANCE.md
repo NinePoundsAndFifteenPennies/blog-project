@@ -142,15 +142,18 @@ cd backend/blog
 ./mvnw clean package -DskipTests
 cd ../..
 
-# 4. 重新构建并启动所有服务
-docker-compose up -d --build
+# 4. 重新构建并启动所有服务（使用 --no-cache 确保使用新的 JAR 文件）
+docker-compose up -d --build --no-cache backend
+docker-compose up -d --build frontend
 
 # 5. 查看日志确认更新成功
 docker-compose logs -f backend
 ```
 
 **重要提示**：
-- 使用 `docker-compose up -d --build` 会重新构建镜像并启动容器
+- 使用 `--no-cache` 标志可以确保 Docker 不使用缓存的旧层，这对于后端代码更新非常重要，因为 Docker 可能无法检测到 target 目录中 JAR 文件的更改
+- 对于后端更新，**必须使用** `--no-cache` 标志，否则可能会使用旧的 JAR 文件
+- 对于前端更新，通常 `--build` 就足够了，因为前端使用多阶段构建，会在容器内重新构建
 - 如果只修改了环境变量（.env 文件），不需要重新构建，只需要重启即可
 
 ### 只更新前端
@@ -177,8 +180,8 @@ cd backend/blog
 ./mvnw clean package -DskipTests
 cd ../..
 
-# 重新构建并启动后端容器
-docker-compose up -d --build backend
+# 重新构建并启动后端容器（使用 --no-cache 确保使用新的 JAR 文件）
+docker-compose up -d --build --no-cache backend
 
 # 查看日志
 docker-compose logs -f backend
@@ -364,7 +367,7 @@ nano .env
 
 # 将 DDL_AUTO=update 改为 DDL_AUTO=validate
 
-# 重新构建并启动后端（注意：必须使用 --build 参数）
+# 重新构建并启动后端（注意：环境变量修改只需 --build，不需要 --no-cache）
 docker-compose up -d --build backend
 ```
 
@@ -618,8 +621,8 @@ cd backend/blog
 ./mvnw clean package -DskipTests
 cd ../..
 
-# 重新构建并启动后端
-docker-compose up -d --build backend
+# 重新构建并启动后端（使用 --no-cache 确保使用新的 JAR 文件）
+docker-compose up -d --build --no-cache backend
 
 # 查看日志
 docker-compose logs -f backend
@@ -703,6 +706,38 @@ docker exec -i blog-mysql mysql -u root -p你的密码 blog < blog_backup.sql
 ---
 
 ## 🔧 常见问题排查（补充）
+
+### 问题：代码更新后必须删除容器和镜像才能部署
+
+**症状**：
+- 按照更新流程执行 `./mvnw clean package -DskipTests` 和 `docker-compose up -d --build` 后，代码没有更新
+- 必须先执行 `docker-compose down` 并删除镜像，才能成功部署新代码
+
+**原因**：
+- Docker 的层缓存机制可能导致即使重新构建了 JAR 文件，Docker 也会使用旧的缓存层
+- 这是因为 Docker 无法检测到 `target/` 目录中 JAR 文件的变化
+
+**解决方法**：
+
+在更新后端代码时，使用 `--no-cache` 标志：
+
+```bash
+# 重新构建后端 JAR
+cd backend/blog
+./mvnw clean package -DskipTests
+cd ../..
+
+# 重新构建并启动后端（使用 --no-cache 确保使用新的 JAR 文件）
+docker-compose up -d --build --no-cache backend
+
+# 查看日志确认更新成功
+docker-compose logs -f backend
+```
+
+**说明**：
+- `--no-cache` 标志告诉 Docker 不使用缓存的层，从头开始构建镜像
+- 这确保新的 JAR 文件被正确复制到镜像中
+- 只有后端代码更新需要使用 `--no-cache`，环境变量修改不需要
 
 ### 问题：头像上传成功但显示 404
 
