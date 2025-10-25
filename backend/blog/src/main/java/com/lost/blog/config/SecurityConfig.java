@@ -52,6 +52,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/comments/*/likes").permitAll()
                         // 允许对上传文件（包括头像）的匿名访问
                         .requestMatchers("/uploads/**").permitAll()
+                        // 允许访问Swagger UI和OpenAPI文档
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         // 其他所有请求都需要认证
                         .anyRequest().authenticated()
                 );
