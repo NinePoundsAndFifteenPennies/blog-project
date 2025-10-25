@@ -699,3 +699,228 @@ docker exec -i blog-mysql mysql -u root -p你的密码 blog < blog_backup.sql
 
 **文档版本**：1.0  
 **最后更新**：2025-10-12
+
+---
+
+## 🔧 常见问题排查（补充）
+
+### 问题：头像上传成功但显示 404
+
+**症状**：
+- 头像上传成功，数据库中有记录
+- 但浏览器访问 `/uploads/头像文件` 返回 404
+
+**排查步骤**：
+
+1. **检查系统 Nginx 是否配置了 /uploads 反代**
+
+```bash
+# 查看系统 Nginx 配置
+sudo cat /etc/nginx/sites-available/blog | grep -A 10 "uploads"
+```
+
+应该看到：
+
+```nginx
+location ^~ /uploads/ {
+    proxy_pass http://127.0.0.1:8080;
+    # ...
+}
+```
+
+如果没有，参考 [Docker部署指南](./DOCKER.md) 中的"配置系统 Nginx"章节添加。
+
+2. **检查上传目录挂载是否正确**
+
+```bash
+# 检查 docker-compose.yml 配置
+cat docker-compose.yml | grep -A 5 "volumes:"
+
+# 应该看到后端容器有类似配置：
+# volumes:
+#   - ./data/uploads:/app/uploads
+
+# 检查宿主机目录
+ls -la data/uploads
+
+# 检查容器内目录
+docker exec blog-backend ls -la /app/uploads
+```
+
+3. **检查文件权限**
+
+```bash
+# 确保上传目录有正确权限
+chmod 755 data/uploads
+```
+
+4. **重新加载 Nginx 和重启后端**
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+docker-compose restart backend
+```
+
+### 问题：CORS 错误 (403 Invalid CORS request)
+
+**症状**：
+- 前端发起 API 请求时报 403 Invalid CORS request
+- 浏览器控制台显示 CORS 策略阻止
+
+**排查步骤**：
+
+1. **确认前端是否使用了正确的 API 地址**
+
+生产环境应该使用相对路径（同源），不触发 CORS：
+
+```javascript
+// 推荐配置
+const API_BASE_URL = '/api';  // 生产环境：同源
+```
+
+2. **如果必须跨域，检查后端 CORS 配置**
+
+```bash
+# 检查 SecurityConfig.java
+cat backend/blog/src/main/java/com/lost/blog/config/SecurityConfig.java | grep -A 5 "cors"
+
+# 应该看到：
+# .cors(Customizer.withDefaults())
+
+# 检查 WebConfig.java
+cat backend/blog/src/main/java/com/lost/blog/config/WebConfig.java | grep -A 10 "allowedOrigins"
+
+# 应该看到包含你的生产域名：
+# .allowedOrigins(
+#     "https://myblogsystem.icu",
+#     "https://www.myblogsystem.icu",
+#     "http://localhost:3000"
+# )
+```
+
+3. **如果配置有误，修改后重新构建**
+
+```bash
+# 修改 WebConfig.java，添加生产域名
+nano backend/blog/src/main/java/com/lost/blog/config/WebConfig.java
+
+# 重新构建后端
+cd backend/blog
+./mvnw clean package -DskipTests
+cd ../..
+
+# 重新部署后端容器
+docker-compose up -d --build backend
+
+# 查看日志确认启动成功
+docker-compose logs -f backend
+```
+
+### 问题：证书续期失败
+
+**症状**：
+- certbot renew 失败
+- 查看日志发现端口 80 被占用或验证失败
+
+**排查步骤**：
+
+1. **检查续期配置**
+
+```bash
+# 查看续期配置文件
+sudo cat /etc/letsencrypt/renewal/myblogsystem.icu.conf
+
+# 确认 authenticator 为 nginx
+# 应该看到：
+# authenticator = nginx
+```
+
+2. **测试续期流程**
+
+```bash
+# 测试续期（dry-run 模式）
+sudo certbot renew --dry-run
+
+# 查看详细日志
+sudo journalctl -u certbot.service -n 50
+```
+
+3. **如果使用了错误的 authenticator，重新配置证书**
+
+```bash
+# 使用 nginx 插件重新获取证书
+sudo certbot --nginx -d myblogsystem.icu -d www.myblogsystem.icu
+
+# 选择 "2: Renew & replace" 替换现有证书
+```
+
+4. **确认 systemd timer 正在运行**
+
+```bash
+# 查看 timer 状态
+sudo systemctl status certbot.timer
+
+# 如果未运行，启用它
+sudo systemctl enable certbot.timer
+sudo systemctl start certbot.timer
+
+# 查看下次续期时间
+sudo systemctl list-timers | grep certbot
+```
+
+### 问题：Nginx 目录混乱（sites-enable vs sites-enabled）
+
+**症状**：
+- 发现有 `/etc/nginx/sites-enable` 目录（拼错）
+- 不确定应该编辑哪个配置
+
+**解决方法**：
+
+1. **删除拼错的目录**
+
+```bash
+# 检查是否存在拼错的目录
+ls -la /etc/nginx/ | grep sites
+
+# 如果有 sites-enable（少了 d），删除它
+sudo rm -rf /etc/nginx/sites-enable
+```
+
+2. **确认正确的目录结构**
+
+```bash
+# 正确的目录结构应该是：
+# /etc/nginx/sites-available  - 存放配置文件（可编辑）
+# /etc/nginx/sites-enabled     - 存放软链接（不要直接编辑）
+
+# 查看启用的站点
+ls -la /etc/nginx/sites-enabled/
+
+# 应该看到软链接指向 sites-available
+```
+
+3. **编辑配置的正确方式**
+
+```bash
+# 1. 编辑 sites-available 中的文件
+sudo nano /etc/nginx/sites-available/blog
+
+# 2. 创建软链接到 sites-enabled（如果不存在）
+sudo ln -s /etc/nginx/sites-available/blog /etc/nginx/sites-enabled/
+
+# 3. 测试配置
+sudo nginx -t
+
+# 4. 重载 Nginx
+sudo systemctl reload nginx
+```
+
+---
+
+**维护文档结束**
+
+如需更多帮助，请参考：
+- [Docker部署指南](./DOCKER.md) - 完整的部署流程
+- 项目 GitHub Issues - 提交问题或查找已知问题
+- 容器日志 - 使用 `docker-compose logs` 查看详细错误信息
