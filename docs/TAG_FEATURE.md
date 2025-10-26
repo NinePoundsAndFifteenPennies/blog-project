@@ -102,13 +102,13 @@ backend/blog/src/main/java/com/lost/blog/
 
 | 方法 | 路径 | 说明 | 认证 |
 |------|------|------|------|
-| POST | /api/tags | 创建标签 | 否 |
+| POST | /api/tags | 创建标签 | 是 |
 | GET | /api/tags/{id} | 获取标签详情 | 否 |
 | GET | /api/tags/name/{name} | 根据名称获取标签 | 否 |
 | GET | /api/tags | 获取所有标签（分页） | 否 |
 | GET | /api/tags/popular | 获取热门标签 | 否 |
-| PUT | /api/tags/{id} | 更新标签 | 否 |
-| DELETE | /api/tags/{id} | 删除标签 | 否 |
+| PUT | /api/tags/{id} | 更新标签 | 是 |
+| DELETE | /api/tags/{id} | 删除标签 | 是 |
 
 ### 文章接口更新
 
@@ -129,25 +129,28 @@ backend/blog/src/main/java/com/lost/blog/
 使用Postman或curl创建几个标签：
 
 ```bash
-# 创建Java标签
+# 创建Java标签（需要登录）
 curl -X POST http://localhost:8080/api/tags \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
     "name": "Java",
     "description": "Java编程语言相关内容"
   }'
 
-# 创建Spring标签
+# 创建Spring标签（需要登录）
 curl -X POST http://localhost:8080/api/tags \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
     "name": "Spring",
     "description": "Spring框架相关内容"
   }'
 
-# 创建教程标签
+# 创建教程标签（需要登录）
 curl -X POST http://localhost:8080/api/tags \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
     "name": "教程",
     "description": "技术教程类文章"
@@ -240,16 +243,18 @@ curl http://localhost:8080/api/tags/1
 # 根据名称查询标签
 curl http://localhost:8080/api/tags/name/Java
 
-# 更新标签
+# 更新标签（需要登录）
 curl -X PUT http://localhost:8080/api/tags/1 \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
     "name": "Java编程",
     "description": "Java编程语言及相关技术"
   }'
 
-# 删除标签（会自动移除与文章的关联）
-curl -X DELETE http://localhost:8080/api/tags/1
+# 删除标签（需要登录，会自动移除与文章的关联）
+curl -X DELETE http://localhost:8080/api/tags/1 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 ### 测试验证点
@@ -360,8 +365,8 @@ CREATE TABLE post_tags (
 
 ## 常见问题
 
-### Q1: 为什么标签创建不需要认证？
-A: 为了提升用户体验，允许匿名用户查看标签列表。但在生产环境中，建议为标签的创建、更新、删除操作添加认证和权限控制。
+### Q1: 为什么标签创建需要认证？
+A: 为了防止标签滥用和垃圾标签，标签的创建、更新、删除操作需要用户登录。但用户在创建或更新文章时，如果指定的标签不存在，系统会自动创建标签，这样可以平衡安全性和用户体验。
 
 ### Q2: 如何避免标签泛滥？
 A: 可以考虑以下策略：

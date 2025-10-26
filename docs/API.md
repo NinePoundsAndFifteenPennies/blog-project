@@ -1036,8 +1036,11 @@ GET /api/comments/{commentId}/likes
 
 创建一个新的标签。标签可以用于文章分类和管理。
 
+**需要认证。**
+
 ```http
 POST /api/tags
+Authorization: Bearer {token}
 Content-Type: application/json
 ```
 
@@ -1067,6 +1070,7 @@ Content-Type: application/json
 
 **错误响应:**
 - `400 Bad Request` - 标签名称已存在或参数不符合要求
+- `401 Unauthorized` - 未登录或 token 无效
 
 ---
 
@@ -1208,8 +1212,11 @@ GET /api/tags/popular
 
 更新标签的信息。
 
+**需要认证。**
+
 ```http
 PUT /api/tags/{id}
+Authorization: Bearer {token}
 Content-Type: application/json
 ```
 
@@ -1237,6 +1244,7 @@ Content-Type: application/json
 ```
 
 **错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
 - `404 Not Found` - 标签不存在
 - `400 Bad Request` - 标签名称已存在或参数不符合要求
 
@@ -1246,8 +1254,11 @@ Content-Type: application/json
 
 删除指定的标签。删除标签不会删除使用该标签的文章。
 
+**需要认证。**
+
 ```http
 DELETE /api/tags/{id}
+Authorization: Bearer {token}
 ```
 
 **路径参数:**
@@ -1263,6 +1274,7 @@ DELETE /api/tags/{id}
 - 不会影响文章本身
 
 **错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
 - `404 Not Found` - 标签不存在
 
 ---
