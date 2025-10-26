@@ -3,8 +3,10 @@ package com.lost.blog.service;
 import com.lost.blog.dto.PostRequest;
 import com.lost.blog.dto.PostResponse;
 import com.lost.blog.model.Post;
+import com.lost.blog.model.Tag;
 import com.lost.blog.model.User;
 import com.lost.blog.repository.PostRepository;
+import com.lost.blog.repository.TagRepository;
 import com.lost.blog.repository.UserRepository;
 import com.lost.blog.mapper.PostMapper;
 import com.lost.blog.exception.ResourceNotFoundException;
@@ -19,6 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Service
 public class PostServiceImpl implements PostService {
 
@@ -26,6 +31,7 @@ public class PostServiceImpl implements PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final TagRepository tagRepository;
     private final PostMapper postMapper;
     private final com.lost.blog.repository.CommentRepository commentRepository;
     private final com.lost.blog.repository.LikeRepository likeRepository;
@@ -33,11 +39,13 @@ public class PostServiceImpl implements PostService {
     @Autowired
     public PostServiceImpl(PostRepository postRepository,
                            UserRepository userRepository,
+                           TagRepository tagRepository,
                            PostMapper postMapper,
                            com.lost.blog.repository.CommentRepository commentRepository,
                            com.lost.blog.repository.LikeRepository likeRepository) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
+        this.tagRepository = tagRepository;
         this.postMapper = postMapper;
         this.commentRepository = commentRepository;
         this.likeRepository = likeRepository;
@@ -61,6 +69,12 @@ public class PostServiceImpl implements PostService {
         post.setContentType(postRequest.getContentType());
         post.setDraft(postRequest.getDraft() != null ? postRequest.getDraft() : false);
         post.setUser(user);
+
+        // 处理标签
+        if (postRequest.getTags() != null && !postRequest.getTags().isEmpty()) {
+            Set<Tag> tags = processTags(postRequest.getTags());
+            post.setTags(tags);
+        }
 
         Post savedPost = postRepository.save(post);
         logger.info("用户 {} 创建了新文章，ID: {}，是否草稿: {}",
@@ -148,6 +162,12 @@ public class PostServiceImpl implements PostService {
         post.setContentType(postRequest.getContentType());
         post.setDraft(willBeDraft);
 
+        // 更新标签
+        if (postRequest.getTags() != null) {
+            Set<Tag> tags = processTags(postRequest.getTags());
+            post.setTags(tags);
+        }
+
         Post updatedPost = postRepository.save(post);
 
         // 记录状态变更
@@ -189,5 +209,35 @@ public class PostServiceImpl implements PostService {
         postRepository.delete(post);
         logger.info("用户 {} 删除了文章，ID: {}，标题: {}",
                 currentUser.getUsername(), id, post.getTitle());
+    }
+
+    /**
+     * 处理标签：查找已存在的标签或创建新标签
+     */
+    private Set<Tag> processTags(Set<String> tagNames) {
+        Set<Tag> tags = new HashSet<>();
+        
+        if (tagNames == null || tagNames.isEmpty()) {
+            return tags;
+        }
+
+        for (String tagName : tagNames) {
+            // 去除首尾空格
+            String trimmedName = tagName.trim();
+            if (trimmedName.isEmpty()) {
+                continue;
+            }
+
+            // 查找或创建标签
+            Tag tag = tagRepository.findByName(trimmedName)
+                    .orElseGet(() -> {
+                        Tag newTag = new Tag();
+                        newTag.setName(trimmedName);
+                        return tagRepository.save(newTag);
+                    });
+            tags.add(tag);
+        }
+
+        return tags;
     }
 }

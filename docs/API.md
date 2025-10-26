@@ -1030,6 +1030,321 @@ GET /api/comments/{commentId}/likes
 
 ---
 
+## 标签相关接口
+
+### 创建标签
+
+创建一个新的标签。标签可以用于文章分类和管理。
+
+**需要认证。**
+
+```http
+POST /api/tags
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体:**
+```json
+{
+  "name": "Java",
+  "description": "Java编程语言相关内容"
+}
+```
+
+**字段说明:**
+- `name` (String, 必填): 标签名称，长度1-50字符，必须唯一
+- `description` (String, 可选): 标签描述，长度不超过200字符
+
+**成功响应:** `201 Created`
+```json
+{
+  "id": 1,
+  "name": "Java",
+  "description": "Java编程语言相关内容",
+  "postCount": 0,
+  "createdAt": "2025-10-26T10:00:00",
+  "updatedAt": null
+}
+```
+
+**错误响应:**
+- `400 Bad Request` - 标签名称已存在或参数不符合要求
+- `401 Unauthorized` - 未登录或 token 无效
+
+---
+
+### 获取标签详情
+
+根据ID获取标签详细信息。
+
+```http
+GET /api/tags/{id}
+```
+
+**路径参数:**
+- `id`: 标签ID
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 1,
+  "name": "Java",
+  "description": "Java编程语言相关内容",
+  "postCount": 5,
+  "createdAt": "2025-10-26T10:00:00",
+  "updatedAt": null
+}
+```
+
+**错误响应:**
+- `404 Not Found` - 标签不存在
+
+---
+
+### 根据名称获取标签
+
+根据标签名称获取标签详细信息。
+
+```http
+GET /api/tags/name/{name}
+```
+
+**路径参数:**
+- `name`: 标签名称
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 1,
+  "name": "Java",
+  "description": "Java编程语言相关内容",
+  "postCount": 5,
+  "createdAt": "2025-10-26T10:00:00",
+  "updatedAt": null
+}
+```
+
+**错误响应:**
+- `404 Not Found` - 标签不存在
+
+---
+
+### 获取所有标签
+
+获取所有标签列表，支持分页。
+
+```http
+GET /api/tags?page=0&size=20
+```
+
+**查询参数:**
+- `page` (可选): 页码，从0开始，默认0
+- `size` (可选): 每页数量，默认20
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "name": "Java",
+      "description": "Java编程语言相关内容",
+      "postCount": 5,
+      "createdAt": "2025-10-26T10:00:00",
+      "updatedAt": null
+    },
+    {
+      "id": 2,
+      "name": "Spring",
+      "description": "Spring框架相关内容",
+      "postCount": 3,
+      "createdAt": "2025-10-26T11:00:00",
+      "updatedAt": null
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 20
+  },
+  "totalElements": 2,
+  "totalPages": 1,
+  "last": true,
+  "first": true
+}
+```
+
+---
+
+### 获取热门标签
+
+获取按文章数量排序的热门标签列表。
+
+```http
+GET /api/tags/popular
+```
+
+**成功响应:** `200 OK`
+```json
+[
+  {
+    "id": 1,
+    "name": "Java",
+    "description": "Java编程语言相关内容",
+    "postCount": 10,
+    "createdAt": "2025-10-26T10:00:00",
+    "updatedAt": null
+  },
+  {
+    "id": 2,
+    "name": "Spring",
+    "description": "Spring框架相关内容",
+    "postCount": 8,
+    "createdAt": "2025-10-26T11:00:00",
+    "updatedAt": null
+  }
+]
+```
+
+---
+
+### 更新标签
+
+更新标签的信息。
+
+**需要认证。**
+
+```http
+PUT /api/tags/{id}
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**路径参数:**
+- `id`: 标签ID
+
+**请求体:**
+```json
+{
+  "name": "Java Programming",
+  "description": "Java编程语言及相关技术"
+}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 1,
+  "name": "Java Programming",
+  "description": "Java编程语言及相关技术",
+  "postCount": 5,
+  "createdAt": "2025-10-26T10:00:00",
+  "updatedAt": "2025-10-26T15:00:00"
+}
+```
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `404 Not Found` - 标签不存在
+- `400 Bad Request` - 标签名称已存在或参数不符合要求
+
+---
+
+### 删除标签
+
+删除指定的标签。删除标签不会删除使用该标签的文章。
+
+**需要认证。**
+
+```http
+DELETE /api/tags/{id}
+Authorization: Bearer {token}
+```
+
+**路径参数:**
+- `id`: 标签ID
+
+**成功响应:** `200 OK`
+```json
+"标签删除成功"
+```
+
+**说明:**
+- 删除标签会自动从所有文章中移除该标签的关联关系
+- 不会影响文章本身
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `404 Not Found` - 标签不存在
+
+---
+
+### 文章中使用标签
+
+创建或更新文章时，可以通过 `tags` 字段关联标签。
+
+**创建带标签的文章示例:**
+```http
+POST /api/posts
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体:**
+```json
+{
+  "title": "Spring Boot入门教程",
+  "content": "这是一篇关于Spring Boot的教程...",
+  "contentType": "MARKDOWN",
+  "draft": false,
+  "tags": ["Java", "Spring", "教程"]
+}
+```
+
+**说明:**
+- `tags` 字段为可选字符串数组
+- 如果标签不存在，系统会自动创建新标签
+- 如果标签已存在，会直接关联已有标签
+- 更新文章时也可以修改标签列表
+
+**文章响应示例（包含标签）:**
+```json
+{
+  "id": 1,
+  "title": "Spring Boot入门教程",
+  "content": "这是一篇关于Spring Boot的教程...",
+  "authorUsername": "testuser",
+  "authorAvatarUrl": "/uploads/1/avatars/abc.jpg",
+  "createdAt": "2025-10-26T10:00:00",
+  "updatedAt": null,
+  "publishedAt": "2025-10-26T10:00:00",
+  "contentType": "MARKDOWN",
+  "draft": false,
+  "likeCount": 0,
+  "isLiked": false,
+  "commentCount": 0,
+  "tags": [
+    {
+      "id": 1,
+      "name": "Java",
+      "description": null
+    },
+    {
+      "id": 2,
+      "name": "Spring",
+      "description": null
+    },
+    {
+      "id": 3,
+      "name": "教程",
+      "description": null
+    }
+  ]
+}
+```
+
+---
+
 ## 错误码说明
 
 | 状态码 | 说明 |
