@@ -1,22 +1,27 @@
 package com.lost.blog.mapper;
 
 import com.lost.blog.dto.PostResponse;
+import com.lost.blog.dto.TagResponse;
 import com.lost.blog.model.Post;
 import com.lost.blog.service.LikeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import java.util.stream.Collectors;
+
 @Component
 public class PostMapper {
 
     private final LikeService likeService;
     private final com.lost.blog.service.CommentService commentService;
+    private final TagMapper tagMapper;
 
     @Autowired
-    public PostMapper(LikeService likeService, com.lost.blog.service.CommentService commentService) {
+    public PostMapper(LikeService likeService, com.lost.blog.service.CommentService commentService, TagMapper tagMapper) {
         this.likeService = likeService;
         this.commentService = commentService;
+        this.tagMapper = tagMapper;
     }
 
     public PostResponse toResponse(Post post) {
@@ -45,6 +50,21 @@ public class PostMapper {
         
         // 添加评论数
         postResponse.setCommentCount(commentService.getCommentCount(post.getId()));
+        
+        // 添加标签信息
+        if (post.getTags() != null && !post.getTags().isEmpty()) {
+            postResponse.setTags(
+                post.getTags().stream()
+                    .map(tag -> {
+                        TagResponse tagResponse = new TagResponse();
+                        tagResponse.setId(tag.getId());
+                        tagResponse.setName(tag.getName());
+                        tagResponse.setDescription(tag.getDescription());
+                        return tagResponse;
+                    })
+                    .collect(Collectors.toList())
+            );
+        }
         
         return postResponse;
     }

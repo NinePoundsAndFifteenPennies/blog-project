@@ -1,6 +1,7 @@
 package com.lost.blog.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import com.lost.blog.model.ContentType;
 
 public class PostResponse {
@@ -17,6 +18,7 @@ public class PostResponse {
     private Long likeCount;  // 点赞数
     private Boolean isLiked;  // 当前用户是否已点赞
     private Long commentCount;  // 评论数
+    private List<TagResponse> tags;  // 文章关联的标签列表
 
     // Getters and Setters
     public Long getId() { return id; }
@@ -57,4 +59,7 @@ public class PostResponse {
 
     public Long getCommentCount() { return commentCount; }
     public void setCommentCount(Long commentCount) { this.commentCount = commentCount; }
+
+    public List<TagResponse> getTags() { return tags; }
+    public void setTags(List<TagResponse> tags) { this.tags = tags; }
 }
