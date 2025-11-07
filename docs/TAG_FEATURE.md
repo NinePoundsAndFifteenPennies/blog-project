@@ -92,9 +92,20 @@ backend/blog/src/main/java/com/lost/blog/
    - 但不会删除相关的文章或标签实体本身
 
 4. **可扩展性**：
-   - 标签实体预留了description字段，可用于标签说明
+   - 标签实体包含丰富的字段：name, description, color, icon, sortOrder
    - Repository层提供了丰富的查询方法，便于后续功能扩展
    - 可以基于Tag模型扩展为更复杂的分类体系
+   - 支持前端样式定制（颜色、图标）和排序控制
+
+## 标签字段说明
+
+| 字段 | 类型 | 必填 | 说明 | 示例 |
+|------|------|------|------|------|
+| name | String | 是 | 标签名称，唯一，1-50字符 | "Java" |
+| description | String | 否 | 标签描述，最多200字符 | "Java编程语言" |
+| color | String | 否 | 标签颜色代码，最多7字符 | "#FF5733" |
+| icon | String | 否 | 标签图标名称，最多50字符 | "fa-java" |
+| sortOrder | Integer | 否 | 排序顺序，数字越小越靠前 | 1 |
 
 ## API 接口说明
 
@@ -135,7 +146,10 @@ curl -X POST http://localhost:8080/api/tags \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
     "name": "Java",
-    "description": "Java编程语言相关内容"
+    "description": "Java编程语言相关内容",
+    "color": "#FF5733",
+    "icon": "fa-java",
+    "sortOrder": 1
   }'
 
 # 创建Spring标签（需要登录）
@@ -144,7 +158,10 @@ curl -X POST http://localhost:8080/api/tags \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
     "name": "Spring",
-    "description": "Spring框架相关内容"
+    "description": "Spring框架相关内容",
+    "color": "#6DB33F",
+    "icon": "fa-leaf",
+    "sortOrder": 2
   }'
 
 # 创建教程标签（需要登录）
@@ -153,7 +170,10 @@ curl -X POST http://localhost:8080/api/tags \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
     "name": "教程",
-    "description": "技术教程类文章"
+    "description": "技术教程类文章",
+    "color": "#3498DB",
+    "icon": "fa-book",
+    "sortOrder": 3
   }'
 ```
 
@@ -308,14 +328,19 @@ public class Category {
 private Category category;
 ```
 
-### 2. 可以添加更多标签属性
+### 2. 标签属性已增强（已实现）
 
+标签实体已包含以下字段用于前端样式定制：
 ```java
-// Tag实体可以扩展：
-private String color;        // 标签颜色
-private String icon;         // 标签图标
-private Integer sortOrder;   // 排序顺序
+private String color;        // 标签颜色（已实现）
+private String icon;         // 标签图标（已实现）
+private Integer sortOrder;   // 排序顺序（已实现）
+```
+
+未来还可以扩展：
+```java
 private Boolean isSystem;    // 是否系统标签
+private Boolean isPublic;    // 是否公开标签
 ```
 
 ### 3. 支持标签统计和分析
@@ -346,9 +371,13 @@ CREATE TABLE tags (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
     description VARCHAR(200),
+    color VARCHAR(7),
+    icon VARCHAR(50),
+    sort_order INT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_name (name)
+    INDEX idx_name (name),
+    INDEX idx_sort_order (sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 创建文章标签关联表

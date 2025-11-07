@@ -22,6 +22,9 @@ public class TagMapper {
         response.setId(tag.getId());
         response.setName(tag.getName());
         response.setDescription(tag.getDescription());
+        response.setColor(tag.getColor());
+        response.setIcon(tag.getIcon());
+        response.setSortOrder(tag.getSortOrder());
         response.setCreatedAt(tag.getCreatedAt());
         response.setUpdatedAt(tag.getUpdatedAt());
         

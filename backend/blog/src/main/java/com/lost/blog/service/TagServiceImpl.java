@@ -41,6 +41,9 @@ public class TagServiceImpl implements TagService {
         Tag tag = new Tag();
         tag.setName(tagRequest.getName());
         tag.setDescription(tagRequest.getDescription());
+        tag.setColor(tagRequest.getColor());
+        tag.setIcon(tagRequest.getIcon());
+        tag.setSortOrder(tagRequest.getSortOrder());
 
         Tag savedTag = tagRepository.save(tag);
         return tagMapper.toResponse(savedTag);
@@ -88,6 +91,9 @@ public class TagServiceImpl implements TagService {
 
         tag.setName(tagRequest.getName());
         tag.setDescription(tagRequest.getDescription());
+        tag.setColor(tagRequest.getColor());
+        tag.setIcon(tagRequest.getIcon());
+        tag.setSortOrder(tagRequest.getSortOrder());
 
         Tag updatedTag = tagRepository.save(tag);
         return tagMapper.toResponse(updatedTag);

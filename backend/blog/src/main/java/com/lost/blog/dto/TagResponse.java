@@ -11,6 +11,9 @@ public class TagResponse {
     private Long id;
     private String name;
     private String description;
+    private String color;  // 标签颜色
+    private String icon;  // 标签图标
+    private Integer sortOrder;  // 排序顺序
     private Long postCount;  // 使用该标签的文章数量
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -38,6 +41,30 @@ public class TagResponse {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
+    }
+
+    public String getIcon() {
+        return icon;
+    }
+
+    public void setIcon(String icon) {
+        this.icon = icon;
+    }
+
+    public Integer getSortOrder() {
+        return sortOrder;
+    }
+
+    public void setSortOrder(Integer sortOrder) {
+        this.sortOrder = sortOrder;
     }
 
     public Long getPostCount() {

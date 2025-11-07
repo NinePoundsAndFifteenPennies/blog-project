@@ -16,6 +16,14 @@ public class TagRequest {
     @Size(max = 200, message = "标签描述长度不能超过200个字符")
     private String description;
 
+    @Size(max = 7, message = "颜色代码长度不能超过7个字符")
+    private String color;  // 标签颜色，格式如 #FF5733
+
+    @Size(max = 50, message = "图标名称长度不能超过50个字符")
+    private String icon;  // 标签图标名称或图标类
+
+    private Integer sortOrder;  // 排序顺序，数字越小越靠前
+
     // Getters and Setters
     public String getName() {
         return name;
@@ -31,5 +39,29 @@ public class TagRequest {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
+    }
+
+    public String getIcon() {
+        return icon;
+    }
+
+    public void setIcon(String icon) {
+        this.icon = icon;
+    }
+
+    public Integer getSortOrder() {
+        return sortOrder;
+    }
+
+    public void setSortOrder(Integer sortOrder) {
+        this.sortOrder = sortOrder;
     }
 }

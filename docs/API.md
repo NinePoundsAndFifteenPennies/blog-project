@@ -1048,13 +1048,19 @@ Content-Type: application/json
 ```json
 {
   "name": "Java",
-  "description": "Java编程语言相关内容"
+  "description": "Java编程语言相关内容",
+  "color": "#FF5733",
+  "icon": "fa-java",
+  "sortOrder": 1
 }
 ```
 
 **字段说明:**
 - `name` (String, 必填): 标签名称，长度1-50字符，必须唯一
 - `description` (String, 可选): 标签描述，长度不超过200字符
+- `color` (String, 可选): 标签颜色代码，格式如 #FF5733，长度不超过7字符
+- `icon` (String, 可选): 标签图标名称或图标类，长度不超过50字符
+- `sortOrder` (Integer, 可选): 排序顺序，数字越小越靠前
 
 **成功响应:** `201 Created`
 ```json
@@ -1062,6 +1068,9 @@ Content-Type: application/json
   "id": 1,
   "name": "Java",
   "description": "Java编程语言相关内容",
+  "color": "#FF5733",
+  "icon": "fa-java",
+  "sortOrder": 1,
   "postCount": 0,
   "createdAt": "2025-10-26T10:00:00",
   "updatedAt": null
@@ -1091,6 +1100,9 @@ GET /api/tags/{id}
   "id": 1,
   "name": "Java",
   "description": "Java编程语言相关内容",
+  "color": "#FF5733",
+  "icon": "fa-java",
+  "sortOrder": 1,
   "postCount": 5,
   "createdAt": "2025-10-26T10:00:00",
   "updatedAt": null
@@ -1119,6 +1131,9 @@ GET /api/tags/name/{name}
   "id": 1,
   "name": "Java",
   "description": "Java编程语言相关内容",
+  "color": "#FF5733",
+  "icon": "fa-java",
+  "sortOrder": 1,
   "postCount": 5,
   "createdAt": "2025-10-26T10:00:00",
   "updatedAt": null
@@ -1150,6 +1165,9 @@ GET /api/tags?page=0&size=20
       "id": 1,
       "name": "Java",
       "description": "Java编程语言相关内容",
+      "color": "#FF5733",
+      "icon": "fa-java",
+      "sortOrder": 1,
       "postCount": 5,
       "createdAt": "2025-10-26T10:00:00",
       "updatedAt": null
@@ -1158,6 +1176,9 @@ GET /api/tags?page=0&size=20
       "id": 2,
       "name": "Spring",
       "description": "Spring框架相关内容",
+      "color": "#6DB33F",
+      "icon": "fa-leaf",
+      "sortOrder": 2,
       "postCount": 3,
       "createdAt": "2025-10-26T11:00:00",
       "updatedAt": null
@@ -1191,6 +1212,9 @@ GET /api/tags/popular
     "id": 1,
     "name": "Java",
     "description": "Java编程语言相关内容",
+    "color": "#FF5733",
+    "icon": "fa-java",
+    "sortOrder": 1,
     "postCount": 10,
     "createdAt": "2025-10-26T10:00:00",
     "updatedAt": null
@@ -1199,6 +1223,9 @@ GET /api/tags/popular
     "id": 2,
     "name": "Spring",
     "description": "Spring框架相关内容",
+    "color": "#6DB33F",
+    "icon": "fa-leaf",
+    "sortOrder": 2,
     "postCount": 8,
     "createdAt": "2025-10-26T11:00:00",
     "updatedAt": null
@@ -1227,7 +1254,10 @@ Content-Type: application/json
 ```json
 {
   "name": "Java Programming",
-  "description": "Java编程语言及相关技术"
+  "description": "Java编程语言及相关技术",
+  "color": "#007396",
+  "icon": "fa-coffee",
+  "sortOrder": 1
 }
 ```
 
@@ -1237,6 +1267,9 @@ Content-Type: application/json
   "id": 1,
   "name": "Java Programming",
   "description": "Java编程语言及相关技术",
+  "color": "#007396",
+  "icon": "fa-coffee",
+  "sortOrder": 1,
   "postCount": 5,
   "createdAt": "2025-10-26T10:00:00",
   "updatedAt": "2025-10-26T15:00:00"

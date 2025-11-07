@@ -30,6 +30,17 @@ public class Tag {
     @Column(length = 200)
     private String description;
 
+    @Size(max = 7, message = "颜色代码长度不能超过7个字符")
+    @Column(length = 7)
+    private String color;  // 标签颜色，格式如 #FF5733
+
+    @Size(max = 50, message = "图标名称长度不能超过50个字符")
+    @Column(length = 50)
+    private String icon;  // 标签图标名称或图标类
+
+    @Column(name = "sort_order")
+    private Integer sortOrder;  // 排序顺序，数字越小越靠前
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -97,5 +108,29 @@ public class Tag {
 
     public void setPosts(Set<Post> posts) {
         this.posts = posts;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
+    }
+
+    public String getIcon() {
+        return icon;
+    }
+
+    public void setIcon(String icon) {
+        this.icon = icon;
+    }
+
+    public Integer getSortOrder() {
+        return sortOrder;
+    }
+
+    public void setSortOrder(Integer sortOrder) {
+        this.sortOrder = sortOrder;
     }
 }
