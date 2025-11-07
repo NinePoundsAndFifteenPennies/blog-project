@@ -35,4 +35,10 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
      */
     @Query("SELECT t FROM Tag t LEFT JOIN t.posts p GROUP BY t.id ORDER BY COUNT(p) DESC")
     List<Tag> findPopularTags();
+    
+    /**
+     * 根据ID查找标签，并加载关联的文章
+     */
+    @Query("SELECT t FROM Tag t LEFT JOIN FETCH t.posts WHERE t.id = :id")
+    Optional<Tag> findByIdWithPosts(Long id);
 }
