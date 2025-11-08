@@ -19,6 +19,7 @@
           v-for="tag in post.tags.slice(0, 3)"
           :key="tag.id"
           :tag="tag"
+          :show-icon="true"
         />
         <span v-if="post.tags.length > 3" class="text-xs text-gray-400">
           +{{ post.tags.length - 3 }}

@@ -51,8 +51,8 @@ export default {
       loading.value = true
       try {
         const response = await getPopularTags()
-        // Show top 10 popular tags
-        tags.value = response.slice(0, 10)
+        // Show top 20 popular tags
+        tags.value = response.slice(0, 20)
       } catch (error) {
         console.error('加载热门标签失败:', error)
         tags.value = []
