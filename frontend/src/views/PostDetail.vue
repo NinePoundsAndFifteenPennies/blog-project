@@ -7,12 +7,12 @@
       <div class="container mx-auto px-4">
         <div class="max-w-4xl mx-auto">
           <div class="animate-pulse space-y-6">
-            <div class="h-10 bg-gradient-to-r from-gray-200 to-gray-300 rounded-xl w-3/4"></div>
-            <div class="h-4 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-1/4"></div>
+            <div class="h-10 bg-gray-200 rounded-xl w-3/4"></div>
+            <div class="h-4 bg-gray-200 rounded w-1/4"></div>
             <div class="space-y-3 mt-8">
-              <div class="h-4 bg-gradient-to-r from-gray-200 to-gray-300 rounded"></div>
-              <div class="h-4 bg-gradient-to-r from-gray-200 to-gray-300 rounded"></div>
-              <div class="h-4 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-5/6"></div>
+              <div class="h-4 bg-gray-200 rounded"></div>
+              <div class="h-4 bg-gray-200 rounded"></div>
+              <div class="h-4 bg-gray-200 rounded w-5/6"></div>
             </div>
           </div>
         </div>
@@ -25,7 +25,7 @@
         <div class="max-w-4xl mx-auto">
           <!-- Article Header -->
           <header class="mb-10 animate-fade-in">
-            <h1 class="text-4xl md:text-6xl font-bold text-gray-900 mb-8 leading-tight bg-gradient-to-r from-gray-900 via-primary-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 class="text-4xl md:text-6xl font-bold text-gray-900 mb-8 leading-tight text-gray-900">
               {{ post.title }}
             </h1>
 
@@ -33,7 +33,7 @@
             <div class="card p-6 md:p-8 flex items-center justify-between flex-wrap gap-4 backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.1s;">
               <div class="flex items-center space-x-4">
                 <div 
-                  class="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg ring-4 ring-white overflow-hidden bg-gradient-primary"
+                  class="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg ring-4 ring-white overflow-hidden bg-primary-600"
                 >
                   <img 
                     v-if="authorAvatarUrl && !avatarLoadError" 
@@ -151,7 +151,7 @@
     <div v-else class="pt-24 pb-12">
       <div class="container mx-auto px-4">
         <div class="max-w-4xl mx-auto text-center animate-fade-in">
-          <div class="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-primary-100 to-purple-100 mb-8 animate-float">
+          <div class="inline-flex items-center justify-center w-32 h-32 rounded-full bg-primary-100 mb-8 animate-float">
             <svg class="w-16 h-16 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
@@ -174,7 +174,7 @@
       <button
           v-if="showBackToTop"
           @click="scrollToTop"
-          class="w-14 h-14 bg-white/90 backdrop-blur-sm rounded-full shadow-glow flex items-center justify-center hover:bg-gradient-primary hover:text-white hover:shadow-glow-lg transition-all duration-300 transform hover:scale-110 group"
+          class="w-14 h-14 bg-white/90 backdrop-blur-sm rounded-full shadow-glow flex items-center justify-center hover:bg-primary-600 hover:text-white hover:shadow-glow-lg transition-all duration-300 transform hover:scale-110 group"
           title="回到顶部"
       >
         <svg class="w-6 h-6 text-gray-700 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">

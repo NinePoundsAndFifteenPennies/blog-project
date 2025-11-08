@@ -1,12 +1,12 @@
 <template>
   <div
-    class="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center p-4"
+    class="min-h-screen bg-gray-50 flex items-center justify-center p-4"
   >
     <div class="text-center">
       <!-- 404 Animation -->
       <div class="mb-8">
         <div
-          class="text-9xl font-bold bg-gradient-primary bg-clip-text text-transparent animate-pulse"
+          class="text-9xl font-bold text-primary-600 animate-pulse"
         >
           404
         </div>

@@ -41,17 +41,10 @@ module.exports = {
           900: "#7c2d12",
         },
       },
-      backgroundImage: {
-        "gradient-primary": "linear-gradient(135deg, #0ea5e9 0%, #8b5cf6 100%)",
-        "gradient-secondary": "linear-gradient(135deg, #d946ef 0%, #f97316 100%)",
-        "gradient-card": "linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)",
-        "gradient-hero": "linear-gradient(135deg, #0ea5e9 0%, #8b5cf6 50%, #d946ef 100%)",
-      },
+
       boxShadow: {
-        card: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-        "card-hover": "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-        glow: "0 0 15px rgba(14, 165, 233, 0.5)",
-        "glow-lg": "0 0 30px rgba(14, 165, 233, 0.6)",
+        card: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+        "card-hover": "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
       },
       animation: {
         "fade-in": "fadeIn 0.5s ease-in-out",

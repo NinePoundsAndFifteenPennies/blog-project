@@ -1,17 +1,13 @@
 <template>
   <div class="card card-hover cursor-pointer group" @click="goToDetail">
-    <!-- 封面图with gradient overlay -->
-    <div class="relative h-52 bg-gradient-to-br from-primary-400 via-purple-500 to-pink-500 overflow-hidden">
-      <!-- Animated gradient overlay -->
-      <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent group-hover:from-black/60 transition-all duration-300"></div>
-      
-      <!-- Decorative shapes -->
-      <div class="absolute top-4 right-4 w-20 h-20 bg-white/10 rounded-full blur-xl"></div>
-      <div class="absolute bottom-4 left-4 w-16 h-16 bg-white/10 rounded-full blur-lg"></div>
+    <!-- 简洁的头部区域 -->
+    <div class="relative h-52 bg-gradient-to-br from-primary-500 to-primary-600 overflow-hidden">
+      <!-- Subtle overlay -->
+      <div class="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-all duration-200"></div>
       
       <!-- Category badge (if available) -->
       <div class="absolute top-4 left-4">
-        <span class="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold rounded-full border border-white/30">
+        <span class="px-3 py-1 bg-white text-primary-700 text-xs font-medium rounded-md shadow-sm">
           技术分享
         </span>
       </div>
@@ -34,7 +30,7 @@
         <!-- 作者信息 -->
         <div class="flex items-center space-x-3">
           <div 
-            class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-gradient-primary"
+            class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm overflow-hidden bg-primary-600"
           >
             <img 
               v-if="displayAvatarUrl && !avatarLoadError" 
