@@ -2,19 +2,12 @@
   <div class="min-h-screen">
     <Header />
 
-    <!-- Enhanced Hero Section with Animated Background -->
-    <section class="relative pt-24 pb-20 overflow-hidden">
-      <!-- Animated background elements -->
-      <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute top-20 left-10 w-72 h-72 bg-primary-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float"></div>
-        <div class="absolute top-40 right-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float" style="animation-delay: 2s;"></div>
-        <div class="absolute -bottom-8 left-1/2 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-float" style="animation-delay: 4s;"></div>
-      </div>
-
-      <div class="container mx-auto px-4 relative z-10">
+    <!-- Hero Section -->
+    <section class="relative pt-24 pb-20 bg-gradient-to-b from-white to-gray-50">
+      <div class="container mx-auto px-4">
         <div class="max-w-4xl mx-auto text-center">
-          <h1 class="text-5xl md:text-7xl font-bold mb-6 bg-gradient-primary bg-clip-text text-transparent animate-fade-in leading-tight">
-            分享你的技术见解
+          <h1 class="text-5xl md:text-7xl font-bold mb-6 animate-fade-in leading-tight">
+            <span class="text-gray-900">分享你的</span><span class="text-primary-600">技术见解</span>
           </h1>
           <p class="text-xl md:text-2xl text-gray-600 mb-8 animate-slide-up leading-relaxed">
             在这里记录学习、分享经验、交流技术 ✨
@@ -75,7 +68,7 @@
 
           <!-- Stats -->
           <div v-if="totalElements > 0" class="mb-8 text-center">
-            <span class="inline-flex items-center px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-sm border border-gray-100">
+            <span class="inline-flex items-center px-4 py-2 bg-white rounded-full shadow-sm border border-gray-200">
               <span class="text-gray-600">共找到</span>
               <span class="mx-2 font-semibold text-primary-600">{{ totalElements }}</span>
               <span class="text-gray-600">篇文章</span>
@@ -86,7 +79,7 @@
           <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div v-for="i in 6" :key="i" class="animate-pulse">
               <div class="card p-6">
-                <div class="h-48 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg mb-4"></div>
+                <div class="h-48 bg-gray-200 rounded-lg mb-4"></div>
                 <div class="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
                 <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
                 <div class="h-4 bg-gray-200 rounded w-5/6"></div>
@@ -96,7 +89,7 @@
 
           <!-- Empty State -->
           <div v-else-if="!posts.length" class="text-center py-20">
-            <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-primary-100 to-purple-100 mb-6 animate-float">
+            <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary-100 mb-6">
               <svg class="w-12 h-12 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>

@@ -7,7 +7,7 @@
       <!-- Avatar -->
       <div class="flex-shrink-0">
         <div 
-          class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-gradient-primary"
+          class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600"
         >
           <img 
             v-if="displayAvatarUrl && !avatarLoadError" 

@@ -12,7 +12,7 @@
       <div class="flex space-x-4">
         <div class="flex-shrink-0">
           <div 
-            class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-gradient-primary"
+            class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600"
           >
             <img 
               v-if="userAvatarUrl && !avatarLoadError" 

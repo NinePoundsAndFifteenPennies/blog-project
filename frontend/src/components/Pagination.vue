@@ -30,7 +30,7 @@
         class="w-10 h-10 rounded-lg font-medium transition-all duration-200"
         :class="[
           page === currentPage
-            ? 'bg-gradient-primary text-white shadow-lg'
+            ? 'bg-primary-600 text-white shadow-md'
             : 'border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-primary-500',
         ]"
       >

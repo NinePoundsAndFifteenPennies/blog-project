@@ -12,7 +12,7 @@
               <div class="relative group">
                 <!-- Avatar Image or Initial -->
                 <div 
-                  class="w-32 h-32 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-glow-lg ring-8 ring-white transform hover:scale-110 transition-transform duration-300 cursor-pointer overflow-hidden bg-gradient-primary"
+                  class="w-32 h-32 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-md ring-4 ring-white hover:ring-primary-100 transition-all duration-200 cursor-pointer overflow-hidden bg-primary-600"
                   @click="triggerFileInput"
                 >
                   <img 
@@ -66,7 +66,7 @@
 
               <!-- User Info -->
               <div class="flex-1 text-center md:text-left">
-                <h1 class="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-3">{{ currentUser?.username }}</h1>
+                <h1 class="text-4xl font-bold text-gray-900 mb-3">{{ currentUser?.username }}</h1>
                 <p class="text-gray-600 text-lg mb-6">{{ currentUser?.email }}</p>
 
                 <!-- Stats -->
@@ -111,7 +111,7 @@
                       :class="activeTab === 'posts' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'">
                   {{ userStats.posts }}
                 </span>
-                <div v-if="activeTab === 'posts'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-primary"></div>
+                <div v-if="activeTab === 'posts'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
               </button>
               <button
                   :class="['px-8 py-4 font-semibold transition-all duration-200 relative', 
@@ -123,7 +123,7 @@
                       :class="activeTab === 'drafts' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'">
                   {{ userStats.drafts }}
                 </span>
-                <div v-if="activeTab === 'drafts'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-primary"></div>
+                <div v-if="activeTab === 'drafts'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
               </button>
               <button
                   :class="['px-8 py-4 font-semibold transition-all duration-200 relative', 
@@ -135,7 +135,7 @@
                       :class="activeTab === 'comments' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'">
                   {{ userStats.comments }}
                 </span>
-                <div v-if="activeTab === 'comments'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-primary"></div>
+                <div v-if="activeTab === 'comments'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
               </button>
             </div>
           </div>
@@ -162,7 +162,7 @@
                     >
                       {{ post.title }}
                     </router-link>
-                    <span v-if="post.draft" class="px-3 py-1 text-xs font-bold bg-gradient-to-r from-yellow-100 to-orange-100 text-orange-700 rounded-full shadow-sm">
+                    <span v-if="post.draft" class="px-3 py-1 text-xs font-bold bg-yellow-100 text-orange-700 rounded-md shadow-sm">
                       草稿
                     </span>
                   </div>
@@ -210,7 +210,7 @@
                 <div class="flex items-center space-x-2 ml-6">
                   <router-link
                       :to="`/post/${post.id}/edit`"
-                      class="p-3 text-gray-600 hover:text-primary-600 hover:bg-gradient-to-br hover:from-primary-50 hover:to-purple-50 rounded-xl transition-all duration-200 transform hover:scale-110"
+                      class="p-3 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all duration-200"
                       title="编辑"
                   >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -219,7 +219,7 @@
                   </router-link>
                   <button
                       @click="handleDelete(post.id)"
-                      class="p-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 transform hover:scale-110"
+                      class="p-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
                       title="删除"
                   >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -301,7 +301,7 @@
                 <div v-if="!comment.isEditing" class="flex items-center space-x-2 ml-4">
                   <button
                       @click="startEditComment(comment)"
-                      class="p-3 text-gray-600 hover:text-primary-600 hover:bg-gradient-to-br hover:from-primary-50 hover:to-purple-50 rounded-xl transition-all duration-200 transform hover:scale-110"
+                      class="p-3 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all duration-200"
                       title="编辑评论"
                   >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -310,7 +310,7 @@
                   </button>
                   <button
                       @click="handleDeleteComment(comment.id)"
-                      class="p-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 transform hover:scale-110"
+                      class="p-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
                       title="删除评论"
                   >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -324,7 +324,7 @@
 
           <!-- Empty State -->
           <div v-else class="card p-16 text-center backdrop-blur-sm bg-white/90 animate-scale-in">
-            <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-primary-100 to-purple-100 mb-6 animate-float">
+            <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary-100 mb-6">
               <svg class="w-12 h-12 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path v-if="activeTab === 'comments'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                 <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

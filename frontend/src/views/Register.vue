@@ -1,26 +1,19 @@
 <template>
-  <div class="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
-    <!-- Animated background -->
-    <div class="absolute inset-0 bg-gradient-to-br from-primary-50 via-purple-50 to-pink-50">
-      <div class="absolute top-20 left-10 w-96 h-96 bg-primary-300/40 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-float"></div>
-      <div class="absolute top-40 right-10 w-96 h-96 bg-purple-300/40 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-float" style="animation-delay: 2s;"></div>
-      <div class="absolute -bottom-8 left-1/2 w-96 h-96 bg-pink-300/40 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-float" style="animation-delay: 4s;"></div>
-    </div>
-
-    <div class="max-w-md w-full relative z-10">
+  <div class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div class="max-w-md w-full">
       <!-- Logo and Title -->
       <div class="text-center mb-8 animate-fade-in">
-        <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-primary rounded-3xl mb-6 shadow-glow transform hover:scale-110 transition-transform duration-300">
+        <div class="inline-flex items-center justify-center w-20 h-20 bg-primary-600 rounded-2xl mb-6 shadow-md">
           <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
           </svg>
         </div>
-        <h2 class="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-3">创建账户</h2>
+        <h2 class="text-4xl font-bold text-gray-900 mb-3">创建账户</h2>
         <p class="text-gray-600 text-lg">加入我们,开始你的创作之旅</p>
       </div>
 
-      <!-- Register Form Card with glass morphism -->
-      <div class="card p-8 md:p-10 backdrop-blur-xl bg-white/80 shadow-glow-lg animate-slide-up">
+      <!-- Register Form Card -->
+      <div class="card p-8 md:p-10 bg-white shadow-md animate-slide-up">
         <form @submit.prevent="handleRegister" class="space-y-5">
           <!-- Username Field -->
           <div>
@@ -203,7 +196,7 @@
         <!-- Divider -->
         <div class="relative my-8">
           <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t-2 border-gray-200"></div>
+            <div class="w-full border-t border-gray-200"></div>
           </div>
           <div class="relative flex justify-center text-sm">
             <span class="px-4 bg-white text-gray-500 font-medium">或</span>
