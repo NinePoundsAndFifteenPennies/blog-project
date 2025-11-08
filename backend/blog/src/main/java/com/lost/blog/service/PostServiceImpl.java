@@ -234,11 +234,38 @@ public class PostServiceImpl implements PostService {
                         Tag newTag = new Tag();
                         newTag.setName(trimmedName);
                         newTag.setCreatedBy(creator);
+                        // 自动分配随机可见颜色（避免太白或太黑）
+                        newTag.setColor(generateRandomVisibleColor());
                         return tagRepository.save(newTag);
                     });
             tags.add(tag);
         }
 
         return tags;
+    }
+
+    /**
+     * 生成随机可见颜色
+     * 避免太亮（接近白色）或太暗（接近黑色）的颜色
+     */
+    private String generateRandomVisibleColor() {
+        java.util.Random random = new java.util.Random();
+        // 生成RGB值，范围在60-220之间，避免太暗或太亮
+        int r = 60 + random.nextInt(161);  // 60-220
+        int g = 60 + random.nextInt(161);  // 60-220
+        int b = 60 + random.nextInt(161);  // 60-220
+        
+        // 确保颜色有足够的饱和度，不要太灰
+        // 如果三个值太接近，重新生成让其中一个更突出
+        if (Math.abs(r - g) < 40 && Math.abs(g - b) < 40 && Math.abs(r - b) < 40) {
+            int[] values = {r, g, b};
+            int indexToBoost = random.nextInt(3);
+            values[indexToBoost] = Math.min(220, values[indexToBoost] + 60);
+            r = values[0];
+            g = values[1];
+            b = values[2];
+        }
+        
+        return String.format("#%02X%02X%02X", r, g, b);
     }
 }

@@ -55,13 +55,7 @@ public class PostMapper {
         if (post.getTags() != null && !post.getTags().isEmpty()) {
             postResponse.setTags(
                 post.getTags().stream()
-                    .map(tag -> {
-                        TagResponse tagResponse = new TagResponse();
-                        tagResponse.setId(tag.getId());
-                        tagResponse.setName(tag.getName());
-                        tagResponse.setDescription(tag.getDescription());
-                        return tagResponse;
-                    })
+                    .map(tagMapper::toResponse)
                     .collect(Collectors.toList())
             );
         }

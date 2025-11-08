@@ -4,13 +4,6 @@
     <div class="relative h-52 bg-gradient-to-br from-primary-500 to-purple-600 overflow-hidden">
       <!-- Subtle overlay -->
       <div class="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-all duration-200"></div>
-      
-      <!-- Category badge (if available) -->
-      <div class="absolute top-4 left-4">
-        <span class="px-3 py-1 bg-white text-primary-700 text-xs font-medium rounded-md shadow-sm">
-          技术分享
-        </span>
-      </div>
     </div>
 
     <!-- 内容区域 -->
@@ -19,6 +12,21 @@
       <h3 class="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200 leading-tight">
         {{ post.title }}
       </h3>
+
+      <!-- 标签 -->
+      <div v-if="post.tags && post.tags.length > 0" class="flex flex-wrap gap-2 mb-3">
+        <TagBadge
+          v-for="tag in post.tags.slice(0, 3)"
+          :key="tag.id"
+          :tag="tag"
+          :show-icon="true"
+          :clickable="true"
+          @click="handleTagClick(tag)"
+        />
+        <span v-if="post.tags.length > 3" class="text-xs text-gray-400">
+          +{{ post.tags.length - 3 }}
+        </span>
+      </div>
 
       <!-- 摘要 -->
       <p class="text-gray-600 mb-4 line-clamp-3 leading-relaxed text-sm">
@@ -98,9 +106,13 @@ import { useStore } from 'vuex'
 import { likePost, unlikePost } from '@/api/likes'
 import { ref, computed, watch } from 'vue'
 import { getFullAvatarUrl } from '@/utils/avatar'
+import TagBadge from '@/components/TagBadge.vue'
 
 export default {
   name: 'PostCard',
+  components: {
+    TagBadge
+  },
   props: {
     post: {
       type: Object,
@@ -209,6 +221,13 @@ export default {
       router.push(`/post/${props.post.id}`)
     }
 
+    const handleTagClick = (tag) => {
+      // Navigate to tag posts page
+      router.push({
+        path: '/tags/' + encodeURIComponent(tag.name)
+      })
+    }
+
     // 点赞功能
     const handleLike = async () => {
       // 检查是否登录
@@ -255,6 +274,7 @@ export default {
       dateLabel,
       titleAttr,
       goToDetail,
+      handleTagClick,
       handleAvatarError,
       handleAvatarLoad,
       handleLike

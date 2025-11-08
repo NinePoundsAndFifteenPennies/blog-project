@@ -75,50 +75,63 @@
             </span>
           </div>
 
-          <!-- Loading State -->
-          <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div v-for="i in 6" :key="i" class="animate-pulse">
-              <div class="card p-6">
-                <div class="h-48 bg-gray-200 rounded-lg mb-4"></div>
-                <div class="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
-                <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+          <!-- Main Content Layout -->
+          <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Main Content Area -->
+            <div class="flex-1 order-1 lg:order-1">
+              <!-- Loading State -->
+              <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div v-for="i in 6" :key="i" class="animate-pulse">
+                  <div class="card p-6">
+                    <div class="h-48 bg-gray-200 rounded-lg mb-4"></div>
+                    <div class="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
+                    <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                    <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Empty State -->
+              <div v-else-if="!posts.length" class="text-center py-20">
+                <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary-100 mb-6">
+                  <svg class="w-12 h-12 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 mb-3">还没有文章</h3>
+                <p class="text-gray-600 mb-8">成为第一个分享内容的人吧!</p>
+                <router-link v-if="isLoggedIn" to="/post/create" class="btn-primary">
+                  写第一篇文章
+                </router-link>
+              </div>
+
+              <!-- Posts Grid -->
+              <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <PostCard
+                    v-for="post in posts"
+                    :key="post.id"
+                    :post="post"
+                    class="animate-scale-in"
+                    @like-changed="handleLikeChanged"
+                />
+              </div>
+
+              <!-- Pagination -->
+              <div v-if="totalPages > 1" class="mt-12">
+                <Pagination
+                    :current-page="currentPage"
+                    :total-pages="totalPages"
+                    @page-change="handlePageChange"
+                />
               </div>
             </div>
-          </div>
 
-          <!-- Empty State -->
-          <div v-else-if="!posts.length" class="text-center py-20">
-            <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary-100 mb-6">
-              <svg class="w-12 h-12 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-3">还没有文章</h3>
-            <p class="text-gray-600 mb-8">成为第一个分享内容的人吧!</p>
-            <router-link v-if="isLoggedIn" to="/post/create" class="btn-primary">
-              写第一篇文章
-            </router-link>
-          </div>
-
-          <!-- Posts Grid -->
-          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <PostCard
-                v-for="post in posts"
-                :key="post.id"
-                :post="post"
-                class="animate-scale-in"
-                @like-changed="handleLikeChanged"
-            />
-          </div>
-
-          <!-- Pagination -->
-          <div v-if="totalPages > 1" class="mt-12">
-            <Pagination
-                :current-page="currentPage"
-                :total-pages="totalPages"
-                @page-change="handlePageChange"
-            />
+            <!-- Sidebar - Popular Tags (Right Side) -->
+            <aside class="lg:w-72 flex-shrink-0 order-2 lg:order-2">
+              <div class="lg:sticky lg:top-24">
+                <PopularTags />
+              </div>
+            </aside>
           </div>
         </div>
       </div>
@@ -133,6 +146,7 @@ import { useRoute, useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import PostCard from '@/components/PostCard.vue'
 import Pagination from '@/components/Pagination.vue'
+import PopularTags from '@/components/PopularTags.vue'
 import { getPosts } from '@/api/posts'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
@@ -141,7 +155,8 @@ export default {
   components: {
     Header,
     PostCard,
-    Pagination
+    Pagination,
+    PopularTags
   },
   setup() {
     const store = useStore()
@@ -154,7 +169,7 @@ export default {
     const currentPage = ref(parseInt(route.query.page) || 1)
     const totalPages = ref(1)
     const totalElements = ref(0)
-    const pageSize = 6 // 每页显示6篇文章
+    const pageSize = 9 // 每页显示9篇文章 (3x3 grid)
 
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
 
@@ -187,9 +202,9 @@ export default {
           likeCount: post.likeCount || 0,  // 从后端获取点赞数
           isLiked: post.isLiked || false,  // 从后端获取是否已点赞
           commentCount: post.commentCount || 0,  // 从后端获取评论数
+          tags: post.tags || [],  // 从后端获取标签数据
           // 暂时显示静态数据,后续实现
           views: 0,
-          tags: [],
           category: null
 
         }))
