@@ -5,10 +5,13 @@ import com.lost.blog.dto.TagResponse;
 import com.lost.blog.exception.ResourceNotFoundException;
 import com.lost.blog.mapper.TagMapper;
 import com.lost.blog.model.Tag;
+import com.lost.blog.model.User;
 import com.lost.blog.repository.TagRepository;
+import com.lost.blog.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,21 +25,27 @@ import java.util.stream.Collectors;
 public class TagServiceImpl implements TagService {
 
     private final TagRepository tagRepository;
+    private final UserRepository userRepository;
     private final TagMapper tagMapper;
 
     @Autowired
-    public TagServiceImpl(TagRepository tagRepository, TagMapper tagMapper) {
+    public TagServiceImpl(TagRepository tagRepository, UserRepository userRepository, TagMapper tagMapper) {
         this.tagRepository = tagRepository;
+        this.userRepository = userRepository;
         this.tagMapper = tagMapper;
     }
 
     @Override
     @Transactional
-    public TagResponse createTag(TagRequest tagRequest) {
+    public TagResponse createTag(TagRequest tagRequest, UserDetails currentUser) {
         // 检查标签名称是否已存在
         if (tagRepository.existsByName(tagRequest.getName())) {
             throw new IllegalArgumentException("标签名称已存在：" + tagRequest.getName());
         }
+
+        // 获取当前用户
+        User user = userRepository.findByUsername(currentUser.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("未找到用户: " + currentUser.getUsername()));
 
         Tag tag = new Tag();
         tag.setName(tagRequest.getName());
@@ -44,6 +53,7 @@ public class TagServiceImpl implements TagService {
         tag.setColor(tagRequest.getColor());
         tag.setIcon(tagRequest.getIcon());
         tag.setSortOrder(tagRequest.getSortOrder());
+        tag.setCreatedBy(user);
 
         Tag savedTag = tagRepository.save(tag);
         return tagMapper.toResponse(savedTag);

@@ -4,6 +4,7 @@ import com.lost.blog.dto.TagRequest;
 import com.lost.blog.dto.TagResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.List;
 
@@ -15,7 +16,7 @@ public interface TagService {
     /**
      * 创建标签
      */
-    TagResponse createTag(TagRequest tagRequest);
+    TagResponse createTag(TagRequest tagRequest, UserDetails currentUser);
 
     /**
      * 获取标签详情

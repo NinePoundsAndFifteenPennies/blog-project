@@ -9,6 +9,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,8 +33,10 @@ public class TagController {
      * 创建新标签
      */
     @PostMapping
-    public ResponseEntity<TagResponse> createTag(@Valid @RequestBody TagRequest tagRequest) {
-        TagResponse createdTag = tagService.createTag(tagRequest);
+    public ResponseEntity<TagResponse> createTag(
+            @Valid @RequestBody TagRequest tagRequest,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        TagResponse createdTag = tagService.createTag(tagRequest, currentUser);
         return new ResponseEntity<>(createdTag, HttpStatus.CREATED);
     }
 

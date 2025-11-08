@@ -14,6 +14,8 @@ public class TagResponse {
     private String color;  // 标签颜色
     private String icon;  // 标签图标
     private Integer sortOrder;  // 排序顺序
+    private Long createdById;  // 创建者用户ID
+    private String createdByUsername;  // 创建者用户名
     private Long postCount;  // 使用该标签的文章数量
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -65,6 +67,22 @@ public class TagResponse {
 
     public void setSortOrder(Integer sortOrder) {
         this.sortOrder = sortOrder;
+    }
+
+    public Long getCreatedById() {
+        return createdById;
+    }
+
+    public void setCreatedById(Long createdById) {
+        this.createdById = createdById;
+    }
+
+    public String getCreatedByUsername() {
+        return createdByUsername;
+    }
+
+    public void setCreatedByUsername(String createdByUsername) {
+        this.createdByUsername = createdByUsername;
     }
 
     public Long getPostCount() {

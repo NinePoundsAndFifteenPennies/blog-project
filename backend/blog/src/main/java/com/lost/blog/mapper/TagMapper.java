@@ -25,6 +25,13 @@ public class TagMapper {
         response.setColor(tag.getColor());
         response.setIcon(tag.getIcon());
         response.setSortOrder(tag.getSortOrder());
+        
+        // 设置创建者信息
+        if (tag.getCreatedBy() != null) {
+            response.setCreatedById(tag.getCreatedBy().getId());
+            response.setCreatedByUsername(tag.getCreatedBy().getUsername());
+        }
+        
         response.setCreatedAt(tag.getCreatedAt());
         response.setUpdatedAt(tag.getUpdatedAt());
         
