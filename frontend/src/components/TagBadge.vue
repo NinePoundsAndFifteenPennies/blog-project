@@ -1,8 +1,12 @@
 <template>
   <span
-    class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-200 cursor-default"
+    :class="[
+      'inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-200',
+      clickable ? 'cursor-pointer hover:scale-105 hover:shadow-md' : 'cursor-default'
+    ]"
     :style="tagStyle"
     :title="tag.description || tag.name"
+    @click="handleClick"
   >
     <i v-if="tag.icon && showIcon" :class="getIconClass(tag.icon)" class="mr-1"></i>
     {{ tag.name }}
@@ -22,8 +26,13 @@ export default {
     showIcon: {
       type: Boolean,
       default: false
+    },
+    clickable: {
+      type: Boolean,
+      default: false
     }
   },
+  emits: ['click'],
   setup(props) {
     // 计算标签样式
     const tagStyle = computed(() => {
@@ -68,9 +77,17 @@ export default {
       return icon
     }
 
+    const handleClick = () => {
+      if (props.clickable) {
+        // Emit click event for parent to handle
+        // Parent can navigate to tag page
+      }
+    }
+
     return {
       tagStyle,
-      getIconClass
+      getIconClass,
+      handleClick
     }
   }
 }

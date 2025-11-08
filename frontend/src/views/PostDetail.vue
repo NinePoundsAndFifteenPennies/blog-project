@@ -36,6 +36,8 @@
                 :key="tag.id"
                 :tag="tag"
                 :show-icon="true"
+                :clickable="true"
+                @click="handleTagClick(tag)"
               />
             </div>
 
@@ -345,6 +347,13 @@ export default {
       }
     }
 
+    const handleTagClick = (tag) => {
+      // Navigate to tag posts page
+      router.push({
+        path: '/tags/' + encodeURIComponent(tag.name)
+      })
+    }
+
     // 点赞功能
     const handleLike = async () => {
       // 检查是否登录
@@ -415,6 +424,7 @@ export default {
       formatDate,
       formatFullDate,
       handleDelete,
+      handleTagClick,
       handleLike,
       scrollToTop,
       handleAvatarError,

@@ -20,6 +20,8 @@
           :key="tag.id"
           :tag="tag"
           :show-icon="true"
+          :clickable="true"
+          @click="handleTagClick(tag)"
         />
         <span v-if="post.tags.length > 3" class="text-xs text-gray-400">
           +{{ post.tags.length - 3 }}
@@ -219,6 +221,13 @@ export default {
       router.push(`/post/${props.post.id}`)
     }
 
+    const handleTagClick = (tag) => {
+      // Navigate to tag posts page
+      router.push({
+        path: '/tags/' + encodeURIComponent(tag.name)
+      })
+    }
+
     // 点赞功能
     const handleLike = async () => {
       // 检查是否登录
@@ -265,6 +274,7 @@ export default {
       dateLabel,
       titleAttr,
       goToDetail,
+      handleTagClick,
       handleAvatarError,
       handleAvatarLoad,
       handleLike
