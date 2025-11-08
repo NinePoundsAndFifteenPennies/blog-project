@@ -33,7 +33,7 @@ export default {
     }
   },
   emits: ['click'],
-  setup(props) {
+  setup(props, { emit }) {
     // 计算标签样式
     const tagStyle = computed(() => {
       const color = props.tag.color || '#6B7280' // 默认灰色
@@ -77,10 +77,10 @@ export default {
       return icon
     }
 
-    const handleClick = () => {
+    const handleClick = (event) => {
       if (props.clickable) {
-        // Emit click event for parent to handle
-        // Parent can navigate to tag page
+        event.stopPropagation() // Prevent event bubbling
+        emit('click') // Emit click event for parent to handle
       }
     }
 
