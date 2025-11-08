@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import com.lost.blog.model.ContentType;
 import jakarta.validation.constraints.NotNull;
+import java.util.Set;
 
 public class PostRequest {
 
@@ -19,6 +20,9 @@ public class PostRequest {
 
     // 新增：是否为草稿，默认 false（即发布状态）
     private Boolean draft = false;
+
+    // 新增：标签名称列表（可选）
+    private Set<String> tags;
 
     // Getters and Setters
     public String getTitle() {
@@ -51,5 +55,13 @@ public class PostRequest {
 
     public void setDraft(Boolean draft) {
         this.draft = draft;
+    }
+
+    public Set<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(Set<String> tags) {
+        this.tags = tags;
     }
 }
