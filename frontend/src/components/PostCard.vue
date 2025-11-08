@@ -1,7 +1,7 @@
 <template>
   <div class="card card-hover cursor-pointer group" @click="goToDetail">
-    <!-- 简洁的头部区域 -->
-    <div class="relative h-52 bg-gradient-to-br from-primary-500 to-primary-600 overflow-hidden">
+    <!-- 头部区域 -->
+    <div class="relative h-52 bg-gradient-to-br from-primary-500 to-purple-600 overflow-hidden">
       <!-- Subtle overlay -->
       <div class="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-all duration-200"></div>
       

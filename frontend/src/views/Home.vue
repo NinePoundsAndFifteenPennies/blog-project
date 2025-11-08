@@ -3,11 +3,11 @@
     <Header />
 
     <!-- Hero Section -->
-    <section class="relative pt-24 pb-20 bg-white">
+    <section class="relative pt-24 pb-20 bg-gradient-to-b from-white to-gray-50">
       <div class="container mx-auto px-4">
         <div class="max-w-4xl mx-auto text-center">
-          <h1 class="text-5xl md:text-7xl font-bold mb-6 text-gray-900 animate-fade-in leading-tight">
-            分享你的技术见解
+          <h1 class="text-5xl md:text-7xl font-bold mb-6 animate-fade-in leading-tight">
+            <span class="text-gray-900">分享你的</span><span class="text-primary-600">技术见解</span>
           </h1>
           <p class="text-xl md:text-2xl text-gray-600 mb-8 animate-slide-up leading-relaxed">
             在这里记录学习、分享经验、交流技术 ✨
