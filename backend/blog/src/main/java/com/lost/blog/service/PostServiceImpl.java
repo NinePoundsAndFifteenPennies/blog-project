@@ -72,7 +72,7 @@ public class PostServiceImpl implements PostService {
 
         // 处理标签
         if (postRequest.getTags() != null && !postRequest.getTags().isEmpty()) {
-            Set<Tag> tags = processTags(postRequest.getTags());
+            Set<Tag> tags = processTags(postRequest.getTags(), user);
             post.setTags(tags);
         }
 
@@ -164,7 +164,7 @@ public class PostServiceImpl implements PostService {
 
         // 更新标签
         if (postRequest.getTags() != null) {
-            Set<Tag> tags = processTags(postRequest.getTags());
+            Set<Tag> tags = processTags(postRequest.getTags(), post.getUser());
             post.setTags(tags);
         }
 
@@ -214,7 +214,7 @@ public class PostServiceImpl implements PostService {
     /**
      * 处理标签：查找已存在的标签或创建新标签
      */
-    private Set<Tag> processTags(Set<String> tagNames) {
+    private Set<Tag> processTags(Set<String> tagNames, User creator) {
         Set<Tag> tags = new HashSet<>();
         
         if (tagNames == null || tagNames.isEmpty()) {
@@ -233,6 +233,7 @@ public class PostServiceImpl implements PostService {
                     .orElseGet(() -> {
                         Tag newTag = new Tag();
                         newTag.setName(trimmedName);
+                        newTag.setCreatedBy(creator);
                         return tagRepository.save(newTag);
                     });
             tags.add(tag);
