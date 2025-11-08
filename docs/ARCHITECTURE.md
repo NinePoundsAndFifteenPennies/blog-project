@@ -59,6 +59,7 @@ Controller ──► Service ──► Repository ──► Database
 | 控制器 | └── LikeController.java | 提供文章点赞 API |
 | 控制器 | └── CommentController.java | 提供评论 CRUD API |
 | 控制器 | └── TagController.java | 提供标签 CRUD API |
+| 控制器 | └── CategoryController.java | 提供分类 CRUD API |
 | 数据传输对象 | **dto/** | 定义请求和响应的数据模型 |
 | DTO | └── UserRegistrationRequest.java | 用户注册请求体 |
 | DTO | └── LoginRequest.java | 用户登录请求体 |
@@ -74,6 +75,8 @@ Controller ──► Service ──► Repository ──► Database
 | DTO | └── ReplyRequest.java | 子评论创建请求体 |
 | DTO | └── TagRequest.java | 标签创建/更新请求体 |
 | DTO | └── TagResponse.java | 标签响应体 |
+| DTO | └── CategoryRequest.java | 分类创建/更新请求体 |
+| DTO | └── CategoryResponse.java | 分类响应体 |
 | 异常层 | **exception/** | 自定义异常类与全局异常处理 |
 | 异常处理器 | └── GlobalExceptionHandler.java | 统一捕获和处理异常 |
 | 异常类 | └── AccessDeniedException.java | 访问被拒绝异常 |
@@ -83,10 +86,12 @@ Controller ──► Service ──► Repository ──► Database
 | 映射器 | └── PostMapper.java | Post ↔ PostResponse 转换 |
 | 映射器 | └── CommentMapper.java | Comment ↔ CommentResponse 转换 |
 | 映射器 | └── TagMapper.java | Tag ↔ TagResponse 转换 |
+| 映射器 | └── CategoryMapper.java | Category ↔ CategoryResponse 转换 |
 | 实体层 | **model/** | 数据库实体类 (JPA Entity) |
 | 实体 | └── User.java | 用户实体 |
 | 实体 | └── Post.java | 文章实体 |
 | 实体 | └── Tag.java | 标签实体 |
+| 实体 | └── Category.java | 分类实体 |
 | 实体 | └── Like.java | 点赞实体（支持文章和评论点赞）|
 | 实体 | └── Comment.java | 评论实体（支持顶层评论和子评论）|
 | 枚举 | └── ContentType.java | 内容类型枚举 |
@@ -94,6 +99,7 @@ Controller ──► Service ──► Repository ──► Database
 | Repository | └── UserRepository.java | 用户数据访问接口 |
 | Repository | └── PostRepository.java | 文章数据访问接口 |
 | Repository | └── TagRepository.java | 标签数据访问接口 |
+| Repository | └── CategoryRepository.java | 分类数据访问接口 |
 | Repository | └── LikeRepository.java | 点赞数据访问接口（文章和评论）|
 | Repository | └── CommentRepository.java | 评论数据访问接口 |
 | 安全层 | **security/** | 与认证和授权相关的工具类 |
@@ -113,6 +119,8 @@ Controller ──► Service ──► Repository ──► Database
 | 实现类 | └── CommentServiceImpl.java | 评论服务实现 |
 | 接口 | └── TagService.java | 标签服务接口 |
 | 实现类 | └── TagServiceImpl.java | 标签服务实现 |
+| 接口 | └── CategoryService.java | 分类服务接口 |
+| 实现类 | └── CategoryServiceImpl.java | 分类服务实现 |
 | 配置文件 | **resources/** | 存放应用的资源文件 |
 | 配置文件 | └── application.properties | 应用配置（数据库、JWT密钥等） |
 

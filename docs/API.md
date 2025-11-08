@@ -1411,6 +1411,296 @@ Content-Type: application/json
 
 ---
 
+## 分类相关接口
+
+分类系统用于对文章进行宏观分组，每篇文章只能属于一个分类。分类具有以下特性：
+- 一对多关系：一个分类可以包含多篇文章，一篇文章只能属于一个分类
+- 支持颜色和图标自定义，便于前端展示
+- 自动追踪创建者信息，便于后台管理
+- 支持排序功能，控制分类显示顺序
+- 删除保护：无法删除仍在使用中的分类
+- 严格的参数验证，确保数据质量
+
+**字段说明：**
+- `name`: 分类名称，唯一，只能包含中文、英文、数字、空格、下划线和连字符
+- `description`: 分类描述
+- `color`: 分类颜色，必须符合 #RRGGBB 格式
+- `icon`: 分类图标名称
+- `sortOrder`: 排序顺序（≥0）
+- `createdById` / `createdByUsername`: 创建者信息（响应字段）
+
+### 创建分类
+
+创建一个新的分类。
+
+**需要认证。系统会自动记录创建者信息。**
+
+```http
+POST /api/categories
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体:**
+```json
+{
+  "name": "技术文章",
+  "description": "技术相关的文章分类",
+  "color": "#3B82F6",
+  "icon": "tech-icon",
+  "sortOrder": 1
+}
+```
+
+**字段说明:**
+- `name` (String, 必填): 分类名称，长度1-50字符，必须唯一，只能包含中文、英文、数字、空格、下划线和连字符
+- `description` (String, 可选): 分类描述，长度不超过200字符
+- `color` (String, 可选): 分类颜色代码，必须符合 #RRGGBB 格式（如 #3B82F6）
+- `icon` (String, 可选): 分类图标名称，长度不超过50字符
+- `sortOrder` (Integer, 可选): 排序顺序，必须≥0，数字越小越靠前
+
+**成功响应:** `201 Created`
+```json
+{
+  "id": 1,
+  "name": "技术文章",
+  "description": "技术相关的文章分类",
+  "color": "#3B82F6",
+  "icon": "tech-icon",
+  "sortOrder": 1,
+  "createdById": 1,
+  "createdByUsername": "admin",
+  "postCount": 0,
+  "createdAt": "2025-11-08T14:00:00",
+  "updatedAt": null
+}
+```
+
+**错误响应:**
+- `400 Bad Request` - 分类名称已存在或参数不符合要求
+- `401 Unauthorized` - 未登录或 token 无效
+
+---
+
+### 获取分类详情
+
+根据ID获取分类详细信息。
+
+```http
+GET /api/categories/{id}
+```
+
+**路径参数:**
+- `id`: 分类ID
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 1,
+  "name": "技术文章",
+  "description": "技术相关的文章分类",
+  "color": "#3B82F6",
+  "icon": "tech-icon",
+  "sortOrder": 1,
+  "createdById": 1,
+  "createdByUsername": "admin",
+  "postCount": 5,
+  "createdAt": "2025-11-08T14:00:00",
+  "updatedAt": null
+}
+```
+
+**错误响应:**
+- `404 Not Found` - 分类不存在
+
+---
+
+### 根据名称获取分类
+
+根据分类名称获取分类详细信息。
+
+```http
+GET /api/categories/name/{name}
+```
+
+**路径参数:**
+- `name`: 分类名称
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 1,
+  "name": "技术文章",
+  "description": "技术相关的文章分类",
+  "color": "#3B82F6",
+  "icon": "tech-icon",
+  "sortOrder": 1,
+  "createdById": 1,
+  "createdByUsername": "admin",
+  "postCount": 5,
+  "createdAt": "2025-11-08T14:00:00",
+  "updatedAt": null
+}
+```
+
+**错误响应:**
+- `404 Not Found` - 分类不存在
+
+---
+
+### 获取所有分类（分页）
+
+获取所有分类列表，支持分页和排序。
+
+```http
+GET /api/categories?page=0&size=20&sort=sortOrder,asc
+```
+
+**查询参数:**
+- `page` (可选): 页码，从0开始，默认0
+- `size` (可选): 每页数量，默认20
+- `sort` (可选): 排序字段和方向，如 `sortOrder,asc` 或 `createdAt,desc`
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "name": "技术文章",
+      "description": "技术相关的文章分类",
+      "color": "#3B82F6",
+      "icon": "tech-icon",
+      "sortOrder": 1,
+      "createdById": 1,
+      "createdByUsername": "admin",
+      "postCount": 5,
+      "createdAt": "2025-11-08T14:00:00",
+      "updatedAt": null
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 20
+  },
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+---
+
+### 获取热门分类
+
+获取按文章数量降序排列的所有分类。
+
+```http
+GET /api/categories/popular
+```
+
+**成功响应:** `200 OK`
+```json
+[
+  {
+    "id": 1,
+    "name": "技术文章",
+    "description": "技术相关的文章分类",
+    "color": "#3B82F6",
+    "icon": "tech-icon",
+    "sortOrder": 1,
+    "createdById": 1,
+    "createdByUsername": "admin",
+    "postCount": 10,
+    "createdAt": "2025-11-08T14:00:00",
+    "updatedAt": null
+  },
+  {
+    "id": 2,
+    "name": "生活随笔",
+    "postCount": 3,
+    ...
+  }
+]
+```
+
+---
+
+### 更新分类
+
+更新分类信息。
+
+**需要认证。**
+
+```http
+PUT /api/categories/{id}
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**路径参数:**
+- `id`: 分类ID
+
+**请求体:**
+```json
+{
+  "name": "技术文章",
+  "description": "更新后的描述",
+  "color": "#3B82F6",
+  "icon": "new-icon",
+  "sortOrder": 2
+}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 1,
+  "name": "技术文章",
+  "description": "更新后的描述",
+  "color": "#3B82F6",
+  "icon": "new-icon",
+  "sortOrder": 2,
+  "createdById": 1,
+  "createdByUsername": "admin",
+  "postCount": 5,
+  "createdAt": "2025-11-08T14:00:00",
+  "updatedAt": "2025-11-08T15:00:00"
+}
+```
+
+**错误响应:**
+- `400 Bad Request` - 分类名称已存在或参数不符合要求
+- `401 Unauthorized` - 未登录或 token 无效
+- `404 Not Found` - 分类不存在
+
+---
+
+### 删除分类
+
+删除指定分类。
+
+**需要认证。注意：无法删除仍有文章使用的分类。**
+
+```http
+DELETE /api/categories/{id}
+Authorization: Bearer {token}
+```
+
+**路径参数:**
+- `id`: 分类ID
+
+**成功响应:** `200 OK`
+```json
+"分类删除成功"
+```
+
+**错误响应:**
+- `400 Bad Request` - 仍有文章使用该分类，无法删除
+- `401 Unauthorized` - 未登录或 token 无效
+- `404 Not Found` - 分类不存在
+
+---
+
 ## 错误码说明
 
 | 状态码 | 说明 |
