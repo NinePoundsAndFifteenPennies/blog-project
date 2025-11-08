@@ -4,7 +4,7 @@
     :style="tagStyle"
     :title="tag.description || tag.name"
   >
-    <i v-if="tag.icon && showIcon" :class="tag.icon" class="mr-1"></i>
+    <i v-if="tag.icon && showIcon" :class="getIconClass(tag.icon)" class="mr-1"></i>
     {{ tag.name }}
   </span>
 </template>
@@ -48,8 +48,29 @@ export default {
       }
     })
 
+    // 获取Font Awesome图标类名
+    // 支持多种格式：fa-java, fa-brands fa-java, fab fa-java 等
+    const getIconClass = (icon) => {
+      if (!icon) return ''
+      
+      // 如果已经包含 fa-brands、fa-solid 等前缀，直接返回
+      if (icon.includes('fa-brands') || icon.includes('fa-solid') || icon.includes('fa-regular') || 
+          icon.includes('fab ') || icon.includes('fas ') || icon.includes('far ')) {
+        return icon
+      }
+      
+      // 如果只是 fa-xxx 格式，添加 fa-brands 前缀（大多数品牌图标）
+      if (icon.startsWith('fa-')) {
+        return `fa-brands ${icon}`
+      }
+      
+      // 其他情况返回原值
+      return icon
+    }
+
     return {
-      tagStyle
+      tagStyle,
+      getIconClass
     }
   }
 }

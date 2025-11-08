@@ -16,7 +16,7 @@
                 class="inline-flex items-center px-6 py-3 rounded-lg text-2xl font-bold"
                 :style="getTagStyle(tagInfo)"
               >
-                <i v-if="tagInfo.icon" :class="tagInfo.icon" class="mr-2"></i>
+                <i v-if="tagInfo.icon" :class="getIconClass(tagInfo.icon)" class="mr-2"></i>
                 {{ tagInfo.name }}
               </div>
               <div class="text-gray-600">
@@ -205,6 +205,25 @@ export default {
       }
     }
 
+    // 获取Font Awesome图标类名
+    const getIconClass = (icon) => {
+      if (!icon) return ''
+      
+      // 如果已经包含 fa-brands、fa-solid 等前缀，直接返回
+      if (icon.includes('fa-brands') || icon.includes('fa-solid') || icon.includes('fa-regular') || 
+          icon.includes('fab ') || icon.includes('fas ') || icon.includes('far ')) {
+        return icon
+      }
+      
+      // 如果只是 fa-xxx 格式，添加 fa-brands 前缀（大多数品牌图标）
+      if (icon.startsWith('fa-')) {
+        return `fa-brands ${icon}`
+      }
+      
+      // 其他情况返回原值
+      return icon
+    }
+
     watch(tagName, () => {
       loadTagInfo()
       loadPosts()
@@ -224,7 +243,8 @@ export default {
       totalElements,
       getTagStyle,
       handlePageChange,
-      handleLikeChanged
+      handleLikeChanged,
+      getIconClass
     }
   }
 }

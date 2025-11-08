@@ -4,11 +4,6 @@
     <div class="relative h-52 bg-gradient-to-br from-primary-500 to-purple-600 overflow-hidden">
       <!-- Subtle overlay -->
       <div class="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-all duration-200"></div>
-      
-      <!-- First tag badge (if available) -->
-      <div v-if="post.tags && post.tags.length > 0" class="absolute top-4 left-4">
-        <TagBadge :tag="post.tags[0]" />
-      </div>
     </div>
 
     <!-- 内容区域 -->
