@@ -19,6 +19,7 @@ public class PostResponse {
     private Boolean isLiked;  // 当前用户是否已点赞
     private Long commentCount;  // 评论数
     private List<TagResponse> tags;  // 文章关联的标签列表
+    private CategoryResponse category;  // 文章所属的分类
 
     // Getters and Setters
     public Long getId() { return id; }
@@ -62,4 +63,7 @@ public class PostResponse {
 
     public List<TagResponse> getTags() { return tags; }
     public void setTags(List<TagResponse> tags) { this.tags = tags; }
+
+    public CategoryResponse getCategory() { return category; }
+    public void setCategory(CategoryResponse category) { this.category = category; }
 }

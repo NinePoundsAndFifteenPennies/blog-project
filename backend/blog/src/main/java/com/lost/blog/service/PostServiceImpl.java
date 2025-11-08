@@ -35,6 +35,7 @@ public class PostServiceImpl implements PostService {
     private final PostMapper postMapper;
     private final com.lost.blog.repository.CommentRepository commentRepository;
     private final com.lost.blog.repository.LikeRepository likeRepository;
+    private final com.lost.blog.repository.CategoryRepository categoryRepository;
 
     @Autowired
     public PostServiceImpl(PostRepository postRepository,
@@ -42,13 +43,15 @@ public class PostServiceImpl implements PostService {
                            TagRepository tagRepository,
                            PostMapper postMapper,
                            com.lost.blog.repository.CommentRepository commentRepository,
-                           com.lost.blog.repository.LikeRepository likeRepository) {
+                           com.lost.blog.repository.LikeRepository likeRepository,
+                           com.lost.blog.repository.CategoryRepository categoryRepository) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.tagRepository = tagRepository;
         this.postMapper = postMapper;
         this.commentRepository = commentRepository;
         this.likeRepository = likeRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     @Override
@@ -74,6 +77,13 @@ public class PostServiceImpl implements PostService {
         if (postRequest.getTags() != null && !postRequest.getTags().isEmpty()) {
             Set<Tag> tags = processTags(postRequest.getTags(), user);
             post.setTags(tags);
+        }
+
+        // 处理分类
+        if (postRequest.getCategoryId() != null) {
+            com.lost.blog.model.Category category = categoryRepository.findById(postRequest.getCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("分类不存在，ID：" + postRequest.getCategoryId()));
+            post.setCategory(category);
         }
 
         Post savedPost = postRepository.save(post);
@@ -166,6 +176,16 @@ public class PostServiceImpl implements PostService {
         if (postRequest.getTags() != null) {
             Set<Tag> tags = processTags(postRequest.getTags(), post.getUser());
             post.setTags(tags);
+        }
+
+        // 更新分类
+        if (postRequest.getCategoryId() != null) {
+            com.lost.blog.model.Category category = categoryRepository.findById(postRequest.getCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("分类不存在，ID：" + postRequest.getCategoryId()));
+            post.setCategory(category);
+        } else {
+            // 如果请求中categoryId为null，则移除分类
+            post.setCategory(null);
         }
 
         Post updatedPost = postRepository.save(post);

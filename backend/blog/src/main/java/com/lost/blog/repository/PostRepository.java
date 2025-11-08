@@ -27,4 +27,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     // 获取用户的草稿
     Page<Post> findByUserAndDraftTrue(User user, Pageable pageable);
+
+    // 统计使用某个分类的文章数量
+    long countByCategory(com.lost.blog.model.Category category);
 }

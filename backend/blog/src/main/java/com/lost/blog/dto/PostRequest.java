@@ -24,6 +24,9 @@ public class PostRequest {
     // 新增：标签名称列表（可选）
     private Set<String> tags;
 
+    // 新增：分类ID（可选）
+    private Long categoryId;
+
     // Getters and Setters
     public String getTitle() {
         return title;
@@ -63,5 +66,13 @@ public class PostRequest {
 
     public void setTags(Set<String> tags) {
         this.tags = tags;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
     }
 }
