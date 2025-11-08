@@ -5,11 +5,9 @@
       <!-- Subtle overlay -->
       <div class="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-all duration-200"></div>
       
-      <!-- Category badge (if available) -->
-      <div class="absolute top-4 left-4">
-        <span class="px-3 py-1 bg-white text-primary-700 text-xs font-medium rounded-md shadow-sm">
-          技术分享
-        </span>
+      <!-- First tag badge (if available) -->
+      <div v-if="post.tags && post.tags.length > 0" class="absolute top-4 left-4">
+        <TagBadge :tag="post.tags[0]" />
       </div>
     </div>
 

@@ -56,6 +56,12 @@ const routes = [
     meta: { title: "编辑评论", requiresAuth: true },
   },
   {
+    path: "/tags/:tagName",
+    name: "TagPosts",
+    component: () => import("@/views/TagPosts.vue"),
+    meta: { title: "标签文章" },
+  },
+  {
     path: "/:pathMatch(.*)*",
     name: "NotFound",
     component: () => import("@/views/NotFound.vue"),
