@@ -42,9 +42,9 @@ export default {
       const rgb = hexToRgb(color)
       
       return {
-        backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`,
+        backgroundColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`,
         color: color,
-        border: `1px solid rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`
+        border: `1px solid rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`
       }
     })
 
