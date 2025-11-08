@@ -25,9 +25,19 @@
         <div class="max-w-4xl mx-auto">
           <!-- Article Header -->
           <header class="mb-10 animate-fade-in">
-            <h1 class="text-4xl md:text-6xl font-bold text-gray-900 mb-8 leading-tight text-gray-900">
+            <h1 class="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight text-gray-900">
               {{ post.title }}
             </h1>
+
+            <!-- Tags -->
+            <div v-if="post.tags && post.tags.length > 0" class="flex flex-wrap gap-2 mb-8">
+              <TagBadge
+                v-for="tag in post.tags"
+                :key="tag.id"
+                :tag="tag"
+                :show-icon="true"
+              />
+            </div>
 
             <!-- Author Info Card -->
             <div class="card p-6 md:p-8 flex items-center justify-between flex-wrap gap-4 backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.1s;">
@@ -192,6 +202,7 @@ import { useStore } from 'vuex'
 import { marked } from 'marked'
 import Header from '@/components/Header.vue'
 import CommentList from '@/components/CommentList.vue'
+import TagBadge from '@/components/TagBadge.vue'
 import { getPostById, deletePost } from '@/api/posts'
 import { likePost, unlikePost } from '@/api/likes'
 import { getFullAvatarUrl } from '@/utils/avatar'
@@ -200,7 +211,8 @@ export default {
   name: 'PostDetail',
   components: {
     Header,
-    CommentList
+    CommentList,
+    TagBadge
   },
   setup() {
     const route = useRoute()
@@ -306,7 +318,8 @@ export default {
           publishedAt: response.publishedAt,
           draft: response.draft || false,
           likeCount: response.likeCount || 0,  // 从后端获取点赞数
-          isLiked: response.isLiked || false   // 从后端获取是否已点赞
+          isLiked: response.isLiked || false,   // 从后端获取是否已点赞
+          tags: response.tags || []  // 从后端获取标签列表
         }
         
         commentCount.value = response.commentCount || 0

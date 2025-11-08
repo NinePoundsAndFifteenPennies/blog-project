@@ -39,6 +39,50 @@
 
               <div class="card p-6">
                 <label class="block text-sm font-medium text-gray-700 mb-3">
+                  文章标签
+                </label>
+                <div class="flex flex-wrap gap-2 mb-3">
+                  <span
+                    v-for="(tag, index) in formData.tags"
+                    :key="index"
+                    class="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-primary-100 text-primary-700 border border-primary-200"
+                  >
+                    {{ tag }}
+                    <button
+                      @click="removeTag(index)"
+                      type="button"
+                      class="ml-2 text-primary-600 hover:text-primary-800"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <input
+                    v-model="tagInput"
+                    @keydown.enter="addTag"
+                    @keydown="handleTagInputKeydown"
+                    type="text"
+                    placeholder="输入标签名称，按回车添加..."
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                  <button
+                    @click="addTag"
+                    type="button"
+                    class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                  >
+                    添加
+                  </button>
+                </div>
+                <p class="mt-2 text-xs text-gray-500">
+                  提示：每个标签1-50字符，可使用中文、英文、数字、空格、下划线和连字符
+                </p>
+              </div>
+
+              <div class="card p-6">
+                <label class="block text-sm font-medium text-gray-700 mb-3">
                   内容类型
                 </label>
                 <div class="flex space-x-4">
@@ -443,13 +487,17 @@ export default {
     const formData = reactive({
       title: '',
       content: '',
-      contentType: 'MARKDOWN'  // 默认 Markdown
+      contentType: 'MARKDOWN',  // 默认 Markdown
+      tags: []  // 标签数组
     })
 
     const errors = reactive({
       title: '',
       content: ''
     })
+
+    // 标签输入
+    const tagInput = ref('')
 
     // 是否为草稿状态（从后端加载）
     const isDraft = ref(false)
@@ -513,6 +561,54 @@ export default {
       return isValid
     }
 
+    // 处理标签输入的键盘事件
+    const handleTagInputKeydown = (event) => {
+      // 检测逗号键
+      if (event.key === ',' || event.key === '，') {
+        event.preventDefault()
+        addTag()
+      }
+    }
+
+    // 添加标签
+    const addTag = (event) => {
+      if (event) {
+        event.preventDefault()
+      }
+      
+      const tag = tagInput.value.trim().replace(/,|，/g, '')
+      
+      if (!tag) return
+      
+      // 验证标签名称
+      if (tag.length < 1 || tag.length > 50) {
+        alert('标签长度必须在1-50个字符之间')
+        return
+      }
+      
+      // 验证标签格式（中文、英文、数字、空格、下划线和连字符）
+      const tagPattern = /^[\u4e00-\u9fa5a-zA-Z0-9\s_-]+$/
+      if (!tagPattern.test(tag)) {
+        alert('标签只能包含中文、英文、数字、空格、下划线和连字符')
+        return
+      }
+      
+      // 检查是否已存在
+      if (formData.tags.includes(tag)) {
+        alert('标签已存在')
+        tagInput.value = ''
+        return
+      }
+      
+      formData.tags.push(tag)
+      tagInput.value = ''
+    }
+
+    // 移除标签
+    const removeTag = (index) => {
+      formData.tags.splice(index, 1)
+    }
+
     // 加载文章数据(编辑模式)
     const loadPost = async () => {
       if (!isEditMode.value) return
@@ -528,6 +624,7 @@ export default {
         formData.title = post.title || ''
         formData.content = post.content || ''
         formData.contentType = post.contentType || 'MARKDOWN'
+        formData.tags = post.tags ? post.tags.map(tag => tag.name) : []
         isDraft.value = post.draft || false
       } catch (error) {
         console.error('加载文章失败:', error)
@@ -549,7 +646,8 @@ export default {
           title: formData.title,
           content: formData.content,
           contentType: formData.contentType,
-          draft: true  // 标记为草稿
+          draft: true,  // 标记为草稿
+          tags: formData.tags  // 包含标签
         }
 
         if (isEditMode.value) {
@@ -583,7 +681,8 @@ export default {
           title: formData.title,
           content: formData.content,
           contentType: formData.contentType,
-          draft: false  // 标记为已发布
+          draft: false,  // 标记为已发布
+          tags: formData.tags  // 包含标签
         }
 
         if (isEditMode.value) {
@@ -1054,7 +1153,11 @@ export default {
       showLanguageModal,
       codeLanguage,
       availableLanguages,
-      insertCodeBlock
+      insertCodeBlock,
+      tagInput,
+      addTag,
+      removeTag,
+      handleTagInputKeydown
     }
   }
 }

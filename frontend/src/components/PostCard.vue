@@ -20,6 +20,18 @@
         {{ post.title }}
       </h3>
 
+      <!-- 标签 -->
+      <div v-if="post.tags && post.tags.length > 0" class="flex flex-wrap gap-2 mb-3">
+        <TagBadge
+          v-for="tag in post.tags.slice(0, 3)"
+          :key="tag.id"
+          :tag="tag"
+        />
+        <span v-if="post.tags.length > 3" class="text-xs text-gray-400">
+          +{{ post.tags.length - 3 }}
+        </span>
+      </div>
+
       <!-- 摘要 -->
       <p class="text-gray-600 mb-4 line-clamp-3 leading-relaxed text-sm">
         {{ post.summary || '暂无摘要' }}
@@ -98,9 +110,13 @@ import { useStore } from 'vuex'
 import { likePost, unlikePost } from '@/api/likes'
 import { ref, computed, watch } from 'vue'
 import { getFullAvatarUrl } from '@/utils/avatar'
+import TagBadge from '@/components/TagBadge.vue'
 
 export default {
   name: 'PostCard',
+  components: {
+    TagBadge
+  },
   props: {
     post: {
       type: Object,
