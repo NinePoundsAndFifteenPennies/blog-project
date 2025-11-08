@@ -62,6 +62,12 @@ const routes = [
     meta: { title: "标签文章" },
   },
   {
+    path: "/tags",
+    name: "TagManagement",
+    component: () => import("@/views/TagManagement.vue"),
+    meta: { title: "标签管理", requiresAuth: true },
+  },
+  {
     path: "/:pathMatch(.*)*",
     name: "NotFound",
     component: () => import("@/views/NotFound.vue"),

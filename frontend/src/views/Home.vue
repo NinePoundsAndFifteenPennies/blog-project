@@ -77,17 +77,10 @@
 
           <!-- Main Content Layout -->
           <div class="flex flex-col lg:flex-row gap-8">
-            <!-- Sidebar - Popular Tags -->
-            <aside class="lg:w-80 flex-shrink-0 order-2 lg:order-1">
-              <div class="lg:sticky lg:top-24">
-                <PopularTags />
-              </div>
-            </aside>
-
             <!-- Main Content Area -->
-            <div class="flex-1 order-1 lg:order-2">
+            <div class="flex-1 order-1 lg:order-1">
               <!-- Loading State -->
-              <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div v-for="i in 6" :key="i" class="animate-pulse">
                   <div class="card p-6">
                     <div class="h-48 bg-gray-200 rounded-lg mb-4"></div>
@@ -113,7 +106,7 @@
               </div>
 
               <!-- Posts Grid -->
-              <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <PostCard
                     v-for="post in posts"
                     :key="post.id"
@@ -132,6 +125,13 @@
                 />
               </div>
             </div>
+
+            <!-- Sidebar - Popular Tags (Right Side) -->
+            <aside class="lg:w-72 flex-shrink-0 order-2 lg:order-2">
+              <div class="lg:sticky lg:top-24">
+                <PopularTags />
+              </div>
+            </aside>
           </div>
         </div>
       </div>
@@ -169,7 +169,7 @@ export default {
     const currentPage = ref(parseInt(route.query.page) || 1)
     const totalPages = ref(1)
     const totalElements = ref(0)
-    const pageSize = 6 // 每页显示6篇文章
+    const pageSize = 9 // 每页显示9篇文章 (3x3 grid)
 
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
 
@@ -202,9 +202,9 @@ export default {
           likeCount: post.likeCount || 0,  // 从后端获取点赞数
           isLiked: post.isLiked || false,  // 从后端获取是否已点赞
           commentCount: post.commentCount || 0,  // 从后端获取评论数
+          tags: post.tags || [],  // 从后端获取标签数据
           // 暂时显示静态数据,后续实现
           views: 0,
-          tags: [],
           category: null
 
         }))
