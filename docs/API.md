@@ -179,7 +179,9 @@ Content-Type: application/json
   "title": "文章标题",
   "content": "文章内容，支持 Markdown",
   "contentType": "MARKDOWN",
-  "draft": false
+  "draft": false,
+  "category": "技术文章",
+  "tags": ["Java", "Spring Boot"]
 }
 ```
 
@@ -188,6 +190,8 @@ Content-Type: application/json
 - `content`: 文章内容（必填）
 - `contentType`: 内容类型，`MARKDOWN` 或 `HTML`
 - `draft`: 是否为草稿（true: 草稿，false: 发布）
+- `category`: 分类名称（可选），如果分类不存在会自动创建
+- `tags`: 标签名称列表（可选），如果标签不存在会自动创建
 
 **成功响应:** `201 Created`
 ```json
@@ -1435,6 +1439,8 @@ Content-Type: application/json
 
 **需要认证。系统会自动记录创建者信息。**
 
+**注意**：创建文章时如果指定的分类不存在，系统会自动创建该分类，因此通常不需要单独调用此接口。
+
 ```http
 POST /api/categories
 Authorization: Bearer {token}
@@ -1677,9 +1683,9 @@ Content-Type: application/json
 
 ### 删除分类
 
-删除指定分类。
+硬删除指定分类（管理员操作）。
 
-**需要认证。注意：无法删除仍有文章使用的分类。**
+**需要认证。删除后，关联的文章不会被删除，只是category字段会被设置为null。**
 
 ```http
 DELETE /api/categories/{id}
@@ -1695,9 +1701,53 @@ Authorization: Bearer {token}
 ```
 
 **错误响应:**
-- `400 Bad Request` - 仍有文章使用该分类，无法删除
 - `401 Unauthorized` - 未登录或 token 无效
 - `404 Not Found` - 分类不存在
+
+---
+
+### 从文章中移除标签（软删除）
+
+用户可以从自己的文章中移除指定标签，标签本身不会被删除。
+
+```http
+DELETE /api/posts/{postId}/tags/{tagName}
+Authorization: Bearer {token}
+```
+
+**路径参数:**
+- `postId`: 文章ID
+- `tagName`: 标签名称（需要URL编码）
+
+**成功响应:** `200 OK`
+返回更新后的文章详情（格式同"获取文章详情"）
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `403 Forbidden` - 无权操作该文章（不是文章作者）
+- `404 Not Found` - 文章或标签不存在
+
+---
+
+### 从文章中移除分类（软删除）
+
+用户可以从自己的文章中移除分类，分类本身不会被删除。
+
+```http
+DELETE /api/posts/{postId}/category
+Authorization: Bearer {token}
+```
+
+**路径参数:**
+- `postId`: 文章ID
+
+**成功响应:** `200 OK`
+返回更新后的文章详情（格式同"获取文章详情"）
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `403 Forbidden` - 无权操作该文章（不是文章作者）
+- `404 Not Found` - 文章不存在
 
 ---
 

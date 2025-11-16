@@ -112,20 +112,11 @@ public class TagServiceImpl implements TagService {
     @Override
     @Transactional
     public void deleteTag(Long id) {
-        // 使用JOIN FETCH加载标签及其关联的文章
-        Tag tag = tagRepository.findByIdWithPosts(id)
+        Tag tag = tagRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("标签不存在，ID：" + id));
         
-        // 先从所有关联的文章中移除该标签
-        if (tag.getPosts() != null && !tag.getPosts().isEmpty()) {
-            // 复制集合以避免ConcurrentModificationException
-            var posts = new java.util.HashSet<>(tag.getPosts());
-            for (var post : posts) {
-                post.getTags().remove(tag);
-            }
-        }
-        
-        // 删除标签（此时post_tags中间表中的关联已被移除）
+        // 硬删除标签（管理员操作）
+        // 注意：多对多关系会自动从post_tags中间表中删除关联
         tagRepository.delete(tag);
     }
 }

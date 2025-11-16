@@ -121,12 +121,8 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("分类不存在，ID：" + id));
         
-        // 检查是否有文章使用该分类
-        long postCount = postRepository.countByCategory(category);
-        if (postCount > 0) {
-            throw new IllegalStateException("无法删除该分类，仍有 " + postCount + " 篇文章使用该分类");
-        }
-        
+        // 硬删除分类（管理员操作）
+        // 注意：关联的文章不会被删除，只是category字段会被设置为null
         categoryRepository.delete(category);
     }
 }

@@ -80,9 +80,8 @@ public class PostServiceImpl implements PostService {
         }
 
         // 处理分类
-        if (postRequest.getCategoryId() != null) {
-            com.lost.blog.model.Category category = categoryRepository.findById(postRequest.getCategoryId())
-                    .orElseThrow(() -> new ResourceNotFoundException("分类不存在，ID：" + postRequest.getCategoryId()));
+        if (postRequest.getCategory() != null && !postRequest.getCategory().trim().isEmpty()) {
+            com.lost.blog.model.Category category = processCategory(postRequest.getCategory().trim(), user);
             post.setCategory(category);
         }
 
@@ -179,12 +178,11 @@ public class PostServiceImpl implements PostService {
         }
 
         // 更新分类
-        if (postRequest.getCategoryId() != null) {
-            com.lost.blog.model.Category category = categoryRepository.findById(postRequest.getCategoryId())
-                    .orElseThrow(() -> new ResourceNotFoundException("分类不存在，ID：" + postRequest.getCategoryId()));
+        if (postRequest.getCategory() != null && !postRequest.getCategory().trim().isEmpty()) {
+            com.lost.blog.model.Category category = processCategory(postRequest.getCategory().trim(), post.getUser());
             post.setCategory(category);
         } else {
-            // 如果请求中categoryId为null，则移除分类
+            // 如果请求中category为null或空字符串，则移除分类（软删除）
             post.setCategory(null);
         }
 
@@ -287,5 +285,71 @@ public class PostServiceImpl implements PostService {
         }
         
         return String.format("#%02X%02X%02X", r, g, b);
+    }
+
+    /**
+     * 处理分类：查找已存在的分类或创建新分类
+     */
+    private com.lost.blog.model.Category processCategory(String categoryName, User creator) {
+        if (categoryName == null || categoryName.trim().isEmpty()) {
+            return null;
+        }
+
+        String trimmedName = categoryName.trim();
+        
+        // 查找或创建分类
+        return categoryRepository.findByName(trimmedName)
+                .orElseGet(() -> {
+                    com.lost.blog.model.Category newCategory = new com.lost.blog.model.Category();
+                    newCategory.setName(trimmedName);
+                    newCategory.setCreatedBy(creator);
+                    // 自动分配随机可见颜色
+                    newCategory.setColor(generateRandomVisibleColor());
+                    return categoryRepository.save(newCategory);
+                });
+    }
+
+    @Override
+    @Transactional
+    public PostResponse removeTagFromPost(Long postId, String tagName, UserDetails currentUser) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + postId + " 的文章"));
+
+        // 权限校验：只有文章作者可以移除标签
+        if (!post.getUser().getUsername().equals(currentUser.getUsername())) {
+            logger.warn("用户 {} 尝试从他人文章移除标签，文章ID: {}", currentUser.getUsername(), postId);
+            throw new AccessDeniedException("无权修改该文章");
+        }
+
+        // 查找并移除标签
+        Tag tagToRemove = tagRepository.findByName(tagName)
+                .orElseThrow(() -> new ResourceNotFoundException("标签不存在：" + tagName));
+
+        post.getTags().remove(tagToRemove);
+        Post updatedPost = postRepository.save(post);
+        
+        logger.info("用户 {} 从文章 {} 中移除了标签 {}", currentUser.getUsername(), postId, tagName);
+        
+        return postMapper.toResponse(updatedPost, currentUser);
+    }
+
+    @Override
+    @Transactional
+    public PostResponse removeCategoryFromPost(Long postId, UserDetails currentUser) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + postId + " 的文章"));
+
+        // 权限校验：只有文章作者可以移除分类
+        if (!post.getUser().getUsername().equals(currentUser.getUsername())) {
+            logger.warn("用户 {} 尝试从他人文章移除分类，文章ID: {}", currentUser.getUsername(), postId);
+            throw new AccessDeniedException("无权修改该文章");
+        }
+
+        post.setCategory(null);
+        Post updatedPost = postRepository.save(post);
+        
+        logger.info("用户 {} 从文章 {} 中移除了分类", currentUser.getUsername(), postId);
+        
+        return postMapper.toResponse(updatedPost, currentUser);
     }
 }
