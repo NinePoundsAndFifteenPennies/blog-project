@@ -122,7 +122,7 @@
           </div>
 
           <!-- Article Footer Actions -->
-          <div class="card p-6 flex items-center justify-between backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.3s;">
+          <div class="card p-6 flex items-center justify-between backdrop-blur-sm bg-white/90 animate-slide-up overflow-visible" style="animation-delay: 0.3s;">
             <div class="flex items-center space-x-6 text-gray-400">
               <!-- Like Button -->
               <button
