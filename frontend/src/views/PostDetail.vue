@@ -494,6 +494,7 @@ export default {
       try {
         let response
         // 保留更多字符，使文件名更可读
+        // 注意：此处的文件名清理用于浏览器下载属性，后端也会在Content-Disposition中编码文件名
         let filename = post.value.title
           .replace(/[<>:"/\\|?*]/g, '_') // 只替换文件系统不允许的字符
           .replace(/\s+/g, '_') // 将空格替换为下划线

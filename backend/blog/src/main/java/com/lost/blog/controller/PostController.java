@@ -13,7 +13,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -111,15 +111,12 @@ public class PostController {
     }
 
     // 导出文章为Markdown格式（需要登录）
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}/export/markdown")
     public ResponseEntity<Resource> exportAsMarkdown(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails currentUser) {
-        if (currentUser == null) {
-            throw new AccessDeniedException("需要登录才能导出文章");
-        }
-        
-        Post post = postService.getPostEntityById(id);
+        Post post = postService.getPostEntityById(id, currentUser);
         
         ByteArrayResource resource = exportService.exportAsMarkdown(post);
         String filename = encodeFilename(post.getTitle() + ".md");
@@ -131,15 +128,12 @@ public class PostController {
     }
 
     // 导出文章为PDF格式（需要登录）
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}/export/pdf")
     public ResponseEntity<Resource> exportAsPdf(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails currentUser) {
-        if (currentUser == null) {
-            throw new AccessDeniedException("需要登录才能导出文章");
-        }
-        
-        Post post = postService.getPostEntityById(id);
+        Post post = postService.getPostEntityById(id, currentUser);
         
         ByteArrayResource resource = exportService.exportAsPdf(post);
         String filename = encodeFilename(post.getTitle() + ".pdf");
@@ -151,15 +145,12 @@ public class PostController {
     }
 
     // 导出文章为HTML格式（需要登录）
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}/export/html")
     public ResponseEntity<Resource> exportAsHtml(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails currentUser) {
-        if (currentUser == null) {
-            throw new AccessDeniedException("需要登录才能导出文章");
-        }
-        
-        Post post = postService.getPostEntityById(id);
+        Post post = postService.getPostEntityById(id, currentUser);
         
         ByteArrayResource resource = exportService.exportAsHtml(post);
         String filename = encodeFilename(post.getTitle() + ".html");

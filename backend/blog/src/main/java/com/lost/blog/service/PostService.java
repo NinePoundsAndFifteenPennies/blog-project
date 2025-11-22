@@ -77,7 +77,8 @@ public interface PostService {
     /**
      * 获取文章实体（用于导出等操作）
      * @param postId 文章ID
+     * @param currentUser 当前用户（用于草稿权限检查）
      * @return 文章实体
      */
-    Post getPostEntityById(Long postId);
+    Post getPostEntityById(Long postId, UserDetails currentUser);
 }

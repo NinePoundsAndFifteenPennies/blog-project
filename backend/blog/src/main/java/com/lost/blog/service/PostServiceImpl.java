@@ -354,8 +354,23 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public Post getPostEntityById(Long postId) {
-        return postRepository.findById(postId)
+    public Post getPostEntityById(Long postId, UserDetails currentUser) {
+        Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + postId + " 的文章"));
+
+        // 草稿文章权限检查
+        if (post.getDraft()) {
+            // 如果是草稿，必须是作者本人才能访问
+            if (currentUser == null) {
+                logger.warn("匿名用户尝试访问草稿文章，ID: {}", postId);
+                throw new AccessDeniedException("草稿文章需要登录查看");
+            }
+            if (!post.getUser().getUsername().equals(currentUser.getUsername())) {
+                logger.warn("用户 {} 尝试访问他人草稿，文章ID: {}", currentUser.getUsername(), postId);
+                throw new AccessDeniedException("无权查看该草稿");
+            }
+        }
+
+        return post;
     }
 }
