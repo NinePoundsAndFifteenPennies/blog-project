@@ -14,7 +14,8 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface LikeRepository extends JpaRepository<Like, Long> {
+public interface
+LikeRepository extends JpaRepository<Like, Long> {
     
     // Check if a user has liked a specific post
     boolean existsByUserAndPost(User user, Post post);
