@@ -88,11 +88,11 @@ public class ExportServiceImpl implements ExportService {
     private String convertToHtml(Post post) {
         StringBuilder html = new StringBuilder();
         
-        // HTML文档头部
+        // HTML文档头部 (XHTML格式，用于PDF生成)
         html.append("<!DOCTYPE html>\n");
         html.append("<html>\n");
         html.append("<head>\n");
-        html.append("<meta charset=\"UTF-8\">\n");
+        html.append("<meta charset=\"UTF-8\" />\n");
         html.append("<title>").append(escapeHtml(post.getTitle())).append("</title>\n");
         html.append("<style>\n");
         html.append("body { font-family: 'Arial', 'Microsoft YaHei', sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 20px; color: #333; }\n");
