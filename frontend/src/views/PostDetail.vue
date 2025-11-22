@@ -170,7 +170,7 @@
               <!-- Export Dropdown Menu -->
               <div 
                 v-if="showExportMenu"
-                class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                class="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
                 @click.stop
               >
                 <div class="py-1">
