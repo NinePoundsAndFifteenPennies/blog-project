@@ -58,12 +58,52 @@ public class ExportServiceImpl implements ExportService {
     @Override
     public ByteArrayResource exportAsPdf(Post post) {
         try {
-            // 将内容转换为HTML
-            String htmlContent = convertToHtml(post);
+            // 将内容转换为HTML (使用简化版本以改善PDF中文支持)
+            String htmlContent = convertToHtmlForPdf(post);
             
             // 创建PDF
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             ITextRenderer renderer = new ITextRenderer();
+            
+            // 尝试添加系统中文字体支持
+            // 注意: Flying Saucer + iText 对中文支持有限
+            // 如果遇到中文乱码，建议：
+            // 1. 将字体文件(如 SimSun.ttf)放入 resources/fonts 目录
+            // 2. 在pom.xml添加 itext-asian 依赖
+            // 3. 使用 addFont 方法加载字体文件
+            try {
+                // 尝试使用系统字体（仅在有中文字体的系统上有效）
+                String[] fontPaths = {
+                    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",  // Linux
+                    "/System/Library/Fonts/PingFang.ttc",  // macOS
+                    "C:/Windows/Fonts/simsun.ttc"  // Windows
+                };
+                
+                boolean fontLoaded = false;
+                for (String fontPath : fontPaths) {
+                    try {
+                        java.io.File fontFile = new java.io.File(fontPath);
+                        if (fontFile.exists()) {
+                            renderer.getFontResolver().addFont(
+                                fontPath,
+                                com.lowagie.text.pdf.BaseFont.IDENTITY_H,
+                                com.lowagie.text.pdf.BaseFont.NOT_EMBEDDED
+                            );
+                            fontLoaded = true;
+                            break;
+                        }
+                    } catch (Exception ignored) {
+                        // 继续尝试下一个字体路径
+                    }
+                }
+                
+                if (!fontLoaded) {
+                    System.err.println("警告: 未找到系统中文字体，PDF中的中文可能无法正常显示");
+                }
+            } catch (Exception e) {
+                System.err.println("警告: 加载中文字体时出错: " + e.getMessage());
+            }
+            
             renderer.setDocumentFromString(htmlContent);
             renderer.layout();
             renderer.createPDF(outputStream);
@@ -95,7 +135,7 @@ public class ExportServiceImpl implements ExportService {
         html.append("<meta charset=\"UTF-8\" />\n");
         html.append("<title>").append(escapeHtml(post.getTitle())).append("</title>\n");
         html.append("<style>\n");
-        html.append("body { font-family: 'Arial', 'Microsoft YaHei', 'SimSun', sans-serif; line-height: 1.8; max-width: 900px; margin: 40px auto; padding: 40px; color: #2c3e50; background-color: #ffffff; }\n");
+        html.append("body { font-family: 'Microsoft YaHei', 'SimSun', 'Arial', sans-serif; line-height: 1.8; max-width: 900px; margin: 40px auto; padding: 40px; color: #2c3e50; background-color: #ffffff; }\n");
         html.append("h1 { color: #2c3e50; font-size: 32px; font-weight: bold; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 25px; }\n");
         html.append("h2 { color: #34495e; font-size: 26px; font-weight: bold; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; }\n");
         html.append("h3 { color: #34495e; font-size: 22px; font-weight: bold; margin-top: 25px; margin-bottom: 12px; }\n");
@@ -119,6 +159,88 @@ public class ExportServiceImpl implements ExportService {
         html.append("a:hover { text-decoration: underline; }\n");
         html.append("img { max-width: 100%; height: auto; margin: 20px 0; border-radius: 4px; }\n");
         html.append("hr { border: none; border-top: 2px solid #e0e0e0; margin: 30px 0; }\n");
+        html.append("</style>\n");
+        html.append("</head>\n");
+        html.append("<body>\n");
+        
+        // 文章标题
+        html.append("<h1>").append(escapeHtml(post.getTitle())).append("</h1>\n");
+        
+        // 文章元数据
+        html.append("<div class=\"metadata\">\n");
+        html.append("<p><strong>作者:</strong> ").append(escapeHtml(post.getUser().getUsername())).append("</p>\n");
+        html.append("<p><strong>创建时间:</strong> ").append(post.getCreatedAt().format(DATE_FORMATTER)).append("</p>\n");
+        if (post.getPublishedAt() != null) {
+            html.append("<p><strong>发布时间:</strong> ").append(post.getPublishedAt().format(DATE_FORMATTER)).append("</p>\n");
+        }
+        if (post.getUpdatedAt() != null) {
+            html.append("<p><strong>更新时间:</strong> ").append(post.getUpdatedAt().format(DATE_FORMATTER)).append("</p>\n");
+        }
+        if (post.getCategory() != null) {
+            html.append("<p><strong>分类:</strong> ").append(escapeHtml(post.getCategory().getName())).append("</p>\n");
+        }
+        if (post.getTags() != null && !post.getTags().isEmpty()) {
+            String tags = post.getTags().stream()
+                    .map(tag -> escapeHtml(tag.getName()))
+                    .collect(Collectors.joining(", "));
+            html.append("<p><strong>标签:</strong> ").append(tags).append("</p>\n");
+        }
+        html.append("</div>\n");
+        
+        // 文章内容
+        html.append("<div class=\"content\">\n");
+        if (post.getContentType() == ContentType.MARKDOWN) {
+            // Markdown转HTML
+            Parser parser = Parser.builder().build();
+            Node document = parser.parse(post.getContent());
+            HtmlRenderer renderer = HtmlRenderer.builder().build();
+            html.append(renderer.render(document));
+        } else {
+            // 直接使用HTML内容
+            html.append(post.getContent());
+        }
+        html.append("</div>\n");
+        
+        // HTML文档尾部
+        html.append("</body>\n");
+        html.append("</html>");
+        
+        return html.toString();
+    }
+
+    /**
+     * 将文章转换为适合PDF渲染的HTML格式
+     * PDF渲染器对CSS支持有限，使用简化的样式
+     */
+    private String convertToHtmlForPdf(Post post) {
+        StringBuilder html = new StringBuilder();
+        
+        // HTML文档头部 (XHTML格式，用于PDF生成)
+        html.append("<!DOCTYPE html>\n");
+        html.append("<html>\n");
+        html.append("<head>\n");
+        html.append("<meta charset=\"UTF-8\" />\n");
+        html.append("<title>").append(escapeHtml(post.getTitle())).append("</title>\n");
+        html.append("<style>\n");
+        // 简化的样式，更好地支持PDF渲染和中文
+        html.append("body { font-family: serif; line-height: 1.6; margin: 40px; color: #000; }\n");
+        html.append("h1 { font-size: 24pt; font-weight: bold; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }\n");
+        html.append("h2 { font-size: 20pt; font-weight: bold; margin-top: 20px; margin-bottom: 10px; }\n");
+        html.append("h3 { font-size: 16pt; font-weight: bold; margin-top: 15px; margin-bottom: 8px; }\n");
+        html.append("p { margin: 10px 0; font-size: 12pt; }\n");
+        html.append(".metadata { background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-left: 4px solid #666; }\n");
+        html.append(".metadata p { margin: 5px 0; font-size: 11pt; }\n");
+        html.append(".metadata strong { font-weight: bold; }\n");
+        html.append(".content { margin-top: 30px; }\n");
+        html.append("ul, ol { margin: 10px 0; padding-left: 25px; }\n");
+        html.append("li { margin: 5px 0; }\n");
+        html.append("code { background-color: #f0f0f0; padding: 2px 4px; font-family: monospace; }\n");
+        html.append("pre { background-color: #f0f0f0; padding: 10px; margin: 10px 0; }\n");
+        html.append("pre code { background-color: transparent; }\n");
+        html.append("blockquote { border-left: 3px solid #666; margin: 10px 0; padding: 10px 15px; background-color: #f9f9f9; }\n");
+        html.append("table { border-collapse: collapse; width: 100%; margin: 15px 0; }\n");
+        html.append("th, td { border: 1px solid #666; padding: 8px; text-align: left; }\n");
+        html.append("th { background-color: #e0e0e0; font-weight: bold; }\n");
         html.append("</style>\n");
         html.append("</head>\n");
         html.append("<body>\n");
