@@ -99,3 +99,39 @@ export function removeCategoryFromPost(postId) {
         method: 'delete'
     })
 }
+
+/**
+ * 导出文章为Markdown格式
+ * @param {Number} id - 文章ID
+ */
+export function exportAsMarkdown(id) {
+    return request({
+        url: `/posts/${id}/export/markdown`,
+        method: 'get',
+        responseType: 'blob'
+    })
+}
+
+/**
+ * 导出文章为PDF格式
+ * @param {Number} id - 文章ID
+ */
+export function exportAsPdf(id) {
+    return request({
+        url: `/posts/${id}/export/pdf`,
+        method: 'get',
+        responseType: 'blob'
+    })
+}
+
+/**
+ * 导出文章为HTML格式
+ * @param {Number} id - 文章ID
+ */
+export function exportAsHtml(id) {
+    return request({
+        url: `/posts/${id}/export/html`,
+        method: 'get',
+        responseType: 'blob'
+    })
+}

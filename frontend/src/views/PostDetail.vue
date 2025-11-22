@@ -151,6 +151,61 @@
               </div>
             </div>
 
+            <!-- Export Button (only for logged in users) -->
+            <div v-if="isLoggedIn" class="relative">
+              <button 
+                @click="showExportMenu = !showExportMenu"
+                class="btn-secondary flex items-center space-x-2"
+                title="导出文章"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span>导出</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              <!-- Export Dropdown Menu -->
+              <div 
+                v-if="showExportMenu"
+                class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                @click.stop
+              >
+                <div class="py-1">
+                  <button 
+                    v-if="post.contentType === 'MARKDOWN'"
+                    @click="handleExport('markdown')"
+                    class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <span>导出为 Markdown</span>
+                  </button>
+                  <button 
+                    @click="handleExport('pdf')"
+                    class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <span>导出为 PDF</span>
+                  </button>
+                  <button 
+                    @click="handleExport('html')"
+                    class="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                    <span>导出为 HTML</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
             <!-- Share Button (暂未实现) -->
             <button class="btn-secondary flex items-center space-x-2 cursor-not-allowed" title="分享功能开发中">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,7 +275,7 @@ import { marked } from 'marked'
 import Header from '@/components/Header.vue'
 import CommentList from '@/components/CommentList.vue'
 import TagBadge from '@/components/TagBadge.vue'
-import { getPostById, deletePost, removeTagFromPost } from '@/api/posts'
+import { getPostById, deletePost, removeTagFromPost, exportAsMarkdown, exportAsPdf, exportAsHtml } from '@/api/posts'
 import { likePost, unlikePost } from '@/api/likes'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
@@ -241,6 +296,7 @@ export default {
     const showBackToTop = ref(false)
     const avatarLoadError = ref(false)
     const commentCount = ref(0)
+    const showExportMenu = ref(false)
 
     const currentUser = computed(() => store.getters.currentUser)
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
@@ -432,24 +488,72 @@ export default {
       commentCount.value = count
     }
 
+    // 处理文章导出
+    const handleExport = async (format) => {
+      showExportMenu.value = false
+      try {
+        let response
+        let filename = post.value.title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')
+        
+        switch (format) {
+          case 'markdown':
+            response = await exportAsMarkdown(post.value.id)
+            filename += '.md'
+            break
+          case 'pdf':
+            response = await exportAsPdf(post.value.id)
+            filename += '.pdf'
+            break
+          case 'html':
+            response = await exportAsHtml(post.value.id)
+            filename += '.html'
+            break
+        }
+
+        // 创建下载链接
+        const url = window.URL.createObjectURL(new Blob([response]))
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', filename)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+      } catch (error) {
+        console.error('导出失败:', error)
+        alert('导出失败，请稍后重试')
+      }
+    }
+
+    // 点击页面其他地方关闭导出菜单
+    const handleClickOutside = (event) => {
+      if (showExportMenu.value && !event.target.closest('.relative')) {
+        showExportMenu.value = false
+      }
+    }
+
     onMounted(() => {
       loadPost()
       window.addEventListener('scroll', handleScroll)
+      document.addEventListener('click', handleClickOutside)
     })
 
     onUnmounted(() => {
       window.removeEventListener('scroll', handleScroll)
+      document.removeEventListener('click', handleClickOutside)
     })
 
     return {
       loading,
       post,
+      isLoggedIn,
       isAuthor,
       authorInitial,
       authorAvatarUrl,
       avatarLoadError,
       renderedContent,
       showBackToTop,
+      showExportMenu,
       commentCount,
       formatDate,
       formatFullDate,
@@ -457,6 +561,7 @@ export default {
       handleRemoveTag,
       handleTagClick,
       handleLike,
+      handleExport,
       scrollToTop,
       handleAvatarError,
       handleAvatarLoad,
