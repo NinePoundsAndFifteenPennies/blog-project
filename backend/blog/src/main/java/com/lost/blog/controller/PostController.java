@@ -77,4 +77,23 @@ public class PostController {
         postService.deletePost(id, currentUser);
         return ResponseEntity.ok("文章删除成功");
     }
+
+    // 从文章中移除指定标签（软删除）
+    @DeleteMapping("/{id}/tags/{tagName}")
+    public ResponseEntity<PostResponse> removeTagFromPost(
+            @PathVariable Long id,
+            @PathVariable String tagName,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        PostResponse updatedPost = postService.removeTagFromPost(id, tagName, currentUser);
+        return ResponseEntity.ok(updatedPost);
+    }
+
+    // 从文章中移除分类（软删除）
+    @DeleteMapping("/{id}/category")
+    public ResponseEntity<PostResponse> removeCategoryFromPost(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        PostResponse updatedPost = postService.removeCategoryFromPost(id, currentUser);
+        return ResponseEntity.ok(updatedPost);
+    }
 }

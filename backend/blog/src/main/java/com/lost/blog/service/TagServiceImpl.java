@@ -116,6 +116,7 @@ public class TagServiceImpl implements TagService {
         Tag tag = tagRepository.findByIdWithPosts(id)
                 .orElseThrow(() -> new ResourceNotFoundException("标签不存在，ID：" + id));
         
+        // 硬删除标签（管理员操作）
         // 先从所有关联的文章中移除该标签
         if (tag.getPosts() != null && !tag.getPosts().isEmpty()) {
             // 复制集合以避免ConcurrentModificationException
@@ -125,7 +126,7 @@ public class TagServiceImpl implements TagService {
             }
         }
         
-        // 删除标签（此时post_tags中间表中的关联已被移除）
+        // 然后删除标签（此时post_tags中间表中的关联已被移除）
         tagRepository.delete(tag);
     }
 }

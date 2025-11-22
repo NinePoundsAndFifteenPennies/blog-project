@@ -31,14 +31,29 @@
 
             <!-- Tags -->
             <div v-if="post.tags && post.tags.length > 0" class="flex flex-wrap gap-2 mb-8">
-              <TagBadge
+              <div 
                 v-for="tag in post.tags"
                 :key="tag.id"
-                :tag="tag"
-                :show-icon="true"
-                :clickable="true"
-                @click="handleTagClick(tag)"
-              />
+                class="relative group"
+              >
+                <TagBadge
+                  :tag="tag"
+                  :show-icon="true"
+                  :clickable="true"
+                  @click="handleTagClick(tag)"
+                />
+                <!-- Delete button - only show for post author -->
+                <button
+                  v-if="isAuthor"
+                  @click.stop="handleRemoveTag(tag)"
+                  class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg"
+                  title="移除此标签"
+                >
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <!-- Author Info Card -->
@@ -205,7 +220,7 @@ import { marked } from 'marked'
 import Header from '@/components/Header.vue'
 import CommentList from '@/components/CommentList.vue'
 import TagBadge from '@/components/TagBadge.vue'
-import { getPostById, deletePost } from '@/api/posts'
+import { getPostById, deletePost, removeTagFromPost } from '@/api/posts'
 import { likePost, unlikePost } from '@/api/likes'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
@@ -347,6 +362,21 @@ export default {
       }
     }
 
+    // 从文章中移除标签
+    const handleRemoveTag = async (tag) => {
+      if (!confirm(`确定要从文章中移除标签"${tag.name}"吗？标签本身不会被删除。`)) return
+
+      try {
+        const response = await removeTagFromPost(post.value.id, tag.name)
+        // 更新文章数据
+        post.value.tags = response.tags || []
+        alert('标签已移除')
+      } catch (error) {
+        console.error('移除标签失败:', error)
+        alert('移除标签失败，请稍后重试')
+      }
+    }
+
     const handleTagClick = (tag) => {
       // Navigate to tag posts page
       router.push({
@@ -424,6 +454,7 @@ export default {
       formatDate,
       formatFullDate,
       handleDelete,
+      handleRemoveTag,
       handleTagClick,
       handleLike,
       scrollToTop,

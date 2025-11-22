@@ -55,4 +55,21 @@ public interface PostService {
      * @param currentUser 当前登录的用户
      */
     void deletePost(Long id, UserDetails currentUser);
+
+    /**
+     * 从文章中移除指定标签（软删除关联）
+     * @param postId 文章ID
+     * @param tagName 标签名称
+     * @param currentUser 当前登录的用户
+     * @return 更新后的文章响应数据
+     */
+    PostResponse removeTagFromPost(Long postId, String tagName, UserDetails currentUser);
+
+    /**
+     * 从文章中移除分类（软删除关联）
+     * @param postId 文章ID
+     * @param currentUser 当前登录的用户
+     * @return 更新后的文章响应数据
+     */
+    PostResponse removeCategoryFromPost(Long postId, UserDetails currentUser);
 }

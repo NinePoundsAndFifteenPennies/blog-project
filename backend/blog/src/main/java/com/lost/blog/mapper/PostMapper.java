@@ -16,12 +16,14 @@ public class PostMapper {
     private final LikeService likeService;
     private final com.lost.blog.service.CommentService commentService;
     private final TagMapper tagMapper;
+    private final CategoryMapper categoryMapper;
 
     @Autowired
-    public PostMapper(LikeService likeService, com.lost.blog.service.CommentService commentService, TagMapper tagMapper) {
+    public PostMapper(LikeService likeService, com.lost.blog.service.CommentService commentService, TagMapper tagMapper, CategoryMapper categoryMapper) {
         this.likeService = likeService;
         this.commentService = commentService;
         this.tagMapper = tagMapper;
+        this.categoryMapper = categoryMapper;
     }
 
     public PostResponse toResponse(Post post) {
@@ -58,6 +60,11 @@ public class PostMapper {
                     .map(tagMapper::toResponse)
                     .collect(Collectors.toList())
             );
+        }
+        
+        // 添加分类信息
+        if (post.getCategory() != null) {
+            postResponse.setCategory(categoryMapper.toResponse(post.getCategory()));
         }
         
         return postResponse;

@@ -57,6 +57,11 @@ public class Post {
     )
     private Set<Tag> tags = new HashSet<>();
 
+    // 多对一关系：一篇文章只能属于一个分类
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -154,6 +159,14 @@ public class Post {
 
     public void setTags(Set<Tag> tags) {
         this.tags = tags;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
     }
 }
 
