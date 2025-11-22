@@ -352,4 +352,10 @@ public class PostServiceImpl implements PostService {
         
         return postMapper.toResponse(updatedPost, currentUser);
     }
+
+    @Override
+    public Post getPostEntityById(Long postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + postId + " 的文章"));
+    }
 }

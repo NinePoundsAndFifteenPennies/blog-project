@@ -2,6 +2,7 @@ package com.lost.blog.service;
 
 import com.lost.blog.dto.PostRequest;
 import com.lost.blog.dto.PostResponse;
+import com.lost.blog.model.Post;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -72,4 +73,11 @@ public interface PostService {
      * @return 更新后的文章响应数据
      */
     PostResponse removeCategoryFromPost(Long postId, UserDetails currentUser);
+
+    /**
+     * 获取文章实体（用于导出等操作）
+     * @param postId 文章ID
+     * @return 文章实体
+     */
+    Post getPostEntityById(Long postId);
 }

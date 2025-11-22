@@ -3,7 +3,6 @@ package com.lost.blog.controller;
 import com.lost.blog.dto.PostRequest;
 import com.lost.blog.dto.PostResponse;
 import com.lost.blog.model.Post;
-import com.lost.blog.repository.PostRepository;
 import com.lost.blog.service.ExportService;
 import com.lost.blog.service.PostService;
 import jakarta.validation.Valid;
@@ -31,13 +30,11 @@ public class PostController {
 
     private final PostService postService;
     private final ExportService exportService;
-    private final PostRepository postRepository;
 
     @Autowired
-    public PostController(PostService postService, ExportService exportService, PostRepository postRepository) {
+    public PostController(PostService postService, ExportService exportService) {
         this.postService = postService;
         this.exportService = exportService;
-        this.postRepository = postRepository;
     }
 
     // 创建一篇新文章
@@ -122,8 +119,7 @@ public class PostController {
             throw new AccessDeniedException("需要登录才能导出文章");
         }
         
-        Post post = postRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("文章不存在"));
+        Post post = postService.getPostEntityById(id);
         
         ByteArrayResource resource = exportService.exportAsMarkdown(post);
         String filename = encodeFilename(post.getTitle() + ".md");
@@ -143,8 +139,7 @@ public class PostController {
             throw new AccessDeniedException("需要登录才能导出文章");
         }
         
-        Post post = postRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("文章不存在"));
+        Post post = postService.getPostEntityById(id);
         
         ByteArrayResource resource = exportService.exportAsPdf(post);
         String filename = encodeFilename(post.getTitle() + ".pdf");
@@ -164,8 +159,7 @@ public class PostController {
             throw new AccessDeniedException("需要登录才能导出文章");
         }
         
-        Post post = postRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("文章不存在"));
+        Post post = postService.getPostEntityById(id);
         
         ByteArrayResource resource = exportService.exportAsHtml(post);
         String filename = encodeFilename(post.getTitle() + ".html");

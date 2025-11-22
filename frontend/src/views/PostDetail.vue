@@ -152,7 +152,7 @@
             </div>
 
             <!-- Export Button (only for logged in users) -->
-            <div v-if="isLoggedIn" class="relative">
+            <div v-if="isLoggedIn" class="relative export-menu-container">
               <button 
                 @click="showExportMenu = !showExportMenu"
                 class="btn-secondary flex items-center space-x-2"
@@ -493,7 +493,11 @@ export default {
       showExportMenu.value = false
       try {
         let response
-        let filename = post.value.title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')
+        // 保留更多字符，使文件名更可读
+        let filename = post.value.title
+          .replace(/[<>:"/\\|?*]/g, '_') // 只替换文件系统不允许的字符
+          .replace(/\s+/g, '_') // 将空格替换为下划线
+          .substring(0, 100) // 限制长度
         
         switch (format) {
           case 'markdown':
@@ -527,7 +531,7 @@ export default {
 
     // 点击页面其他地方关闭导出菜单
     const handleClickOutside = (event) => {
-      if (showExportMenu.value && !event.target.closest('.relative')) {
+      if (showExportMenu.value && !event.target.closest('.export-menu-container')) {
         showExportMenu.value = false
       }
     }
