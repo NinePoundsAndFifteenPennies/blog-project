@@ -76,3 +76,26 @@ export function deletePost(id) {
         method: 'delete'
     })
 }
+
+/**
+ * 从文章中移除标签（软删除）
+ * @param {Number} postId - 文章ID
+ * @param {String} tagName - 标签名称
+ */
+export function removeTagFromPost(postId, tagName) {
+    return request({
+        url: `/posts/${postId}/tags/${encodeURIComponent(tagName)}`,
+        method: 'delete'
+    })
+}
+
+/**
+ * 从文章中移除分类（软删除）
+ * @param {Number} postId - 文章ID
+ */
+export function removeCategoryFromPost(postId) {
+    return request({
+        url: `/posts/${postId}/category`,
+        method: 'delete'
+    })
+}

@@ -122,7 +122,14 @@ public class CategoryServiceImpl implements CategoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("分类不存在，ID：" + id));
         
         // 硬删除分类（管理员操作）
-        // 注意：关联的文章不会被删除，只是category字段会被设置为null
+        // 先将所有使用该分类的文章的category字段设置为null
+        java.util.List<com.lost.blog.model.Post> posts = postRepository.findByCategory(category);
+        for (com.lost.blog.model.Post post : posts) {
+            post.setCategory(null);
+        }
+        postRepository.saveAll(posts);
+        
+        // 然后删除分类
         categoryRepository.delete(category);
     }
 }

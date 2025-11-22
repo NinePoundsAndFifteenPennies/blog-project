@@ -52,6 +52,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/comments/*/likes").permitAll()
                         // 允许对标签的GET请求的匿名访问（查看标签列表和详情）
                         .requestMatchers(HttpMethod.GET, "/api/tags", "/api/tags/**").permitAll()
+                        // 允许对分类的GET请求的匿名访问（查看分类列表和详情）
+                        .requestMatchers(HttpMethod.GET, "/api/categories", "/api/categories/**").permitAll()
                         // 允许对上传文件（包括头像）的匿名访问
                         .requestMatchers("/uploads/**").permitAll()
                         // 其他所有请求都需要认证
