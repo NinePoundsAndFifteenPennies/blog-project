@@ -98,12 +98,76 @@ Authorization: Bearer {token}
   "id": 2,
   "username": "seconduser",
   "email": "seconduser@lost.com",
-  "avatarUrl": "/uploads/2/avatars/9d70a757-54e1-41eb-99df-b509ba97b7dc.jpg"
+  "avatarUrl": "/uploads/2/avatars/9d70a757-54e1-41eb-99df-b509ba97b7dc.jpg",
+  "nickname": "Second",
+  "bio": "个人简介，最多200字",
+  "socialLink": "https://example.com/me",
+  "gender": "female",
+  "birthday": "1995-02-03",
+  "location": "上海"
 }
 ```
 
 **错误响应:**
 - `401 Unauthorized` - 未登录或 token 无效
+
+---
+
+### 更新当前用户资料
+
+仅允许登录用户修改自己的资料。
+
+```http
+PUT /api/users/me/profile
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体:**
+```json
+{
+  "nickname": "新的昵称，唯一",
+  "bio": "个人简介，最多200字",
+  "socialLink": "https://github.com/myself",
+  "gender": "female",
+  "birthday": "1995-02-03",
+  "location": "上海",
+  "email": "newmail@example.com",
+  "currentPassword": "oldpass123",
+  "newPassword": "newpass456"
+}
+```
+
+**字段说明:**
+- `nickname` (String, 可选): 昵称/展示名，1-50字符，需唯一，可与登录用户名不同
+- `bio` (String, 可选): 个人简介，最长200字符（传空字符串表示清空）
+- `socialLink` (String, 可选): 社交链接，须以 http/https 开头，传空字符串可清空
+- `gender` (String, 可选): 性别文本，最长20字符（传空字符串清空）
+- `birthday` (String, 可选): 生日，格式 `yyyy-MM-dd`，不能是未来日期；传空字符串清空
+- `location` (String, 可选): 所在地，最长100字符（传空字符串清空）
+- `email` (String, 可选): 新邮箱，需唯一且格式正确
+- `currentPassword` / `newPassword` (String, 可选): 同时提供以修改密码，长度≥6，需校验旧密码
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 2,
+  "username": "seconduser",
+  "email": "newmail@example.com",
+  "avatarUrl": "/uploads/2/avatars/9d70a757-54e1-41eb-99df-b509ba97b7dc.jpg",
+  "nickname": "Second",
+  "bio": "个人简介，最多200字",
+  "socialLink": "https://example.com/me",
+  "gender": "female",
+  "birthday": "1995-02-03",
+  "location": "上海"
+}
+```
+
+**错误响应:**
+- `400 Bad Request` - 参数不符合要求（昵称重复、密码不正确、日期格式错误等）
+- `401 Unauthorized` - 未登录或 token 无效
+- `403 Forbidden` - 已登录但无权限
 
 ---
 
@@ -1774,4 +1838,3 @@ Authorization: Bearer {token}
   "path": "/api/posts"
 }
 ```
-

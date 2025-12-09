@@ -23,9 +23,11 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.lost.blog.dto.UserProfileUpdateRequest;
 
 @RestController
 @RequestMapping("/api/users")
@@ -82,6 +84,18 @@ public class UserController {
         // 返回完整的用户信息
         User user = userService.findByUsername(currentUser.getUsername());
         UserResponse userResponse = UserMapper.toUserResponse(user);
+        return ResponseEntity.ok(userResponse);
+    }
+
+    @PutMapping("/me/profile")
+    public ResponseEntity<?> updateProfile(@AuthenticationPrincipal UserDetails currentUser,
+                                           @Valid @RequestBody UserProfileUpdateRequest updateRequest) {
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未登录");
+        }
+
+        User updatedUser = userService.updateProfile(currentUser.getUsername(), updateRequest);
+        UserResponse userResponse = UserMapper.toUserResponse(updatedUser);
         return ResponseEntity.ok(userResponse);
     }
 
