@@ -1,6 +1,7 @@
 package com.lost.blog.service;
 
 import com.lost.blog.model.User;
+import com.lost.blog.dto.UserProfileUpdateRequest;
 
 public interface UserService {
     User registerUser(String username, String password, String email);
@@ -8,4 +9,6 @@ public interface UserService {
     User updateUserAvatar(String username, String avatarUrl);
     
     User findByUsername(String username);
+
+    User updateProfile(String username, UserProfileUpdateRequest request);
 }

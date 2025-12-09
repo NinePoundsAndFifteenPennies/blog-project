@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity // 声明这是一个JPA实体类，它将映射到数据库的一张表
@@ -20,6 +21,10 @@ public class User {
     @Column(nullable = false, unique = true, length = 50) // 设置数据库列的约束：非空、唯一、长度50
     private String username;
 
+    @Size(min = 1, max = 50, message = "昵称长度必须在1到50个字符之间")
+    @Column(name = "nickname", unique = true, length = 50)
+    private String nickname;
+
     @NotEmpty(message = "密码不能为空")
     @Size(min = 6, message = "密码长度至少为6个字符")
     @Column(nullable = false)
@@ -32,6 +37,21 @@ public class User {
 
     @Column(name = "avatar_url")
     private String avatarUrl;
+
+    @Column(name = "bio", length = 200)
+    private String bio;
+
+    @Column(name = "social_link")
+    private String socialLink;
+
+    @Column(name = "gender", length = 20)
+    private String gender;
+
+    @Column(name = "birthday")
+    private LocalDate birthday;
+
+    @Column(name = "location", length = 100)
+    private String location;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -70,6 +90,14 @@ public class User {
         this.username = username;
     }
 
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
     public String getPassword() {
         return password;
     }
@@ -92,6 +120,46 @@ public class User {
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public String getSocialLink() {
+        return socialLink;
+    }
+
+    public void setSocialLink(String socialLink) {
+        this.socialLink = socialLink;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public LocalDate getBirthday() {
+        return birthday;
+    }
+
+    public void setBirthday(LocalDate birthday) {
+        this.birthday = birthday;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
     }
 
     public LocalDateTime getCreatedAt() {

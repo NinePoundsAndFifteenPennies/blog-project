@@ -13,8 +13,13 @@ public class UserMapper {
             user.getId(),
             user.getUsername(),
             user.getEmail(),
-            user.getAvatarUrl()
+            user.getAvatarUrl(),
+            user.getNickname(),
+            user.getBio(),
+            user.getSocialLink(),
+            user.getGender(),
+            user.getBirthday() != null ? user.getBirthday().toString() : null,
+            user.getLocation()
         );
     }
 }
-
