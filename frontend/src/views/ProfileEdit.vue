@@ -510,8 +510,8 @@ export default {
           updateData.bio = formData.bio
         }
 
-        // Include email if changed
-        if (formData.email && formData.email.trim() && formData.email !== currentUser.value.email) {
+        // Include email (required field, cannot be empty)
+        if (formData.email && formData.email.trim()) {
           updateData.email = formData.email.trim()
         }
 
