@@ -69,3 +69,17 @@ export async function refreshToken(rememberMe) {
     });
     return response.accessToken;
 }
+
+/**
+ * 更新当前用户资料
+ * @param {Object} profileData - 用户资料数据
+ * @returns {Promise<Object>} - 返回更新后的用户信息
+ */
+export async function updateUserProfile(profileData) {
+    const response = await request({
+        url: "/users/me/profile",
+        method: "put",
+        data: profileData,
+    });
+    return response;
+}
