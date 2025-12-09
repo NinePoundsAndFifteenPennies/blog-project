@@ -139,12 +139,12 @@ Content-Type: application/json
 ```
 
 **字段说明:**
-- `nickname` (String, 可选): 昵称，1-50字符，需唯一
-- `bio` (String, 可选): 个人简介，最长200字符
-- `socialLink` (String, 可选): 社交链接，仅支持 http/https URL
-- `gender` (String, 可选): 性别文本，最长20字符
-- `birthday` (Date, 可选): 生日，格式 `yyyy-MM-dd`，不能是未来日期
-- `location` (String, 可选): 所在地，最长100字符
+- `nickname` (String, 可选): 昵称/展示名，1-50字符，需唯一，可与登录用户名不同
+- `bio` (String, 可选): 个人简介，最长200字符（传空字符串表示清空）
+- `socialLink` (String, 可选): 社交链接，须以 http/https 开头，传空字符串可清空
+- `gender` (String, 可选): 性别文本，最长20字符（传空字符串清空）
+- `birthday` (String, 可选): 生日，格式 `yyyy-MM-dd`，不能是未来日期；传空字符串清空
+- `location` (String, 可选): 所在地，最长100字符（传空字符串清空）
 - `email` (String, 可选): 新邮箱，需唯一且格式正确
 - `currentPassword` / `newPassword` (String, 可选): 同时提供以修改密码，长度≥6，需校验旧密码
 
@@ -165,8 +165,9 @@ Content-Type: application/json
 ```
 
 **错误响应:**
-- `400 Bad Request` - 参数不符合要求（昵称重复、密码不正确等）
+- `400 Bad Request` - 参数不符合要求（昵称重复、密码不正确、日期格式错误等）
 - `401 Unauthorized` - 未登录或 token 无效
+- `403 Forbidden` - 已登录但无权限
 
 ---
 

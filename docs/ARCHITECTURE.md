@@ -53,7 +53,7 @@ Controller ──► Service ──► Repository ──► Database
 | 配置类 | └── SecurityConfig.java | Spring Security 核心配置 |
 | 配置类 | └── WebConfig.java | Web MVC 配置（静态资源等） |
 | 控制层 (Controller) | **controller/** | 处理 API 请求，负责调用服务层并返回响应 |
-| 控制器 | └── UserController.java | 提供用户注册、登录、获取信息的 API |
+| 控制器 | └── UserController.java | 提供用户注册、登录、获取/更新个人信息的 API |
 | 控制器 | └── PostController.java | 提供文章 CRUD API |
 | 控制器 | └── FileController.java | 提供头像上传和更新 API |
 | 控制器 | └── LikeController.java | 提供文章点赞 API |
@@ -66,6 +66,7 @@ Controller ──► Service ──► Repository ──► Database
 | DTO | └── PostRequest.java | 文章创建/更新请求体 |
 | DTO | └── PostResponse.java | 文章响应体 |
 | DTO | └── UserResponse.java | 用户信息响应体 |
+| DTO | └── UserProfileUpdateRequest.java | 用户资料更新请求体 |
 | DTO | └── AvatarUrlRequest.java | 头像URL请求体 |
 | DTO | └── JwtAuthenticationResponse.java | JWT 认证响应 |
 | DTO | └── ErrorResponse.java | 标准化错误响应 |

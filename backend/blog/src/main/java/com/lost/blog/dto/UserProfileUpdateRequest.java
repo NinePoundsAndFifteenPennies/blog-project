@@ -1,12 +1,8 @@
 package com.lost.blog.dto;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import org.hibernate.validator.constraints.URL;
-
-import java.time.LocalDate;
 
 public class UserProfileUpdateRequest {
 
@@ -17,15 +13,16 @@ public class UserProfileUpdateRequest {
     private String bio;
 
     @Size(max = 255, message = "社交链接长度不能超过255个字符")
-    @URL(message = "社交链接必须是有效的 URL")
-    @Pattern(regexp = "^https?://.*", message = "社交链接必须以 http/https 开头")
+    @Pattern(regexp = "^$|https?://.*", message = "社交链接必须以 http/https 开头或留空")
     private String socialLink;
 
     @Size(max = 20, message = "性别长度不能超过20个字符")
     private String gender;
 
-    @PastOrPresent(message = "生日不能是未来日期")
-    private LocalDate birthday;
+    /**
+     * 生日字符串，允许为空；非空时在服务层解析为 LocalDate 并校验不晚于今日
+     */
+    private String birthday;
 
     @Size(max = 100, message = "所在地长度不能超过100个字符")
     private String location;
@@ -71,11 +68,11 @@ public class UserProfileUpdateRequest {
         this.gender = gender;
     }
 
-    public LocalDate getBirthday() {
+    public String getBirthday() {
         return birthday;
     }
 
-    public void setBirthday(LocalDate birthday) {
+    public void setBirthday(String birthday) {
         this.birthday = birthday;
     }
 

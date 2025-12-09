@@ -8,6 +8,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Objects;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -86,7 +89,20 @@ public class UserServiceImpl implements UserService {
         }
 
         if (request.getBirthday() != null) {
-            user.setBirthday(request.getBirthday());
+            String birthdayStr = request.getBirthday().trim();
+            if (birthdayStr.isEmpty()) {
+                user.setBirthday(null);
+            } else {
+                try {
+                    LocalDate birthday = LocalDate.parse(birthdayStr, DateTimeFormatter.ISO_LOCAL_DATE);
+                    if (birthday.isAfter(LocalDate.now())) {
+                        throw new IllegalArgumentException("生日不能是未来日期");
+                    }
+                    user.setBirthday(birthday);
+                } catch (DateTimeParseException ex) {
+                    throw new IllegalArgumentException("生日格式需为 yyyy-MM-dd");
+                }
+            }
         }
 
         if (request.getLocation() != null) {

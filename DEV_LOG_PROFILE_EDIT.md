@@ -5,6 +5,7 @@
 - 扩展 `User` 实体与 `UserRepository` 唯一性校验，新增资料字段并校验昵称/邮箱唯一。
 - 在 `UserService`/`UserController` 中增加 `/api/users/me/profile` 更新接口与业务逻辑，校验仅允许本人修改并校验旧密码。
 - 更新 `docs/API.md`，同步返回字段与请求示例。
+- 支持通过传空字符串清空社交链接/生日/简介等可选字段；未登录请求现在返回 401。
 
 ## 测试指南（Postman 示例）
 1. **修改成功**  
