@@ -65,7 +65,7 @@
               <!-- Email Field -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                  邮箱
+                  邮箱 <span class="text-red-500">*</span>
                 </label>
                 <div class="relative">
                   <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -364,12 +364,14 @@ export default {
     const validateEmail = () => {
       errors.email = ''
       const val = formData.email || ''
-      if (val && val.trim()) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        if (!emailRegex.test(val)) {
-          errors.email = '请输入有效的邮箱地址'
-          return false
-        }
+      if (!val || !val.trim()) {
+        errors.email = '请输入邮箱地址'
+        return false
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(val)) {
+        errors.email = '请输入有效的邮箱地址'
+        return false
       }
       return true
     }
