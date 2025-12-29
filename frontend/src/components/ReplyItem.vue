@@ -192,26 +192,27 @@ export default {
     })
 
     const authorInitial = computed(() => {
-      const name = props.reply.authorNickname || props.reply.authorUsername || ''
+      // Backend only returns authorUsername in replies, not authorNickname
+      const name = props.reply.authorUsername || ''
       return name ? name.charAt(0).toUpperCase() : 'A'
     })
 
     const authorDisplayName = computed(() => {
-      return props.reply.authorNickname || props.reply.authorUsername || '匿名用户'
+      // Backend only returns authorUsername in reply responses
+      return props.reply.authorUsername || '匿名用户'
     })
 
     const replyToDisplayName = computed(() => {
-      return props.reply.replyToNickname || props.reply.replyToUsername || '用户'
+      // Backend only returns replyToUsername, not replyToNickname
+      return props.reply.replyToUsername || '用户'
     })
 
     const authorData = computed(() => {
+      // Backend only provides username and avatarUrl in reply responses
       return {
         username: props.reply.authorUsername,
-        nickname: props.reply.authorNickname,
-        avatarUrl: displayAvatarUrl.value,
-        bio: props.reply.authorBio,
-        location: props.reply.authorLocation,
-        socialLink: props.reply.authorSocialLink
+        avatarUrl: displayAvatarUrl.value
+        // Note: nickname, bio, location, socialLink not available in reply API
       }
     })
 

@@ -307,22 +307,22 @@ export default {
     })
 
     const authorInitial = computed(() => {
-      const name = props.comment.authorNickname || props.comment.authorUsername || ''
+      // Backend only returns authorUsername in comments, not authorNickname
+      const name = props.comment.authorUsername || ''
       return name ? name.charAt(0).toUpperCase() : 'A'
     })
 
     const authorDisplayName = computed(() => {
-      return props.comment.authorNickname || props.comment.authorUsername || '匿名用户'
+      // Backend only returns authorUsername in comment responses
+      return props.comment.authorUsername || '匿名用户'
     })
 
     const authorData = computed(() => {
+      // Backend only provides username and avatarUrl in comment responses
       return {
         username: props.comment.authorUsername,
-        nickname: props.comment.authorNickname,
-        avatarUrl: displayAvatarUrl.value,
-        bio: props.comment.authorBio,
-        location: props.comment.authorLocation,
-        socialLink: props.comment.authorSocialLink
+        avatarUrl: displayAvatarUrl.value
+        // Note: nickname, bio, location, socialLink not available in comment API
       }
     })
 

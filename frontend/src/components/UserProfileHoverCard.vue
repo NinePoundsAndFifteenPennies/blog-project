@@ -1,10 +1,7 @@
 <template>
   <div class="relative inline-block" @mouseenter="showCard" @mouseleave="hideCard">
-    <!-- Avatar Trigger -->
-    <div 
-      class="cursor-pointer"
-      @click="goToProfile"
-    >
+    <!-- Avatar Trigger (non-clickable) -->
+    <div>
       <slot></slot>
     </div>
 
@@ -12,8 +9,8 @@
     <transition name="fade">
       <div 
         v-if="isVisible && userInfo"
-        class="absolute z-50 w-72 bg-white rounded-lg shadow-xl border border-gray-200 p-4 mt-2"
-        :class="cardPosition"
+        class="fixed z-[9999] w-72 bg-white rounded-lg shadow-2xl border border-gray-200 p-4"
+        :style="cardStyle"
         @mouseenter="showCard"
         @mouseleave="hideCard"
       >
@@ -74,14 +71,6 @@
               </a>
             </div>
           </div>
-
-          <!-- View Profile Button -->
-          <button
-            @click="goToProfile"
-            class="w-full mt-2 py-2 px-3 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            查看详细资料
-          </button>
         </div>
       </div>
     </transition>
@@ -89,9 +78,8 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { getCurrentUser } from '@/api/auth'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useStore } from 'vuex'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
@@ -105,24 +93,18 @@ export default {
     userData: {
       type: Object,
       default: null
-    },
-    position: {
-      type: String,
-      default: 'left',
-      validator: (value) => ['left', 'right'].includes(value)
     }
   },
   setup(props) {
-    const router = useRouter()
+    const store = useStore()
     const isVisible = ref(false)
     const loading = ref(false)
     const userInfo = ref(props.userData)
     const avatarError = ref(false)
+    const cardStyle = ref({})
     let hideTimeout = null
 
-    const cardPosition = computed(() => {
-      return props.position === 'right' ? 'left-0' : 'right-0'
-    })
+    const currentUser = computed(() => store.getters.currentUser)
 
     const displayName = computed(() => {
       return userInfo.value?.nickname || userInfo.value?.username || '用户'
@@ -133,36 +115,71 @@ export default {
       return name ? name.charAt(0).toUpperCase() : 'U'
     })
 
-    const showCard = async () => {
+    const calculateCardPosition = (event) => {
+      const target = event.currentTarget
+      const rect = target.getBoundingClientRect()
+      const cardWidth = 288 // 72 * 4 = 288px (w-72)
+      const cardHeight = 200 // Approximate height
+      const padding = 8
+
+      let top = rect.bottom + padding
+      let left = rect.left
+
+      // Check if card would go off right edge of screen
+      if (left + cardWidth > window.innerWidth) {
+        left = window.innerWidth - cardWidth - padding
+      }
+
+      // Check if card would go off bottom edge of screen
+      if (top + cardHeight > window.innerHeight) {
+        top = rect.top - cardHeight - padding
+      }
+
+      // Make sure we don't go off left edge
+      if (left < padding) {
+        left = padding
+      }
+
+      // Make sure we don't go off top edge
+      if (top < padding) {
+        top = rect.bottom + padding
+      }
+
+      cardStyle.value = {
+        top: `${top}px`,
+        left: `${left}px`
+      }
+    }
+
+    const showCard = async (event) => {
       if (hideTimeout) {
         clearTimeout(hideTimeout)
         hideTimeout = null
       }
 
+      if (event) {
+        calculateCardPosition(event)
+      }
+
       isVisible.value = true
 
-      // If we don't have user data yet, fetch it
-      if (!userInfo.value) {
-        loading.value = true
-        try {
-          // For now, we'll use the current user API since we don't have a public user profile API yet
-          // TODO: Update this when backend provides /api/users/{username} endpoint
-          const data = await getCurrentUser()
-          if (data.username === props.username) {
-            userInfo.value = {
-              ...data,
-              avatarUrl: getFullAvatarUrl(data.avatarUrl)
-            }
+      // Only show card for current user since we don't have public API yet
+      if (props.username === currentUser.value?.username) {
+        if (!userInfo.value) {
+          userInfo.value = {
+            ...currentUser.value,
+            avatarUrl: getFullAvatarUrl(currentUser.value.avatarUrl)
           }
-        } catch (error) {
-          console.error('Failed to load user info:', error)
-        } finally {
-          loading.value = false
+        } else if (userInfo.value.avatarUrl && !userInfo.value.avatarUrl.startsWith('http')) {
+          userInfo.value.avatarUrl = getFullAvatarUrl(userInfo.value.avatarUrl)
         }
       } else {
-        // Process avatar URL if not already processed
-        if (userInfo.value.avatarUrl && !userInfo.value.avatarUrl.startsWith('http')) {
-          userInfo.value.avatarUrl = getFullAvatarUrl(userInfo.value.avatarUrl)
+        // For other users, show minimal info from props if available
+        if (props.userData) {
+          userInfo.value = props.userData
+        } else {
+          // Can't show other users without public API
+          isVisible.value = false
         }
       }
     }
@@ -173,24 +190,28 @@ export default {
       }, 200)
     }
 
-    const goToProfile = () => {
-      isVisible.value = false
-      // For now, go to the user's own profile if it matches current user
-      // TODO: Update to go to public user profile when that route exists
-      router.push(`/profile`)
-    }
+    onMounted(() => {
+      // Listen for scroll events to hide card
+      window.addEventListener('scroll', hideCard, true)
+    })
+
+    onBeforeUnmount(() => {
+      window.removeEventListener('scroll', hideCard, true)
+      if (hideTimeout) {
+        clearTimeout(hideTimeout)
+      }
+    })
 
     return {
       isVisible,
       loading,
       userInfo,
       avatarError,
-      cardPosition,
+      cardStyle,
       displayName,
       userInitial,
       showCard,
-      hideCard,
-      goToProfile
+      hideCard
     }
   }
 }
