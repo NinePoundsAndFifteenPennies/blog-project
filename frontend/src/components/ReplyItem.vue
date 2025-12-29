@@ -6,19 +6,32 @@
     <div class="flex space-x-3">
       <!-- Avatar -->
       <div class="flex-shrink-0">
+        <UserProfileHoverCard 
+          v-if="reply.authorUsername"
+          :username="reply.authorUsername"
+          :user-data="authorData"
+          position="right"
+        >
+          <div 
+            class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600"
+          >
+            <img 
+              v-if="displayAvatarUrl && !avatarLoadError" 
+              :src="displayAvatarUrl" 
+              :alt="authorDisplayName"
+              :key="displayAvatarUrl"
+              class="w-full h-full object-cover"
+              @error="handleAvatarError"
+              @load="handleAvatarLoad"
+            />
+            <span v-else>{{ authorInitial }}</span>
+          </div>
+        </UserProfileHoverCard>
         <div 
+          v-else
           class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600"
         >
-          <img 
-            v-if="displayAvatarUrl && !avatarLoadError" 
-            :src="displayAvatarUrl" 
-            :alt="reply.authorUsername"
-            :key="displayAvatarUrl"
-            class="w-full h-full object-cover"
-            @error="handleAvatarError"
-            @load="handleAvatarLoad"
-          />
-          <span v-else>{{ authorInitial }}</span>
+          <span>{{ authorInitial }}</span>
         </div>
       </div>
 
@@ -28,12 +41,12 @@
         <div class="flex items-center justify-between mb-1">
           <div class="flex flex-col">
             <div class="flex items-center space-x-2">
-              <span class="font-medium text-gray-900 text-sm">{{ reply.authorUsername }}</span>
+              <span class="font-medium text-gray-900 text-sm">{{ authorDisplayName }}</span>
               <span class="text-gray-400 text-xs">{{ formatDate(reply.updatedAt || reply.createdAt) }}</span>
               <span v-if="reply.updatedAt" class="text-gray-400 text-xs">(已编辑)</span>
             </div>
             <div v-if="reply.replyToUsername" class="text-gray-500 text-xs mt-0.5">
-              回复 <span class="text-primary-600">@{{ reply.replyToUsername }}</span>
+              回复 <span class="text-primary-600">@{{ replyToDisplayName }}</span>
             </div>
           </div>
           
@@ -112,9 +125,13 @@ import { useRouter } from 'vue-router'
 import { marked } from 'marked'
 import { deleteComment, likeComment, unlikeComment } from '@/api/comments'
 import { getFullAvatarUrl } from '@/utils/avatar'
+import UserProfileHoverCard from './UserProfileHoverCard.vue'
 
 export default {
   name: 'ReplyItem',
+  components: {
+    UserProfileHoverCard
+  },
   props: {
     reply: {
       type: Object,
@@ -175,8 +192,27 @@ export default {
     })
 
     const authorInitial = computed(() => {
-      const name = props.reply.authorUsername || ''
+      const name = props.reply.authorNickname || props.reply.authorUsername || ''
       return name ? name.charAt(0).toUpperCase() : 'A'
+    })
+
+    const authorDisplayName = computed(() => {
+      return props.reply.authorNickname || props.reply.authorUsername || '匿名用户'
+    })
+
+    const replyToDisplayName = computed(() => {
+      return props.reply.replyToNickname || props.reply.replyToUsername || '用户'
+    })
+
+    const authorData = computed(() => {
+      return {
+        username: props.reply.authorUsername,
+        nickname: props.reply.authorNickname,
+        avatarUrl: displayAvatarUrl.value,
+        bio: props.reply.authorBio,
+        location: props.reply.authorLocation,
+        socialLink: props.reply.authorSocialLink
+      }
     })
 
     // Check if content looks like markdown
@@ -297,6 +333,9 @@ export default {
       canManage,
       isLoggedIn,
       authorInitial,
+      authorDisplayName,
+      replyToDisplayName,
+      authorData,
       isMarkdown,
       renderedContent,
       indentLevel,

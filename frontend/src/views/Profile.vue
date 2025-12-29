@@ -66,8 +66,50 @@
 
               <!-- User Info -->
               <div class="flex-1 text-center md:text-left">
-                <h1 class="text-4xl font-bold text-gray-900 mb-3">{{ currentUser?.username }}</h1>
-                <p class="text-gray-600 text-lg mb-6">{{ currentUser?.email }}</p>
+                <h1 class="text-4xl font-bold text-gray-900 mb-2">{{ displayName }}</h1>
+                <p class="text-gray-500 text-base mb-2">@{{ currentUser?.username }}</p>
+                <p class="text-gray-600 text-lg mb-4">{{ currentUser?.email }}</p>
+                
+                <!-- Bio -->
+                <p v-if="currentUser?.bio" class="text-gray-700 mb-4 max-w-2xl">
+                  {{ currentUser.bio }}
+                </p>
+
+                <!-- Additional Info -->
+                <div v-if="hasAdditionalInfo" class="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-6">
+                  <div v-if="currentUser?.location" class="flex items-center space-x-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>{{ currentUser.location }}</span>
+                  </div>
+                  <div v-if="currentUser?.birthday" class="flex items-center space-x-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span>生日: {{ currentUser.birthday }}</span>
+                  </div>
+                  <div v-if="currentUser?.gender" class="flex items-center space-x-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <span>{{ currentUser.gender }}</span>
+                  </div>
+                  <div v-if="currentUser?.socialLink" class="flex items-center space-x-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    <a 
+                      :href="currentUser.socialLink" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      class="text-primary-600 hover:text-primary-700 hover:underline"
+                    >
+                      个人链接
+                    </a>
+                  </div>
+                </div>
 
                 <!-- Stats -->
                 <div class="flex items-center justify-center md:justify-start space-x-8">
@@ -392,8 +434,15 @@ export default {
     const avatarLoadError = ref(false)
 
     const currentUser = computed(() => store.getters.currentUser)
-    const userInitial = computed(() => currentUser.value?.username?.charAt(0).toUpperCase() || 'U')
+    const displayName = computed(() => currentUser.value?.nickname || currentUser.value?.username || '用户')
+    const userInitial = computed(() => displayName.value.charAt(0).toUpperCase() || 'U')
     const userAvatarUrl = computed(() => getFullAvatarUrl(currentUser.value?.avatarUrl))
+    const hasAdditionalInfo = computed(() => {
+      return currentUser.value?.location || 
+             currentUser.value?.birthday || 
+             currentUser.value?.gender || 
+             currentUser.value?.socialLink
+    })
 
     // 2. 添加这个 watch 监听器
     watch(userAvatarUrl, () => {
@@ -678,7 +727,9 @@ export default {
       posts,
       comments,
       userStats, 
-      currentUser, 
+      currentUser,
+      displayName,
+      hasAdditionalInfo,
       userInitial,
       userAvatarUrl,
       formatDate,
