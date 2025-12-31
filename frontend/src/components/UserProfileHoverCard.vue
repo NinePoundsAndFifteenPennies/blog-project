@@ -5,75 +5,77 @@
       <slot></slot>
     </div>
 
-    <!-- Hover Card -->
-    <transition name="fade">
-      <div 
-        v-if="isVisible && userInfo"
-        class="fixed z-[9999] w-72 bg-white rounded-lg shadow-2xl border border-gray-200 p-4"
-        :style="cardStyle"
-        @mouseenter="cancelHide"
-        @mouseleave="hideCard"
-      >
-        <!-- Loading State -->
-        <div v-if="loading" class="flex items-center justify-center py-4">
-          <div class="spinner w-6 h-6"></div>
-        </div>
-
-        <!-- User Info -->
-        <div v-else class="space-y-3">
-          <!-- Avatar and Name -->
-          <div class="flex items-center space-x-3">
-            <div 
-              class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shadow-sm overflow-hidden bg-primary-600"
-            >
-              <img 
-                v-if="userInfo.avatarUrl && !avatarError" 
-                :src="userInfo.avatarUrl" 
-                :alt="displayName"
-                class="w-full h-full object-cover"
-                @error="avatarError = true"
-              />
-              <span v-else>{{ userInitial }}</span>
-            </div>
-            <div class="flex-1 min-w-0">
-              <h3 class="text-base font-bold text-gray-900 truncate">{{ displayName }}</h3>
-              <p class="text-xs text-gray-500 truncate">@{{ userInfo.username }}</p>
-            </div>
+    <!-- Hover Card - Teleported to body to avoid CSS isolation issues -->
+    <Teleport to="body">
+      <transition name="fade">
+        <div 
+          v-if="isVisible && userInfo"
+          class="fixed z-[9999] w-72 bg-white rounded-lg shadow-2xl border border-gray-200 p-4"
+          :style="cardStyle"
+          @mouseenter="cancelHide"
+          @mouseleave="hideCard"
+        >
+          <!-- Loading State -->
+          <div v-if="loading" class="flex items-center justify-center py-4">
+            <div class="spinner w-6 h-6"></div>
           </div>
 
-          <!-- Bio -->
-          <p v-if="userInfo.bio" class="text-sm text-gray-600 line-clamp-2">
-            {{ userInfo.bio }}
-          </p>
-          <p v-else class="text-sm text-gray-400 italic">暂无个人简介</p>
-
-          <!-- Stats -->
-          <div class="flex items-center space-x-4 text-xs text-gray-500 border-t pt-3">
-            <div v-if="userInfo.location" class="flex items-center space-x-1">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span class="truncate">{{ userInfo.location }}</span>
-            </div>
-            <div v-if="userInfo.socialLink" class="flex items-center space-x-1 truncate">
-              <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-              </svg>
-              <a 
-                :href="userInfo.socialLink" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                class="text-primary-600 hover:text-primary-700 truncate"
-                @click.stop
+          <!-- User Info -->
+          <div v-else class="space-y-3">
+            <!-- Avatar and Name -->
+            <div class="flex items-center space-x-3">
+              <div 
+                class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shadow-sm overflow-hidden bg-primary-600"
               >
-                链接
-              </a>
+                <img 
+                  v-if="userInfo.avatarUrl && !avatarError" 
+                  :src="userInfo.avatarUrl" 
+                  :alt="displayName"
+                  class="w-full h-full object-cover"
+                  @error="avatarError = true"
+                />
+                <span v-else>{{ userInitial }}</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="text-base font-bold text-gray-900 truncate">{{ displayName }}</h3>
+                <p class="text-xs text-gray-500 truncate">@{{ userInfo.username }}</p>
+              </div>
+            </div>
+
+            <!-- Bio -->
+            <p v-if="userInfo.bio" class="text-sm text-gray-600 line-clamp-2">
+              {{ userInfo.bio }}
+            </p>
+            <p v-else class="text-sm text-gray-400 italic">暂无个人简介</p>
+
+            <!-- Stats -->
+            <div class="flex items-center space-x-4 text-xs text-gray-500 border-t pt-3">
+              <div v-if="userInfo.location" class="flex items-center space-x-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span class="truncate">{{ userInfo.location }}</span>
+              </div>
+              <div v-if="userInfo.socialLink" class="flex items-center space-x-1 truncate">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                <a 
+                  :href="userInfo.socialLink" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="text-primary-600 hover:text-primary-700 truncate"
+                  @click.stop
+                >
+                  链接
+                </a>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </transition>
+      </transition>
+    </Teleport>
   </div>
 </template>
 
