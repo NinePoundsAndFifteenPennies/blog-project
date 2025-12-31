@@ -1,7 +1,12 @@
 <template>
   <div class="relative inline-block">
-    <!-- Avatar Trigger (non-clickable) -->
-    <div @mouseenter="handleMouseEnter" @mouseleave="hideCard">
+    <!-- Avatar Trigger (clickable to go to profile) -->
+    <div 
+      @mouseenter="handleMouseEnter" 
+      @mouseleave="hideCard"
+      @click="goToProfile"
+      class="cursor-pointer"
+    >
       <slot></slot>
     </div>
 
@@ -23,9 +28,9 @@
           <!-- User Info -->
           <div v-else class="space-y-3">
             <!-- Avatar and Name -->
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-3 cursor-pointer" @click="goToProfile">
               <div 
-                class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shadow-sm overflow-hidden bg-primary-600"
+                class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shadow-sm overflow-hidden bg-primary-600 hover:ring-2 hover:ring-primary-300 transition-all"
               >
                 <img 
                   v-if="userInfo.avatarUrl && !avatarError" 
@@ -37,7 +42,7 @@
                 <span v-else>{{ userInitial }}</span>
               </div>
               <div class="flex-1 min-w-0">
-                <h3 class="text-base font-bold text-gray-900 truncate">{{ displayName }}</h3>
+                <h3 class="text-base font-bold text-gray-900 truncate hover:text-primary-600 transition-colors">{{ displayName }}</h3>
                 <p class="text-xs text-gray-500 truncate">@{{ userInfo.username }}</p>
               </div>
             </div>
@@ -82,6 +87,7 @@
 <script>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
+import { useRouter } from 'vue-router'
 import { getFullAvatarUrl } from '@/utils/avatar'
 import { getPublicUserProfile } from '@/api/auth'
 
@@ -100,6 +106,7 @@ export default {
   },
   setup(props) {
     const store = useStore()
+    const router = useRouter()
     const isVisible = ref(false)
     const loading = ref(false)
     const userInfo = ref(props.userData)
@@ -226,6 +233,18 @@ export default {
       }, 200)
     }
 
+    const goToProfile = () => {
+      // Navigate to user's profile page
+      // If it's the current user, go to /profile, otherwise go to /user/:username
+      if (props.username === currentUser.value?.username) {
+        router.push('/profile')
+      } else {
+        router.push(`/user/${props.username}`)
+      }
+      // Hide the card after navigation
+      isVisible.value = false
+    }
+
     onMounted(() => {
       // Listen for scroll events to hide card
       window.addEventListener('scroll', hideCard, true)
@@ -249,7 +268,8 @@ export default {
       handleMouseEnter,
       showCard,
       cancelHide,
-      hideCard
+      hideCard,
+      goToProfile
     }
   }
 }
