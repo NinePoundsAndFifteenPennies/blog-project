@@ -80,7 +80,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
 import { getFullAvatarUrl } from '@/utils/avatar'
 import { getPublicUserProfile } from '@/api/auth'
@@ -108,6 +108,11 @@ export default {
     let hideTimeout = null
 
     const currentUser = computed(() => store.getters.currentUser)
+
+    // Watch for userData prop changes (when hovering over different users)
+    watch(() => props.userData, (newData) => {
+      userInfo.value = newData
+    })
 
     const displayName = computed(() => {
       return userInfo.value?.nickname || userInfo.value?.username || '用户'
