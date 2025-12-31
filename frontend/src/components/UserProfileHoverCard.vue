@@ -180,18 +180,25 @@ export default {
         }
       } else {
         // Fetch public profile for other users
-        if (!userInfo.value || userInfo.value.username !== props.username) {
+        // Check if we need to fetch: no data, different user, or missing bio field (incomplete data)
+        if (!userInfo.value || 
+            userInfo.value.username !== props.username || 
+            userInfo.value.bio === undefined) {
           loading.value = true
           try {
             const publicProfile = await getPublicUserProfile(props.username)
+            // Merge existing data (like avatar) with newly fetched data to prevent flicker
             userInfo.value = {
+              ...userInfo.value, // Keep existing data like avatar
               ...publicProfile,
               avatarUrl: getFullAvatarUrl(publicProfile.avatarUrl)
             }
           } catch (error) {
             console.error('Failed to load public profile:', error)
-            // If fetch fails, hide card
-            isVisible.value = false
+            // If fetch fails but we have basic data (name/avatar), don't hide the card
+            if (!userInfo.value) {
+              isVisible.value = false
+            }
           } finally {
             loading.value = false
           }
