@@ -175,10 +175,12 @@ export default {
       // Check if user is current user
       if (props.username === currentUser.value?.username) {
         // Show current user's info from store
-        if (!userInfo.value) {
+        // Merge data from currentUser if userInfo doesn't exist or is missing bio field
+        if (!userInfo.value || userInfo.value.bio === undefined) {
           userInfo.value = {
-            ...currentUser.value,
-            avatarUrl: getFullAvatarUrl(currentUser.value.avatarUrl)
+            ...userInfo.value, // Keep existing data (like avatar from props)
+            ...currentUser.value, // Merge complete user info including bio
+            avatarUrl: getFullAvatarUrl(currentUser.value?.avatarUrl || userInfo.value?.avatarUrl)
           }
         } else if (userInfo.value.avatarUrl && !userInfo.value.avatarUrl.startsWith('http')) {
           userInfo.value.avatarUrl = getFullAvatarUrl(userInfo.value.avatarUrl)
