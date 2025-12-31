@@ -44,6 +44,7 @@ public class PostMapper {
         postResponse.setPublishedAt(post.getPublishedAt());  // 新增
         postResponse.setDraft(post.getDraft());  // 新增
         postResponse.setAuthorUsername(post.getUser().getUsername());
+        postResponse.setAuthorNickname(post.getUser().getNickname());  // 新增：作者昵称
         postResponse.setAuthorAvatarUrl(post.getUser().getAvatarUrl());  // 新增：作者头像URL
         
         // 添加点赞信息

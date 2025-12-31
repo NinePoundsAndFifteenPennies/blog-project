@@ -3,19 +3,31 @@
     <div class="flex space-x-4">
       <!-- Avatar -->
       <div class="flex-shrink-0">
+        <UserProfileHoverCard 
+          v-if="comment.authorUsername"
+          :username="comment.authorUsername"
+          :user-data="authorData"
+        >
+          <div 
+            class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600"
+          >
+            <img 
+              v-if="displayAvatarUrl && !avatarLoadError" 
+              :src="displayAvatarUrl" 
+              :alt="authorDisplayName"
+              :key="displayAvatarUrl"
+              class="w-full h-full object-cover"
+              @error="handleAvatarError"
+              @load="handleAvatarLoad"
+            />
+            <span v-else>{{ authorInitial }}</span>
+          </div>
+        </UserProfileHoverCard>
         <div 
+          v-else
           class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600"
         >
-          <img 
-            v-if="displayAvatarUrl && !avatarLoadError" 
-            :src="displayAvatarUrl" 
-            :alt="comment.authorUsername"
-            :key="displayAvatarUrl"
-            class="w-full h-full object-cover"
-            @error="handleAvatarError"
-            @load="handleAvatarLoad"
-          />
-          <span v-else>{{ authorInitial }}</span>
+          <span>{{ authorInitial }}</span>
         </div>
       </div>
 
@@ -24,7 +36,7 @@
         <!-- Header -->
         <div class="flex items-center justify-between mb-2">
           <div>
-            <span class="font-semibold text-gray-900">{{ comment.authorUsername }}</span>
+            <span class="font-semibold text-gray-900">{{ authorDisplayName }}</span>
             <span class="text-gray-400 text-sm ml-2">{{ formatDate(comment.updatedAt || comment.createdAt) }}</span>
             <span v-if="comment.updatedAt" class="text-gray-400 text-xs ml-2">(已编辑)</span>
           </div>
@@ -201,11 +213,13 @@ import { marked } from 'marked'
 import { deleteComment, likeComment, unlikeComment, createReply } from '@/api/comments'
 import { getFullAvatarUrl } from '@/utils/avatar'
 import ReplyList from './ReplyList.vue'
+import UserProfileHoverCard from './UserProfileHoverCard.vue'
 
 export default {
   name: 'CommentItem',
   components: {
-    ReplyList
+    ReplyList,
+    UserProfileHoverCard
   },
   props: {
     comment: {
@@ -293,8 +307,24 @@ export default {
     })
 
     const authorInitial = computed(() => {
-      const name = props.comment.authorUsername || ''
+      // Backend now returns authorNickname in comments
+      const name = props.comment.authorNickname || props.comment.authorUsername || ''
       return name ? name.charAt(0).toUpperCase() : 'A'
+    })
+
+    const authorDisplayName = computed(() => {
+      // Backend now returns authorNickname in comment responses
+      return props.comment.authorNickname || props.comment.authorUsername || '匿名用户'
+    })
+
+    const authorData = computed(() => {
+      // Backend now provides authorNickname in comment responses
+      return {
+        username: props.comment.authorUsername,
+        nickname: props.comment.authorNickname,
+        avatarUrl: displayAvatarUrl.value
+        // Note: bio, location, socialLink not available in comment API
+      }
     })
 
     // Check if content looks like markdown
@@ -495,6 +525,8 @@ export default {
       canManage,
       isLoggedIn,
       authorInitial,
+      authorDisplayName,
+      authorData,
       isMarkdown,
       renderedContent,
       showReplyForm,

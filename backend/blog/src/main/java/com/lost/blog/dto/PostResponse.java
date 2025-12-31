@@ -9,6 +9,7 @@ public class PostResponse {
     private String title;
     private String content;
     private String authorUsername;
+    private String authorNickname;  // 新增：作者昵称
     private String authorAvatarUrl;  // 新增：作者头像URL
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -33,6 +34,9 @@ public class PostResponse {
 
     public String getAuthorUsername() { return authorUsername; }
     public void setAuthorUsername(String authorUsername) { this.authorUsername = authorUsername; }
+
+    public String getAuthorNickname() { return authorNickname; }
+    public void setAuthorNickname(String authorNickname) { this.authorNickname = authorNickname; }
 
     public String getAuthorAvatarUrl() { return authorAvatarUrl; }
     public void setAuthorAvatarUrl(String authorAvatarUrl) { this.authorAvatarUrl = authorAvatarUrl; }

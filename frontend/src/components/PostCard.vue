@@ -37,22 +37,34 @@
       <div class="flex items-center justify-between pt-4 border-t border-gray-100">
         <!-- 作者信息 -->
         <div class="flex items-center space-x-3">
+          <UserProfileHoverCard 
+            v-if="post.authorUsername"
+            :username="post.authorUsername"
+            :user-data="authorData"
+          >
+            <div 
+              class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm overflow-hidden bg-primary-600"
+            >
+              <img 
+                v-if="displayAvatarUrl && !avatarLoadError" 
+                :src="displayAvatarUrl" 
+                :alt="authorDisplayName"
+                :key="displayAvatarUrl"
+                class="w-full h-full object-cover"
+                @error="handleAvatarError"
+                @load="handleAvatarLoad"
+              />
+              <span v-else>{{ authorInitial }}</span>
+            </div>
+          </UserProfileHoverCard>
           <div 
+            v-else
             class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm overflow-hidden bg-primary-600"
           >
-            <img 
-              v-if="displayAvatarUrl && !avatarLoadError" 
-              :src="displayAvatarUrl" 
-              :alt="post.author.username"
-              :key="displayAvatarUrl"
-              class="w-full h-full object-cover"
-              @error="handleAvatarError"
-              @load="handleAvatarLoad"
-            />
-            <span v-else>{{ authorInitial }}</span>
+            <span>{{ authorInitial }}</span>
           </div>
           <div>
-            <p class="text-sm font-semibold text-gray-900">{{ post.author?.username || '匿名' }}</p>
+            <p class="text-sm font-semibold text-gray-900">{{ authorDisplayName }}</p>
             <p class="text-xs text-gray-500" :title="titleAttr">
               {{ dateLabel }} {{ displayDate }}
             </p>
@@ -107,11 +119,13 @@ import { likePost, unlikePost } from '@/api/likes'
 import { ref, computed, watch } from 'vue'
 import { getFullAvatarUrl } from '@/utils/avatar'
 import TagBadge from '@/components/TagBadge.vue'
+import UserProfileHoverCard from '@/components/UserProfileHoverCard.vue'
 
 export default {
   name: 'PostCard',
   components: {
-    TagBadge
+    TagBadge,
+    UserProfileHoverCard
   },
   props: {
     post: {
@@ -130,7 +144,7 @@ export default {
     
     // Check if the post author is the current user
     const isCurrentUser = computed(() => {
-      return currentUser.value?.username === props.post.author?.username
+      return currentUser.value?.username === props.post.authorUsername
     })
     
     // Use current user's avatar if author is current user, otherwise use post author's avatar
@@ -138,7 +152,7 @@ export default {
       if (isCurrentUser.value && currentUser.value?.avatarUrl) {
         return getFullAvatarUrl(currentUser.value.avatarUrl)
       }
-      return props.post.author?.avatarUrl
+      return props.post.authorAvatarUrl
     })
     
     // Reset avatar error when avatar URL changes
@@ -147,8 +161,23 @@ export default {
     })
 
     const authorInitial = computed(() => {
-      const name = props.post.author?.username || ''
+      // Backend returns authorNickname as flat field, not nested
+      const name = props.post.authorNickname || props.post.authorUsername || ''
       return name ? name.charAt(0).toUpperCase() : 'A'
+    })
+
+    const authorDisplayName = computed(() => {
+      // Backend returns authorNickname as flat field on post object
+      return props.post.authorNickname || props.post.authorUsername || '匿名'
+    })
+
+    const authorData = computed(() => {
+      // Backend returns flat fields on post object
+      return {
+        username: props.post.authorUsername,
+        nickname: props.post.authorNickname,
+        avatarUrl: displayAvatarUrl.value
+      }
     })
 
     const handleAvatarError = () => {
@@ -267,6 +296,8 @@ export default {
 
     return {
       authorInitial,
+      authorDisplayName,
+      authorData,
       avatarLoadError,
       displayAvatarUrl,
       formatDate,

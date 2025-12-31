@@ -23,6 +23,7 @@ public class CommentMapper {
         response.setPostId(comment.getPost().getId());
         response.setPostTitle(comment.getPost().getTitle());
         response.setAuthorUsername(comment.getUser().getUsername());
+        response.setAuthorNickname(comment.getUser().getNickname());  // 新增：作者昵称
         response.setAuthorAvatarUrl(comment.getUser().getAvatarUrl());
         response.setCreatedAt(comment.getCreatedAt());
         response.setUpdatedAt(comment.getUpdatedAt());

@@ -188,25 +188,18 @@ export default {
 
         // 转换数据格式以适配前端组件
         posts.value = contentArray.map(post => ({
-          id: post.id,
-          title: post.title,
-          content: post.content,
+          ...post,  // 保留所有原始字段（包括 authorUsername, authorNickname, authorAvatarUrl 等）
+          
+          // 处理需要转换的字段
           summary: post.content ? post.content.substring(0, 150).replace(/[#*`\n]/g, '') : '',
-          author: {
-            username: post.authorUsername,
-            avatarUrl: getFullAvatarUrl(post.authorAvatarUrl)  // 转换为完整URL
-          },
-          createdAt: post.createdAt,
-          updatedAt: post.updatedAt,
-          publishedAt: post.publishedAt,
-          likeCount: post.likeCount || 0,  // 从后端获取点赞数
-          isLiked: post.isLiked || false,  // 从后端获取是否已点赞
-          commentCount: post.commentCount || 0,  // 从后端获取评论数
-          tags: post.tags || [],  // 从后端获取标签数据
-          // 暂时显示静态数据,后续实现
-          views: 0,
-          category: null
-
+          authorAvatarUrl: getFullAvatarUrl(post.authorAvatarUrl),  // 转换为完整URL
+          
+          // 确保这些字段有默认值
+          likeCount: post.likeCount || 0,
+          isLiked: post.isLiked || false,
+          commentCount: post.commentCount || 0,
+          tags: post.tags || [],
+          views: 0
         }))
 
         totalPages.value = response.totalPages || 1

@@ -29,7 +29,7 @@
               <input
                   v-model="formData.username"
                   type="text"
-                  placeholder="请输入用户名"
+                  placeholder="请输入用户名或邮箱"
                   class="input-field pl-10"
                   :class="{ 'input-error': errors.username }"
                   required

@@ -144,16 +144,13 @@ export default {
 
         // Transform posts data
         posts.value = filteredPosts.map(post => ({
-          id: post.id,
-          title: post.title,
+          ...post,  // 保留所有原始字段（包括 authorUsername, authorNickname, authorAvatarUrl 等）
+          
+          // 处理需要转换的字段
           summary: post.content ? post.content.substring(0, 150) + '...' : '',
-          author: {
-            username: post.authorUsername,
-            avatarUrl: getFullAvatarUrl(post.authorAvatarUrl)
-          },
-          createdAt: post.createdAt,
-          updatedAt: post.updatedAt,
-          publishedAt: post.publishedAt,
+          authorAvatarUrl: getFullAvatarUrl(post.authorAvatarUrl),  // 转换为完整URL
+          
+          // 确保这些字段有默认值
           likeCount: post.likeCount || 0,
           isLiked: post.isLiked || false,
           commentCount: post.commentCount || 0,

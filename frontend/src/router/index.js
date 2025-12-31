@@ -44,6 +44,12 @@ const routes = [
     meta: { title: "个人中心", requiresAuth: true },
   },
   {
+    path: "/profile/edit",
+    name: "ProfileEdit",
+    component: () => import("@/views/ProfileEdit.vue"),
+    meta: { title: "编辑个人资料", requiresAuth: true },
+  },
+  {
     path: "/my-comments",
     name: "MyComments",
     component: () => import("@/views/MyComments.vue"),

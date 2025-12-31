@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import com.lost.blog.dto.AvatarUrlRequest;
 import com.lost.blog.dto.JwtAuthenticationResponse;
 import com.lost.blog.dto.LoginRequest;
@@ -85,6 +86,18 @@ public class UserController {
         User user = userService.findByUsername(currentUser.getUsername());
         UserResponse userResponse = UserMapper.toUserResponse(user);
         return ResponseEntity.ok(userResponse);
+    }
+
+    // -------- 获取公开用户资料 --------
+    @GetMapping("/{username}")
+    public ResponseEntity<?> getPublicUserProfile(@PathVariable String username) {
+        try {
+            User user = userService.getPublicProfile(username);
+            UserResponse userResponse = UserMapper.toUserResponse(user);
+            return ResponseEntity.ok(userResponse);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
     }
 
     @PutMapping("/me/profile")

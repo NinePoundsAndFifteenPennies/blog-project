@@ -11,4 +11,11 @@ public interface UserService {
     User findByUsername(String username);
 
     User updateProfile(String username, UserProfileUpdateRequest request);
+    
+    /**
+     * Get public user profile by username (for viewing other users' profiles)
+     * @param username The username to look up
+     * @return User entity with public information
+     */
+    User getPublicProfile(String username);
 }

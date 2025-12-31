@@ -113,6 +113,38 @@ Authorization: Bearer {token}
 
 ---
 
+### 获取公开用户资料
+
+获取指定用户的公开资料信息（无需登录）。
+
+```http
+GET /api/users/{username}
+```
+
+**路径参数:**
+- `username`: 用户名
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 2,
+  "username": "seconduser",
+  "email": "seconduser@lost.com",
+  "avatarUrl": "/uploads/2/avatars/9d70a757-54e1-41eb-99df-b509ba97b7dc.jpg",
+  "nickname": "Second",
+  "bio": "个人简介，最多200字",
+  "socialLink": "https://example.com/me",
+  "gender": "female",
+  "birthday": "1995-02-03",
+  "location": "上海"
+}
+```
+
+**错误响应:**
+- `404 Not Found` - 用户不存在
+
+---
+
 ### 更新当前用户资料
 
 仅允许登录用户修改自己的资料。
@@ -264,6 +296,7 @@ Content-Type: application/json
   "title": "测试api2",
   "content": "# 这是标题\n\n这是文章内容...",
   "authorUsername": "seconduser",
+  "authorNickname": "Second",
   "authorAvatarUrl": "/uploads/2/avatars/9d70a757-54e1-41eb-99df-b509ba97b7dc.jpg",
   "createdAt": "2025-10-17T17:58:06.0262871",
   "updatedAt": null,
@@ -300,6 +333,7 @@ GET /api/posts?page=0&size=10&sort=createdAt,desc
       "title": "测试api2",
       "content": "# 这是标题\n\n这是文章内容...",
       "authorUsername": "seconduser",
+      "authorNickname": "Second",
       "authorAvatarUrl": "/uploads/2/avatars/9d70a757-54e1-41eb-99df-b509ba97b7dc.jpg",
       "createdAt": "2025-10-17T17:58:06.026287",
       "updatedAt": null,
@@ -767,6 +801,7 @@ GET /api/posts/{postId}/comments?page=0&size=20
       "level": 0,
       "replyCount": 5,
       "authorUsername": "user1",
+      "authorNickname": "用户昵称",
       "authorAvatarUrl": "https://example.com/avatar1.jpg",
       "createdAt": "2025-10-16T15:30:00",
       "updatedAt": null,
