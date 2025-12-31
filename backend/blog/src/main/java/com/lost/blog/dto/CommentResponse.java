@@ -13,6 +13,7 @@ public class CommentResponse {
     private Integer level;
     private Long replyCount;
     private String authorUsername;
+    private String authorNickname;  // 新增：作者昵称
     private String authorAvatarUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -58,6 +59,14 @@ public class CommentResponse {
 
     public void setAuthorUsername(String authorUsername) {
         this.authorUsername = authorUsername;
+    }
+
+    public String getAuthorNickname() {
+        return authorNickname;
+    }
+
+    public void setAuthorNickname(String authorNickname) {
+        this.authorNickname = authorNickname;
     }
 
     public String getAuthorAvatarUrl() {

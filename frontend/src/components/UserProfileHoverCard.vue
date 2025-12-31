@@ -1,7 +1,7 @@
 <template>
-  <div class="relative inline-block" @mouseenter="showCard" @mouseleave="hideCard">
+  <div class="relative inline-block">
     <!-- Avatar Trigger (non-clickable) -->
-    <div>
+    <div @mouseenter="handleMouseEnter" @mouseleave="hideCard">
       <slot></slot>
     </div>
 
@@ -11,7 +11,7 @@
         v-if="isVisible && userInfo"
         class="fixed z-[9999] w-72 bg-white rounded-lg shadow-2xl border border-gray-200 p-4"
         :style="cardStyle"
-        @mouseenter="showCard"
+        @mouseenter="cancelHide"
         @mouseleave="hideCard"
       >
         <!-- Loading State -->
@@ -81,6 +81,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
 import { getFullAvatarUrl } from '@/utils/avatar'
+import { getPublicUserProfile } from '@/api/auth'
 
 export default {
   name: 'UserProfileHoverCard',
@@ -151,20 +152,22 @@ export default {
       }
     }
 
-    const showCard = async (event) => {
+    const handleMouseEnter = (event) => {
       if (hideTimeout) {
         clearTimeout(hideTimeout)
         hideTimeout = null
       }
 
-      if (event) {
-        calculateCardPosition(event)
-      }
+      calculateCardPosition(event)
+      showCard()
+    }
 
+    const showCard = async () => {
       isVisible.value = true
 
-      // Only show card for current user since we don't have public API yet
+      // Check if user is current user
       if (props.username === currentUser.value?.username) {
+        // Show current user's info from store
         if (!userInfo.value) {
           userInfo.value = {
             ...currentUser.value,
@@ -174,13 +177,30 @@ export default {
           userInfo.value.avatarUrl = getFullAvatarUrl(userInfo.value.avatarUrl)
         }
       } else {
-        // For other users, show minimal info from props if available
-        if (props.userData) {
-          userInfo.value = props.userData
-        } else {
-          // Can't show other users without public API
-          isVisible.value = false
+        // Fetch public profile for other users
+        if (!userInfo.value || userInfo.value.username !== props.username) {
+          loading.value = true
+          try {
+            const publicProfile = await getPublicUserProfile(props.username)
+            userInfo.value = {
+              ...publicProfile,
+              avatarUrl: getFullAvatarUrl(publicProfile.avatarUrl)
+            }
+          } catch (error) {
+            console.error('Failed to load public profile:', error)
+            // If fetch fails, hide card
+            isVisible.value = false
+          } finally {
+            loading.value = false
+          }
         }
+      }
+    }
+
+    const cancelHide = () => {
+      if (hideTimeout) {
+        clearTimeout(hideTimeout)
+        hideTimeout = null
       }
     }
 
@@ -210,7 +230,9 @@ export default {
       cardStyle,
       displayName,
       userInitial,
+      handleMouseEnter,
       showCard,
+      cancelHide,
       hideCard
     }
   }

@@ -83,3 +83,16 @@ export async function updateUserProfile(profileData) {
     });
     return response;
 }
+
+/**
+ * 获取公开用户资料
+ * @param {string} username - 用户名
+ * @returns {Promise<Object>} - 返回用户公开资料
+ */
+export async function getPublicUserProfile(username) {
+    const response = await request({
+        url: `/users/${username}`,
+        method: "get",
+    });
+    return response;
+}

@@ -161,21 +161,22 @@ export default {
     })
 
     const authorInitial = computed(() => {
-      // Backend only returns authorUsername, not authorNickname
-      const name = props.post.author?.username || ''
+      // Backend now returns authorNickname
+      const name = props.post.author?.authorNickname || props.post.author?.username || ''
       return name ? name.charAt(0).toUpperCase() : 'A'
     })
 
     const authorDisplayName = computed(() => {
-      // Backend only returns authorUsername in post list, not authorNickname
-      return props.post.author?.username || '匿名'
+      // Backend now returns authorNickname in post responses
+      return props.post.author?.authorNickname || props.post.author?.username || '匿名'
     })
 
     const authorData = computed(() => {
       if (!props.post.author) return null
-      // Backend only provides username and avatarUrl in post responses
+      // Backend now provides authorNickname in post responses
       return {
         username: props.post.author.username,
+        nickname: props.post.author.authorNickname,
         avatarUrl: displayAvatarUrl.value
         // Note: bio, location, socialLink not available in post list API
       }
