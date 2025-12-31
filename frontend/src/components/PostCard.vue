@@ -38,8 +38,8 @@
         <!-- 作者信息 -->
         <div class="flex items-center space-x-3">
           <UserProfileHoverCard 
-            v-if="post.author?.username"
-            :username="post.author.username"
+            v-if="post.authorUsername"
+            :username="post.authorUsername"
             :user-data="authorData"
           >
             <div 
@@ -144,7 +144,7 @@ export default {
     
     // Check if the post author is the current user
     const isCurrentUser = computed(() => {
-      return currentUser.value?.username === props.post.author?.username
+      return currentUser.value?.username === props.post.authorUsername
     })
     
     // Use current user's avatar if author is current user, otherwise use post author's avatar
@@ -152,7 +152,7 @@ export default {
       if (isCurrentUser.value && currentUser.value?.avatarUrl) {
         return getFullAvatarUrl(currentUser.value.avatarUrl)
       }
-      return props.post.author?.avatarUrl
+      return props.post.authorAvatarUrl
     })
     
     // Reset avatar error when avatar URL changes
@@ -161,24 +161,22 @@ export default {
     })
 
     const authorInitial = computed(() => {
-      // Backend now returns authorNickname
-      const name = props.post.author?.authorNickname || props.post.author?.username || ''
+      // Backend returns authorNickname as flat field, not nested
+      const name = props.post.authorNickname || props.post.authorUsername || ''
       return name ? name.charAt(0).toUpperCase() : 'A'
     })
 
     const authorDisplayName = computed(() => {
-      // Backend now returns authorNickname in post responses
-      return props.post.author?.authorNickname || props.post.author?.username || '匿名'
+      // Backend returns authorNickname as flat field on post object
+      return props.post.authorNickname || props.post.authorUsername || '匿名'
     })
 
     const authorData = computed(() => {
-      if (!props.post.author) return null
-      // Backend now provides authorNickname in post responses
+      // Backend returns flat fields on post object
       return {
-        username: props.post.author.username,
-        nickname: props.post.author.authorNickname,
+        username: props.post.authorUsername,
+        nickname: props.post.authorNickname,
         avatarUrl: displayAvatarUrl.value
-        // Note: bio, location, socialLink not available in post list API
       }
     })
 
