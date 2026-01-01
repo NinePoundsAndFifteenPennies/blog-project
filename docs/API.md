@@ -468,6 +468,63 @@ Authorization: Bearer {token}
 
 ---
 
+### 获取指定用户的已发布文章
+
+获取指定用户的所有已发布文章（不包括草稿），用于公开用户主页展示。
+
+```http
+GET /api/posts/user/{username}?page=0&size=10
+```
+
+**路径参数:**
+- `username`: 用户名
+
+**查询参数:**
+- `page`: 页码（从 0 开始，默认 0）
+- `size`: 每页数量（默认 10）
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 8,
+      "title": "文章标题",
+      "content": "文章内容...",
+      "authorUsername": "username",
+      "authorNickname": "用户昵称",
+      "authorAvatarUrl": "/uploads/1/avatars/abc.jpg",
+      "createdAt": "2025-10-07T17:41:04.153692",
+      "updatedAt": null,
+      "publishedAt": "2025-10-08T23:19:00.080556",
+      "contentType": "MARKDOWN",
+      "draft": false,
+      "likeCount": 5,
+      "isLiked": false,
+      "commentCount": 3
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10
+  },
+  "totalElements": 1,
+  "totalPages": 1,
+  "last": true,
+  "first": true
+}
+```
+
+**说明:**
+- 无需认证即可访问
+- 仅返回该用户已发布的文章（draft = false）
+- 如果携带JWT token，响应中会包含当前用户的点赞状态（isLiked）
+
+**错误响应:**
+- `404 Not Found` - 用户不存在
+
+---
+
 ### 更新文章
 
 更新指定文章，仅作者可操作。

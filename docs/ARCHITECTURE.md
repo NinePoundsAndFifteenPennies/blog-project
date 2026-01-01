@@ -234,8 +234,11 @@ uploads/
 - **Home**: 首页，展示文章列表
 - **Login/Register**: 登录注册页面
 - **Profile**: 用户个人中心
+- **ProfileEdit**: 编辑个人资料
+- **UserProfile**: 公开用户主页（查看其他用户资料及文章）
 - **CreatePost**: 创建/编辑文章
 - **PostDetail**: 文章详情
+- **TagPosts**: 标签文章列表
 
 ## 与原始方案的差异
 
