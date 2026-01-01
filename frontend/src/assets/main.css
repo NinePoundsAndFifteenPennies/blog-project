@@ -5,38 +5,42 @@
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
       "Helvetica Neue", Arial, sans-serif;
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* Markdown样式 */
   .markdown-body {
-    @apply text-gray-800 leading-relaxed;
+    @apply text-gray-700 leading-relaxed;
+    font-size: 1.0625rem;
+    line-height: 1.8;
   }
 
   .markdown-body h1 {
-    @apply text-3xl font-bold mt-8 mb-4;
+    @apply text-3xl font-bold mt-10 mb-5 text-gray-900;
   }
 
   .markdown-body h2 {
-    @apply text-2xl font-bold mt-6 mb-3;
+    @apply text-2xl font-bold mt-8 mb-4 text-gray-900;
   }
 
   .markdown-body h3 {
-    @apply text-xl font-semibold mt-4 mb-2;
+    @apply text-xl font-semibold mt-6 mb-3 text-gray-800;
   }
 
   .markdown-body p {
-    @apply mb-4;
+    @apply mb-5;
   }
 
   .markdown-body code {
-    @apply bg-gray-100 px-2 py-1 rounded text-sm font-mono text-red-600;
+    @apply bg-gray-100 px-2 py-1 rounded text-sm font-mono text-primary-700;
   }
 
   .markdown-body pre {
-    @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mb-4;
+    @apply bg-gray-900 text-gray-100 p-5 rounded-xl overflow-x-auto mb-5;
   }
 
   .markdown-body pre code {
@@ -44,16 +48,16 @@
   }
 
   .markdown-body blockquote {
-    @apply border-l-4 border-primary-500 pl-4 italic text-gray-600 my-4;
+    @apply border-l-4 border-primary-400 pl-5 italic text-gray-600 my-5 bg-gray-50 py-3 pr-4 rounded-r-lg;
   }
 
   .markdown-body ul {
-    @apply ml-6 mb-4;
+    @apply ml-6 mb-5;
     list-style-type: disc;
   }
 
   .markdown-body ol {
-    @apply ml-6 mb-4;
+    @apply ml-6 mb-5;
     list-style-type: decimal;
   }
 
@@ -63,16 +67,16 @@
   }
 
   .markdown-body a {
-    @apply text-primary-600 hover:text-primary-700 underline;
+    @apply text-primary-600 hover:text-primary-700 underline decoration-primary-300 hover:decoration-primary-500 underline-offset-2 transition-colors;
   }
 
   .markdown-body img {
-    @apply rounded-lg shadow-md my-4;
+    @apply rounded-xl shadow-soft my-5;
   }
 
   /* 表格样式 */
   .markdown-body table {
-    @apply w-full border-collapse mb-4;
+    @apply w-full border-collapse mb-5 rounded-lg overflow-hidden;
   }
 
   .markdown-body table thead {
@@ -81,7 +85,7 @@
 
   .markdown-body table th,
   .markdown-body table td {
-    @apply border border-gray-300 px-4 py-2 text-left;
+    @apply border border-gray-200 px-4 py-3 text-left;
   }
 
   .markdown-body table th {
@@ -96,39 +100,39 @@
 @layer components {
   /* 自定义按钮样式 */
   .btn-primary {
-    @apply bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold
+    @apply bg-primary-600 text-white px-6 py-3 rounded-xl font-semibold
         hover:bg-primary-700 active:bg-primary-800
-        shadow-sm hover:shadow-md
+        shadow-sm hover:shadow-soft
         transform hover:-translate-y-0.5
         transition-all duration-200;
   }
 
   .btn-secondary {
-    @apply bg-white text-gray-700 px-6 py-3 rounded-lg font-semibold border border-gray-300
-        hover:border-primary-600 hover:bg-primary-50
-        shadow-sm hover:shadow-md transition-all duration-200;
+    @apply bg-white text-gray-700 px-6 py-3 rounded-xl font-semibold border border-gray-200
+        hover:border-primary-400 hover:bg-primary-50 hover:text-primary-700
+        shadow-sm hover:shadow-soft transition-all duration-200;
   }
 
   .btn-ghost {
-    @apply text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100 
+    @apply text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-100 
         transition-all duration-200;
   }
 
   /* 输入框样式 */
   .input-field {
-    @apply w-full px-4 py-3 rounded-lg border border-gray-300 bg-white
-        focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
-        hover:border-gray-400 transition-all duration-200;
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 bg-white
+        focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400
+        hover:border-gray-300 transition-all duration-200;
   }
 
   .input-error {
-    @apply border-red-500 focus:ring-red-500 focus:border-red-500;
+    @apply border-red-400 focus:ring-red-400 focus:border-red-400;
   }
 
-  /* 卡片样式 */
+  /* 卡片样式 - 更柔和，减少边框感 */
   .card {
-    @apply bg-white rounded-lg shadow-sm hover:shadow-md
-        border border-gray-200 transition-all duration-200 overflow-hidden;
+    @apply bg-white rounded-2xl shadow-soft hover:shadow-soft-lg
+        border border-transparent hover:border-gray-100 transition-all duration-300 overflow-hidden;
   }
 
   .card-hover {
@@ -137,9 +141,9 @@
 
   /* 标签样式 */
   .tag {
-    @apply inline-block bg-primary-50 
-        text-primary-700 px-4 py-1.5 rounded-md text-sm font-medium
-        hover:bg-primary-100 transition-all duration-200;
+    @apply inline-block bg-gray-100 
+        text-gray-700 px-4 py-1.5 rounded-lg text-sm font-medium
+        hover:bg-primary-50 hover:text-primary-700 transition-all duration-200;
   }
 
   /* 加载动画 */

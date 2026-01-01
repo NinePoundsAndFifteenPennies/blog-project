@@ -1,111 +1,87 @@
 <template>
-  <div class="card card-hover cursor-pointer group" @click="goToDetail">
-    <!-- 头部区域 -->
-    <div class="relative h-52 bg-gradient-to-br from-primary-500 to-purple-600 overflow-hidden">
-      <!-- Subtle overlay -->
-      <div class="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-all duration-200"></div>
+  <div 
+    class="group bg-white rounded-2xl p-6 shadow-soft hover:shadow-soft-lg border border-transparent hover:border-gray-100 transition-all duration-300 cursor-pointer flex flex-col h-full"
+    @click="goToDetail"
+  >
+    <!-- Top section: Date and first tag -->
+    <div class="flex items-center justify-between text-xs text-gray-400 mb-4">
+      <span class="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1 rounded-lg">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        {{ displayDate }}
+      </span>
+      <span v-if="post.tags && post.tags.length" class="text-primary-600 font-medium">
+        #{{ post.tags[0].name }}
+      </span>
     </div>
 
-    <!-- 内容区域 -->
-    <div class="p-6">
-      <!-- 标题 -->
-      <h3 class="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200 leading-tight">
-        {{ post.title }}
-      </h3>
+    <!-- Title -->
+    <h3 class="text-xl font-bold text-gray-800 mb-3 group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug">
+      {{ post.title }}
+    </h3>
 
-      <!-- 标签 -->
-      <div v-if="post.tags && post.tags.length > 0" class="flex flex-wrap gap-2 mb-3">
-        <TagBadge
-          v-for="tag in post.tags.slice(0, 3)"
-          :key="tag.id"
-          :tag="tag"
-          :show-icon="true"
-          :clickable="true"
-          @click="handleTagClick(tag)"
-        />
-        <span v-if="post.tags.length > 3" class="text-xs text-gray-400">
-          +{{ post.tags.length - 3 }}
-        </span>
-      </div>
+    <!-- Summary -->
+    <p class="text-gray-500 text-sm leading-relaxed mb-6 flex-grow line-clamp-3">
+      {{ post.summary || '暂无摘要...' }}
+    </p>
 
-      <!-- 摘要 -->
-      <p class="text-gray-600 mb-4 line-clamp-3 leading-relaxed text-sm">
-        {{ post.summary || '暂无摘要' }}
-      </p>
-
-      <!-- 底部信息栏 -->
-      <div class="flex items-center justify-between pt-4 border-t border-gray-100">
-        <!-- 作者信息 -->
-        <div class="flex items-center space-x-3">
-          <UserProfileHoverCard 
-            v-if="post.authorUsername"
-            :username="post.authorUsername"
-            :user-data="authorData"
-          >
-            <div 
-              class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm overflow-hidden bg-primary-600"
-            >
-              <img 
-                v-if="displayAvatarUrl && !avatarLoadError" 
-                :src="displayAvatarUrl" 
-                :alt="authorDisplayName"
-                :key="displayAvatarUrl"
-                class="w-full h-full object-cover"
-                @error="handleAvatarError"
-                @load="handleAvatarLoad"
-              />
-              <span v-else>{{ authorInitial }}</span>
-            </div>
-          </UserProfileHoverCard>
+    <!-- Footer section -->
+    <div class="flex items-center justify-between pt-4 border-t border-gray-50 mt-auto">
+      <!-- Author info -->
+      <div class="flex items-center space-x-2.5">
+        <UserProfileHoverCard 
+          v-if="post.authorUsername"
+          :username="post.authorUsername"
+          :user-data="authorData"
+        >
           <div 
-            v-else
-            class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm overflow-hidden bg-primary-600"
+            class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm overflow-hidden bg-gradient-to-br from-primary-500 to-primary-700"
           >
-            <span>{{ authorInitial }}</span>
+            <img 
+              v-if="displayAvatarUrl && !avatarLoadError" 
+              :src="displayAvatarUrl" 
+              :alt="authorDisplayName"
+              :key="displayAvatarUrl"
+              class="w-full h-full object-cover"
+              @error="handleAvatarError"
+              @load="handleAvatarLoad"
+            />
+            <span v-else>{{ authorInitial }}</span>
           </div>
-          <div>
-            <p class="text-sm font-semibold text-gray-900">{{ authorDisplayName }}</p>
-            <p class="text-xs text-gray-500" :title="titleAttr">
-              {{ dateLabel }} {{ displayDate }}
-            </p>
-          </div>
+        </UserProfileHoverCard>
+        <div 
+          v-else
+          class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm overflow-hidden bg-gradient-to-br from-primary-500 to-primary-700"
+        >
+          <span>{{ authorInitial }}</span>
         </div>
-
-        <!-- 统计信息 -->
-        <div class="flex items-center space-x-3 text-sm text-gray-400">
-          <!-- 浏览量图标 -->
-          <div class="flex items-center space-x-1 hover:text-primary-500 transition-colors" title="浏览量(功能开发中)">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-          </div>
-
-          <!-- 点赞数 -->
-          <button 
-            @click.stop="handleLike"
-            class="flex items-center space-x-1 hover:text-red-500 transition-colors"
-            :class="{ 'text-red-500': post.isLiked }"
-            :title="post.isLiked ? '取消点赞' : '点赞'"
+        <span class="text-sm text-gray-600 font-medium">{{ authorDisplayName }}</span>
+      </div>
+      
+      <!-- Stats -->
+      <div class="flex items-center space-x-4 text-gray-400 text-sm">
+        <button 
+          @click.stop="handleLike"
+          class="flex items-center space-x-1 hover:text-red-500 transition-colors"
+          :class="{ 'text-red-500': post.isLiked }"
+          :title="post.isLiked ? '取消点赞' : '点赞'"
+        >
+          <svg 
+            class="w-4 h-4" 
+            :fill="post.isLiked ? 'currentColor' : 'none'" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
           >
-            <svg 
-              class="w-4 h-4" 
-              :fill="post.isLiked ? 'currentColor' : 'none'" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-            <span>{{ post.likeCount || 0 }}</span>
-          </button>
-
-          <!-- 评论数图标 -->
-          <div class="flex items-center space-x-1 hover:text-primary-500 transition-colors" :title="`${post.commentCount || 0} 条评论`">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-            </svg>
-            <span>{{ post.commentCount || 0 }}</span>
-          </div>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+          <span>{{ post.likeCount || 0 }}</span>
+        </button>
+        <div class="flex items-center space-x-1 hover:text-primary-500 transition-colors" :title="`${post.commentCount || 0} 条评论`">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+          </svg>
+          <span>{{ post.commentCount || 0 }}</span>
         </div>
       </div>
     </div>
@@ -118,13 +94,11 @@ import { useStore } from 'vuex'
 import { likePost, unlikePost } from '@/api/likes'
 import { ref, computed, watch } from 'vue'
 import { getFullAvatarUrl } from '@/utils/avatar'
-import TagBadge from '@/components/TagBadge.vue'
 import UserProfileHoverCard from '@/components/UserProfileHoverCard.vue'
 
 export default {
   name: 'PostCard',
   components: {
-    TagBadge,
     UserProfileHoverCard
   },
   props: {
@@ -204,15 +178,6 @@ export default {
       return date.toLocaleDateString('zh-CN')
     }
 
-    const formatFullDate = (dateString) => {
-      if (!dateString) return ''
-      try {
-        return new Date(dateString).toLocaleString('zh-CN')
-      } catch (e) {
-        return dateString
-      }
-    }
-
     const displayDate = computed(() => {
       // Show updatedAt if exists and different from publishedAt/createdAt, otherwise show publishedAt or createdAt
       if (props.post?.updatedAt) {
@@ -221,40 +186,8 @@ export default {
       return formatDate(props.post?.publishedAt || props.post?.createdAt)
     })
 
-    const dateLabel = computed(() => {
-      // If updatedAt exists and is different, show "更新于"
-      if (props.post?.updatedAt) {
-        return '更新于'
-      } else if (props.post?.publishedAt) {
-        return '发布于'
-      }
-      return '创建于'
-    })
-
-    const titleAttr = computed(() => {
-      const created = formatFullDate(props.post?.createdAt)
-      const published = formatFullDate(props.post?.publishedAt)
-      const updated = formatFullDate(props.post?.updatedAt)
-      
-      let tooltip = `创建：${created}`
-      if (props.post?.publishedAt && props.post.publishedAt !== props.post.createdAt) {
-        tooltip += `\n发布：${published}`
-      }
-      if (props.post?.updatedAt) {
-        tooltip += `\n更新：${updated}`
-      }
-      return tooltip
-    })
-
     const goToDetail = () => {
       router.push(`/post/${props.post.id}`)
-    }
-
-    const handleTagClick = (tag) => {
-      // Navigate to tag posts page
-      router.push({
-        path: '/tags/' + encodeURIComponent(tag.name)
-      })
     }
 
     // 点赞功能
@@ -300,12 +233,8 @@ export default {
       authorData,
       avatarLoadError,
       displayAvatarUrl,
-      formatDate,
       displayDate,
-      dateLabel,
-      titleAttr,
       goToDetail,
-      handleTagClick,
       handleAvatarError,
       handleAvatarLoad,
       handleLike

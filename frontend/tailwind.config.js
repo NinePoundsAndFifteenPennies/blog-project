@@ -3,18 +3,35 @@ module.exports = {
   content: ["./index.html", "./src/**/*.{vue,js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'Noto Sans SC', 'system-ui', 'sans-serif'],
+        serif: ['Merriweather', 'Noto Serif SC', 'serif'],
+      },
       colors: {
+        // Use Slate for more refined gray tones
+        gray: {
+          50: '#f8fafc',
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b',
+          600: '#475569',
+          700: '#334155',
+          800: '#1e293b',
+          900: '#0f172a',
+        },
         primary: {
-          50: "#f0f9ff",
-          100: "#e0f2fe",
-          200: "#bae6fd",
-          300: "#7dd3fc",
-          400: "#38bdf8",
-          500: "#0ea5e9",
-          600: "#0284c7",
-          700: "#0369a1",
-          800: "#075985",
-          900: "#0c4a6e",
+          50: "#f0f7ff",
+          100: "#e0efff",
+          200: "#baddff",
+          300: "#7cc4fc",
+          400: "#36a9f8",
+          500: "#0c8ce9",
+          600: "#2563eb",
+          700: "#1d4ed8",
+          800: "#1e40af",
+          900: "#1e3a8a",
         },
         secondary: {
           50: "#fdf4ff",
@@ -45,6 +62,11 @@ module.exports = {
       boxShadow: {
         card: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
         "card-hover": "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+        // Softer, more elegant shadows
+        soft: "0 4px 20px -2px rgba(0, 0, 0, 0.05)",
+        "soft-lg": "0 8px 30px -4px rgba(0, 0, 0, 0.08)",
+        glow: "0 0 15px rgba(37, 99, 235, 0.3)",
+        "glow-lg": "0 0 25px rgba(37, 99, 235, 0.4)",
       },
       animation: {
         "fade-in": "fadeIn 0.5s ease-in-out",
