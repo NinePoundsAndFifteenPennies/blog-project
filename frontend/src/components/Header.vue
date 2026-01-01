@@ -97,6 +97,17 @@
                   </div>
                 </router-link>
                 <button
+                    @click="handleSwitchAccount"
+                    class="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+                >
+                  <div class="flex items-center space-x-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    <span>切换账号</span>
+                  </div>
+                </button>
+                <button
                     @click="handleLogout"
                     class="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                 >
@@ -162,6 +173,12 @@
               >
                 个人中心
               </router-link>
+              <button
+                  @click="handleSwitchAccount"
+                  class="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+              >
+                切换账号
+              </button>
               <button
                   @click="handleLogout"
                   class="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors duration-200"
@@ -242,6 +259,11 @@ export default {
       router.push('/login')
     }
 
+    // 处理切换账号（与登出相同，重定向到登录页面）
+    const handleSwitchAccount = () => {
+      handleLogout()
+    }
+
     // 监听滚动
     const handleScroll = () => {
       scrolled.value = window.scrollY > 20
@@ -276,6 +298,7 @@ export default {
       avatarLoadError,
       handleSearch,
       handleLogout,
+      handleSwitchAccount,
       handleAvatarError,
       handleAvatarLoad
     }
