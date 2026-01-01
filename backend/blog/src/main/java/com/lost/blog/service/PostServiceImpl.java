@@ -100,7 +100,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public PostResponse getPostById(Long id, UserDetails currentUser, String ip, String userAgent) {
+    public PostResponse getPostById(Long id, UserDetails currentUser, String ip, String userAgent, String referer) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + id + " 的文章"));
 
@@ -130,8 +130,16 @@ public class PostServiceImpl implements PostService {
             boolean alreadyViewed = postViewLogRepository.existsByPostAndIpAndCreateTimeAfter(post, ip, oneHourAgo);
 
             if (!alreadyViewed) {
+                // 获取当前登录用户的ID（未登录则为null）
+                Long userId = null;
+                if (currentUser != null) {
+                    userId = userRepository.findByUsername(currentUser.getUsername())
+                            .map(User::getId)
+                            .orElse(null);
+                }
+
                 // 1. 记录流水 (为了后台统计)
-                PostViewLog log = new PostViewLog(post, ip, userAgent);
+                PostViewLog log = new PostViewLog(post, ip, userAgent, userId, referer);
                 postViewLogRepository.save(log);
 
                 // 2. 增加文章总数 (为了前台展示)

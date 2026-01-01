@@ -24,6 +24,14 @@ public class PostViewLog {
     // 记录设备信息（浏览器/手机），用于设备分析
     private String userAgent;
 
+    // 记录登录用户的ID（未登录则为null），用于会员分析
+    @Column(name = "user_id")
+    private Long userId;
+
+    // 记录来源URL，用于流量来源分析
+    @Column(name = "referer", length = 512)
+    private String referer;
+
     // 访问时间
     @CreationTimestamp
     @Column(updatable = false)
@@ -32,10 +40,12 @@ public class PostViewLog {
     // 构造函数
     public PostViewLog() {}
 
-    public PostViewLog(Post post, String ip, String userAgent) {
+    public PostViewLog(Post post, String ip, String userAgent, Long userId, String referer) {
         this.post = post;
         this.ip = ip;
         this.userAgent = userAgent;
+        this.userId = userId;
+        this.referer = referer;
     }
 
     // Getters and Setters
@@ -69,6 +79,22 @@ public class PostViewLog {
 
     public void setUserAgent(String userAgent) {
         this.userAgent = userAgent;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public String getReferer() {
+        return referer;
+    }
+
+    public void setReferer(String referer) {
+        this.referer = referer;
     }
 
     public LocalDateTime getCreateTime() {

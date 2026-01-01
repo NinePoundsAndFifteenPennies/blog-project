@@ -54,8 +54,11 @@ public class PostController {
         
         // 获取设备信息
         String userAgent = request.getHeader("User-Agent");
+        
+        // 获取来源URL（用于流量来源分析）
+        String referer = request.getHeader("Referer");
 
-        PostResponse post = postService.getPostById(id, currentUser, ip, userAgent);
+        PostResponse post = postService.getPostById(id, currentUser, ip, userAgent, referer);
         return ResponseEntity.ok(post);
     }
 
