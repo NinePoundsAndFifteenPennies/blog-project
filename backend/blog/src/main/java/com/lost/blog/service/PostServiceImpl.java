@@ -119,6 +119,9 @@ public class PostServiceImpl implements PostService {
 
         // --- 浏览量统计逻辑 START ---
         // 只对已发布的文章计算浏览量
+        // 注意：存在极小的竞态条件可能性（两个并发请求同时通过检查），
+        // 但对于浏览量统计而言，偶尔的轻微过计数是可接受的，
+        // 使用悲观锁会显著影响性能，不值得权衡。
         if (!post.getDraft() && ip != null && !ip.isEmpty()) {
             // 定义防刷时间：1小时 (也就是过去一小时内，同一个IP看同一篇文章不重复计数)
             LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
