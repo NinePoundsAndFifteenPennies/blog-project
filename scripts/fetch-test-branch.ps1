@@ -3,7 +3,7 @@
 # It prunes stale refs and uses git ls-remote to list the actual remote branches.
 
 Write-Host "Fetching remote branches and pruning stale refs..." -ForegroundColor Cyan
-git fetch --prune origin
+git fetch --prune origin 2>$null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Warning: fetch --prune failed; attempting to continue using ls-remote." -ForegroundColor Yellow
 }
@@ -12,13 +12,13 @@ Write-Host "Getting available remote branches from origin..." -ForegroundColor C
 Write-Host ""
 
 # Use git ls-remote --heads origin to get authoritative remote branch list
-$ls = git ls-remote --heads origin
+$ls = git ls-remote --heads origin 2>$null
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($ls)) {
     Write-Host "Error: Failed to query remote branches via ls-remote" -ForegroundColor Red
     exit 1
 }
 
-# Parse ls-remote output: each line "<sha>\trefs/heads/<branch>"
+# Parse ls-remote output: each line "<sha>    refs/heads/<branch>"
 $remoteBranches = @()
 $ls -split "`n" | ForEach-Object {
     $line = $_.Trim()
@@ -27,7 +27,9 @@ $ls -split "`n" | ForEach-Object {
         if ($parts.Count -ge 2) {
             $ref = $parts[1]
             $name = $ref -replace '^refs/heads/',''
-            if ($name) { $remoteBranches += $name }
+            if ($name) {
+                $remoteBranches += $name
+            }
         }
     }
 }
@@ -49,19 +51,25 @@ Write-Host "Enter the number of the branch to test: " -NoNewline -ForegroundColo
 $selection = Read-Host
 
 # Validate input
-if ($selection -match '^\d+$' -and [int]$selection -ge 1 -and [int]$selection -le $remoteBranches.Count) {
+if ($selection -match '^\d+$' -and
+        [int]$selection -ge 1 -and
+        [int]$selection -le $remoteBranches.Count) {
+
     $selectedBranch = $remoteBranches[[int]$selection - 1]
+
     Write-Host ""
     Write-Host "Checking out branch: $selectedBranch" -ForegroundColor Cyan
 
-    # Check if the branch exists locally
-    $localBranch = (git branch --list $selectedBranch).Trim()
+    # ---- FIX: safely check local branch existence ----
+    $branchOutput = git branch --list -- $selectedBranch 2>$null
+    $localExists = -not [string]::IsNullOrWhiteSpace($branchOutput)
 
-    if ($localBranch -ne '') {
-        # If local exists, checkout and pull latest
-        git checkout $selectedBranch
+    if ($localExists) {
+        # Local branch exists: checkout and pull
+        git checkout -- $selectedBranch 2>$null
         if ($LASTEXITCODE -eq 0) {
-            git pull origin $selectedBranch
+
+            git pull origin $selectedBranch 2>$null
             if ($LASTEXITCODE -eq 0) {
                 Write-Host ""
                 Write-Host "Successfully checked out and updated branch $selectedBranch!" -ForegroundColor Green
@@ -69,15 +77,16 @@ if ($selection -match '^\d+$' -and [int]$selection -ge 1 -and [int]$selection -l
                 Write-Host ""
                 Write-Host "Warning: Checkout succeeded but pull failed" -ForegroundColor Yellow
             }
+
         } else {
             Write-Host ""
             Write-Host "Error: Failed to checkout branch" -ForegroundColor Red
             exit 1
         }
-    } else {
-        # If not local, create a new local branch tracking the remote branch
-        git checkout -b $selectedBranch origin/$selectedBranch
 
+    } else {
+        # Local branch does not exist: create and track remote
+        git checkout -b $selectedBranch origin/$selectedBranch 2>$null
         if ($LASTEXITCODE -eq 0) {
             Write-Host ""
             Write-Host "Successfully created and checked out branch $selectedBranch!" -ForegroundColor Green
@@ -87,8 +96,12 @@ if ($selection -match '^\d+$' -and [int]$selection -ge 1 -and [int]$selection -l
             exit 1
         }
     }
+
 } else {
     Write-Host ""
     Write-Host "Error: Invalid selection" -ForegroundColor Red
     exit 1
 }
+
+
+
