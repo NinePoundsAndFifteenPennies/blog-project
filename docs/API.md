@@ -305,7 +305,8 @@ Content-Type: application/json
   "draft": false,
   "likeCount": 0,
   "isLiked": false,
-  "commentCount": 0
+  "commentCount": 0,
+  "viewCount": 0
 }
 ```
 
@@ -342,7 +343,8 @@ GET /api/posts?page=0&size=10&sort=createdAt,desc
       "draft": false,
       "likeCount": 0,
       "isLiked": false,
-      "commentCount": 0
+      "commentCount": 0,
+      "viewCount": 0
     }
   ],
   "pageable": {
@@ -400,7 +402,8 @@ Authorization: Bearer {token}
       "draft": false,
       "likeCount": 2,
       "isLiked": true,
-      "commentCount": 1
+      "commentCount": 1,
+      "viewCount": 15
     }
   ],
   "pageable": {
@@ -459,9 +462,15 @@ Authorization: Bearer {token}
   "draft": false,
   "likeCount": 2,
   "isLiked": false,
-  "commentCount": 1
+  "commentCount": 1,
+  "viewCount": 42
 }
 ```
+
+**说明:**
+- 访问文章详情时，系统会自动记录浏览量
+- 同一IP在1小时内重复访问不会重复计数
+- `viewCount` 字段表示文章的总浏览次数
 
 **错误响应:**
 - `404 Not Found` - 文章不存在
@@ -501,7 +510,8 @@ GET /api/posts/user/{username}?page=0&size=10
       "draft": false,
       "likeCount": 5,
       "isLiked": false,
-      "commentCount": 3
+      "commentCount": 3,
+      "viewCount": 28
     }
   ],
   "pageable": {
@@ -560,7 +570,8 @@ Content-Type: application/json
     "draft": false,
     "likeCount": 2,
     "isLiked": true,
-    "commentCount": 1
+    "commentCount": 1,
+    "viewCount": 56
 }
 ```
 

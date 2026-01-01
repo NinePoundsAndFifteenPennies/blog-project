@@ -54,6 +54,9 @@ public class PostMapper {
         // 添加评论数
         postResponse.setCommentCount(commentService.getCommentCount(post.getId()));
         
+        // 添加浏览量
+        postResponse.setViewCount(post.getViewCount());
+        
         // 添加标签信息
         if (post.getTags() != null && !post.getTags().isEmpty()) {
             postResponse.setTags(

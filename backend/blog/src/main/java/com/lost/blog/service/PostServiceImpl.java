@@ -3,9 +3,11 @@ package com.lost.blog.service;
 import com.lost.blog.dto.PostRequest;
 import com.lost.blog.dto.PostResponse;
 import com.lost.blog.model.Post;
+import com.lost.blog.model.PostViewLog;
 import com.lost.blog.model.Tag;
 import com.lost.blog.model.User;
 import com.lost.blog.repository.PostRepository;
+import com.lost.blog.repository.PostViewLogRepository;
 import com.lost.blog.repository.TagRepository;
 import com.lost.blog.repository.UserRepository;
 import com.lost.blog.mapper.PostMapper;
@@ -23,6 +25,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.time.LocalDateTime;
 
 @Service
 public class PostServiceImpl implements PostService {
@@ -30,6 +33,7 @@ public class PostServiceImpl implements PostService {
     private static final Logger logger = LoggerFactory.getLogger(PostServiceImpl.class);
 
     private final PostRepository postRepository;
+    private final PostViewLogRepository postViewLogRepository;
     private final UserRepository userRepository;
     private final TagRepository tagRepository;
     private final PostMapper postMapper;
@@ -39,6 +43,7 @@ public class PostServiceImpl implements PostService {
 
     @Autowired
     public PostServiceImpl(PostRepository postRepository,
+                           PostViewLogRepository postViewLogRepository,
                            UserRepository userRepository,
                            TagRepository tagRepository,
                            PostMapper postMapper,
@@ -46,6 +51,7 @@ public class PostServiceImpl implements PostService {
                            com.lost.blog.repository.LikeRepository likeRepository,
                            com.lost.blog.repository.CategoryRepository categoryRepository) {
         this.postRepository = postRepository;
+        this.postViewLogRepository = postViewLogRepository;
         this.userRepository = userRepository;
         this.tagRepository = tagRepository;
         this.postMapper = postMapper;
@@ -93,8 +99,8 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public PostResponse getPostById(Long id, UserDetails currentUser) {
+    @Transactional
+    public PostResponse getPostById(Long id, UserDetails currentUser, String ip, String userAgent) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + id + " 的文章"));
 
@@ -110,6 +116,29 @@ public class PostServiceImpl implements PostService {
                 throw new AccessDeniedException("无权查看该草稿");
             }
         }
+
+        // --- 浏览量统计逻辑 START ---
+        // 只对已发布的文章计算浏览量
+        if (!post.getDraft() && ip != null && !ip.isEmpty()) {
+            // 定义防刷时间：1小时 (也就是过去一小时内，同一个IP看同一篇文章不重复计数)
+            LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
+
+            // 使用 JPA 方法名查询检查是否存在
+            boolean alreadyViewed = postViewLogRepository.existsByPostAndIpAndCreateTimeAfter(post, ip, oneHourAgo);
+
+            if (!alreadyViewed) {
+                // 1. 记录流水 (为了后台统计)
+                PostViewLog log = new PostViewLog(post, ip, userAgent);
+                postViewLogRepository.save(log);
+
+                // 2. 增加文章总数 (为了前台展示)
+                post.setViewCount(post.getViewCount() + 1);
+                postRepository.save(post);
+                
+                logger.debug("文章 {} 浏览量+1，IP: {}", id, ip);
+            }
+        }
+        // --- 浏览量统计逻辑 END ---
 
         return postMapper.toResponse(post, currentUser);
     }
@@ -223,6 +252,10 @@ public class PostServiceImpl implements PostService {
         // 再删除该文章的所有评论（级联删除）
         commentRepository.deleteByPost(post);
         logger.info("删除文章ID: {} 的所有评论", id);
+
+        // 删除该文章的所有浏览日志
+        postViewLogRepository.deleteByPost(post);
+        logger.info("删除文章ID: {} 的所有浏览日志", id);
 
         postRepository.delete(post);
         logger.info("用户 {} 删除了文章，ID: {}，标题: {}",

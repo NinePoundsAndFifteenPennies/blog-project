@@ -62,6 +62,10 @@ public class Post {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    // 浏览量字段，默认值为0
+    @Column(nullable = false)
+    private Long viewCount = 0L;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -167,6 +171,14 @@ public class Post {
 
     public void setCategory(Category category) {
         this.category = category;
+    }
+
+    public Long getViewCount() {
+        return viewCount;
+    }
+
+    public void setViewCount(Long viewCount) {
+        this.viewCount = viewCount;
     }
 }
 
