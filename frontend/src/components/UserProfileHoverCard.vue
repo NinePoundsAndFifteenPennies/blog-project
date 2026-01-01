@@ -4,7 +4,7 @@
     <div 
       @mouseenter="handleMouseEnter" 
       @mouseleave="hideCard"
-      @click="goToProfile"
+      @click.stop="goToProfile"
       class="cursor-pointer"
     >
       <slot></slot>

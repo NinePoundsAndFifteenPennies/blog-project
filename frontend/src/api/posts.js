@@ -78,6 +78,19 @@ export function deletePost(id) {
 }
 
 /**
+ * 获取指定用户的已发布文章（公开接口）
+ * @param {String} username - 用户名
+ * @param {Object} params - 查询参数 { page, size }
+ */
+export function getPostsByUsername(username, params) {
+    return request({
+        url: `/posts/user/${username}`,
+        method: 'get',
+        params: params
+    })
+}
+
+/**
  * 从文章中移除标签（软删除）
  * @param {Number} postId - 文章ID
  * @param {String} tagName - 标签名称

@@ -4,9 +4,9 @@
 
     <div class="pt-24 pb-12">
       <div class="container mx-auto px-4">
-        <div class="max-w-4xl mx-auto">
+        <div class="max-w-6xl mx-auto">
           <!-- Loading State -->
-          <div v-if="loading" class="card p-16 text-center backdrop-blur-sm bg-white/90">
+          <div v-if="loading && !userProfile" class="card p-16 text-center backdrop-blur-sm bg-white/90">
             <div class="spinner w-16 h-16 mx-auto"></div>
             <p class="text-gray-600 mt-4">加载中...</p>
           </div>
@@ -28,61 +28,160 @@
           </div>
 
           <!-- Profile Content -->
-          <div v-else-if="userProfile" class="card p-8 backdrop-blur-sm bg-white/90 animate-fade-in">
-            <div class="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
-              <!-- Avatar -->
-              <div class="relative">
-                <div 
-                  class="w-32 h-32 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-md ring-4 ring-white overflow-hidden bg-primary-600"
-                >
-                  <img 
-                    v-if="userAvatarUrl && !avatarLoadError" 
-                    :src="userAvatarUrl" 
-                    :alt="userProfile.username"
-                    class="w-full h-full object-cover"
-                    @error="avatarLoadError = true"
-                  />
-                  <span v-else>{{ userInitial }}</span>
-                </div>
-              </div>
-
-              <!-- User Info -->
-              <div class="flex-1 text-center md:text-left">
-                <h1 class="text-4xl font-bold text-gray-900 mb-2">{{ displayName }}</h1>
-                <p class="text-gray-500 text-base mb-4">@{{ userProfile.username }}</p>
-                
-                <!-- Bio -->
-                <p v-if="userProfile.bio" class="text-gray-700 mb-4 max-w-2xl">
-                  {{ userProfile.bio }}
-                </p>
-                <p v-else class="text-gray-400 italic mb-4">暂无个人简介</p>
-
-                <!-- Additional Info -->
-                <div v-if="hasAdditionalInfo" class="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                  <div v-if="userProfile.location" class="flex items-center space-x-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span>{{ userProfile.location }}</span>
+          <template v-else-if="userProfile">
+            <!-- Profile Header -->
+            <div class="card p-8 mb-8 backdrop-blur-sm bg-white/90 animate-fade-in">
+              <div class="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
+                <!-- Avatar -->
+                <div class="relative">
+                  <div 
+                    class="w-32 h-32 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-md ring-4 ring-white overflow-hidden bg-primary-600"
+                  >
+                    <img 
+                      v-if="userAvatarUrl && !avatarLoadError" 
+                      :src="userAvatarUrl" 
+                      :alt="userProfile.username"
+                      class="w-full h-full object-cover"
+                      @error="avatarLoadError = true"
+                    />
+                    <span v-else>{{ userInitial }}</span>
                   </div>
-                  <div v-if="userProfile.socialLink" class="flex items-center space-x-1">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                    <a 
-                      :href="userProfile.socialLink" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      class="text-primary-600 hover:text-primary-700 hover:underline"
-                    >
-                      个人链接
-                    </a>
+                </div>
+
+                <!-- User Info -->
+                <div class="flex-1 text-center md:text-left">
+                  <h1 class="text-4xl font-bold text-gray-900 mb-2">{{ displayName }}</h1>
+                  <p class="text-gray-500 text-base mb-4">@{{ userProfile.username }}</p>
+                  
+                  <!-- Bio -->
+                  <p v-if="userProfile.bio" class="text-gray-700 mb-4 max-w-2xl">
+                    {{ userProfile.bio }}
+                  </p>
+                  <p v-else class="text-gray-400 italic mb-4">暂无个人简介</p>
+
+                  <!-- Additional Info -->
+                  <div v-if="hasAdditionalInfo" class="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-6">
+                    <div v-if="userProfile.location" class="flex items-center space-x-1">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span>{{ userProfile.location }}</span>
+                    </div>
+                    <div v-if="userProfile.socialLink" class="flex items-center space-x-1">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                      <a 
+                        :href="userProfile.socialLink" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        class="text-primary-600 hover:text-primary-700 hover:underline"
+                      >
+                        个人链接
+                      </a>
+                    </div>
+                  </div>
+
+                  <!-- Stats -->
+                  <div class="flex items-center justify-center md:justify-start space-x-8">
+                    <div class="text-center">
+                      <div class="text-3xl font-bold text-primary-600 mb-1">{{ totalPosts }}</div>
+                      <div class="text-sm text-gray-600 font-medium">文章</div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+
+            <!-- Posts Tab Header -->
+            <div class="card mb-8 backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.1s;">
+              <div class="flex border-b border-gray-200">
+                <div class="px-8 py-4 font-semibold text-primary-600 relative">
+                  <span>TA的文章</span>
+                  <span class="ml-2 px-2.5 py-0.5 text-xs font-bold rounded-full bg-primary-100 text-primary-700">
+                    {{ totalPosts }}
+                  </span>
+                  <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Loading Posts -->
+            <div v-if="loadingPosts" class="text-center py-20">
+              <div class="spinner w-16 h-16 mx-auto"></div>
+              <p class="text-gray-600 mt-4">加载中...</p>
+            </div>
+
+            <!-- Posts List -->
+            <div v-else-if="posts.length" class="space-y-4 animate-slide-up" style="animation-delay: 0.2s;">
+              <div
+                  v-for="post in posts"
+                  :key="post.id"
+                  class="card p-6 hover:shadow-glow transition-all duration-300 group backdrop-blur-sm bg-white/90"
+              >
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <div class="flex items-center space-x-3 mb-3">
+                      <router-link
+                          :to="`/post/${post.id}`"
+                          class="text-xl font-bold text-gray-900 group-hover:text-primary-600 transition-colors duration-200"
+                      >
+                        {{ post.title }}
+                      </router-link>
+                    </div>
+
+                    <p class="text-gray-600 mt-2 line-clamp-2 text-sm">{{ post.summary }}</p>
+
+                    <div class="flex items-center space-x-6 mt-4 text-sm text-gray-500">
+                      <span v-if="post.publishedAt" class="flex items-center">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {{ formatDate(post.publishedAt) }}
+                      </span>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="flex items-center space-x-6 mt-3 text-sm">
+                      <span class="flex items-center text-red-500" :title="`${post.likeCount || 0} 个点赞`">
+                        <svg class="w-4 h-4 mr-1.5" :fill="post.isLiked ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                        {{ post.likeCount || 0 }}
+                      </span>
+                      <span class="flex items-center text-primary-500" :title="`${post.commentCount || 0} 条评论`">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                        </svg>
+                        {{ post.commentCount || 0 }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-else class="card p-16 text-center backdrop-blur-sm bg-white/90 animate-scale-in">
+              <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary-100 mb-6">
+                <svg class="w-12 h-12 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h3 class="text-2xl font-bold text-gray-700 mb-3">还没有发布文章</h3>
+              <p class="text-gray-500 mb-8 text-lg">该用户暂未发布任何文章</p>
+            </div>
+
+            <!-- Pagination -->
+            <div v-if="totalPages > 1" class="mt-8">
+              <Pagination
+                  :current-page="currentPage"
+                  :total-pages="totalPages"
+                  @page-change="handlePageChange"
+              />
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -94,20 +193,28 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import Header from '@/components/Header.vue'
+import Pagination from '@/components/Pagination.vue'
 import { getPublicUserProfile } from '@/api/auth'
+import { getPostsByUsername } from '@/api/posts'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'UserProfile',
-  components: { Header },
+  components: { Header, Pagination },
   setup() {
     const route = useRoute()
     const router = useRouter()
     const store = useStore()
     const loading = ref(true)
+    const loadingPosts = ref(false)
     const error = ref(null)
     const userProfile = ref(null)
     const avatarLoadError = ref(false)
+    const posts = ref([])
+    const currentPage = ref(1)
+    const totalPages = ref(1)
+    const totalPosts = ref(0)
+    const pageSize = 10
 
     const currentUser = computed(() => store.getters.currentUser)
     const username = computed(() => route.params.username)
@@ -128,6 +235,22 @@ export default {
       return userProfile.value?.location || userProfile.value?.socialLink
     })
 
+    const formatDate = (str) => {
+      if (!str) return ''
+      const date = new Date(str)
+      const now = new Date()
+      const diff = now - date
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+
+      if (days === 0) return '今天'
+      if (days === 1) return '昨天'
+      if (days < 7) return `${days}天前`
+      if (days < 30) return `${Math.floor(days / 7)}周前`
+      if (days < 365) return `${Math.floor(days / 30)}个月前`
+
+      return date.toLocaleDateString('zh-CN')
+    }
+
     const loadProfile = async () => {
       loading.value = true
       error.value = null
@@ -140,6 +263,8 @@ export default {
 
       try {
         userProfile.value = await getPublicUserProfile(username.value)
+        // Load posts after profile is loaded
+        await loadPosts()
       } catch (e) {
         if (e.response?.status === 404) {
           error.value = '用户不存在'
@@ -151,10 +276,39 @@ export default {
       }
     }
 
+    const loadPosts = async () => {
+      loadingPosts.value = true
+      try {
+        const res = await getPostsByUsername(username.value, {
+          page: currentPage.value - 1,
+          size: pageSize
+        })
+        
+        posts.value = (res.content || []).map(p => ({
+          ...p,
+          summary: p.content?.replace(/[#*`\n]/g, '').slice(0, 100) || ''
+        }))
+        
+        totalPages.value = res.totalPages || 1
+        totalPosts.value = res.totalElements || 0
+      } catch (e) {
+        console.error('加载文章失败:', e)
+      } finally {
+        loadingPosts.value = false
+      }
+    }
+
+    const handlePageChange = (page) => {
+      currentPage.value = page
+      loadPosts()
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
     // Watch for username changes
     watch(username, () => {
       if (username.value) {
         avatarLoadError.value = false
+        currentPage.value = 1
         loadProfile()
       }
     })
@@ -165,14 +319,30 @@ export default {
 
     return {
       loading,
+      loadingPosts,
       error,
       userProfile,
       displayName,
       userInitial,
       userAvatarUrl,
       avatarLoadError,
-      hasAdditionalInfo
+      hasAdditionalInfo,
+      posts,
+      totalPosts,
+      currentPage,
+      totalPages,
+      formatDate,
+      handlePageChange
     }
   }
 }
 </script>
+
+<style scoped>
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style>

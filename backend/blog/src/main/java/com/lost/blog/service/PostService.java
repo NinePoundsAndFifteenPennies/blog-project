@@ -72,4 +72,13 @@ public interface PostService {
      * @return 更新后的文章响应数据
      */
     PostResponse removeCategoryFromPost(Long postId, UserDetails currentUser);
+
+    /**
+     * 获取指定用户的已发布文章（不包括草稿）
+     * @param username 用户名
+     * @param pageable 分页信息
+     * @param currentUser 当前用户（可为null，用于判断点赞状态）
+     * @return 分页后的文章响应数据
+     */
+    Page<PostResponse> getPostsByUsername(String username, Pageable pageable, UserDetails currentUser);
 }
