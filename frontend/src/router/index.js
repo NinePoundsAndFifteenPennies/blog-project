@@ -56,6 +56,12 @@ const routes = [
     meta: { title: "我的评论", requiresAuth: true },
   },
   {
+    path: "/user/:username",
+    name: "UserProfile",
+    component: () => import("@/views/UserProfile.vue"),
+    meta: { title: "用户主页" },
+  },
+  {
     path: "/comment/:id/edit",
     name: "CommentEdit",
     component: () => import("@/views/CommentEdit.vue"),

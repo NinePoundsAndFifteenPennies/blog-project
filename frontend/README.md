@@ -15,6 +15,9 @@
 - 🏷️ **标签系统** - 文章标签自动创建、颜色生成、图标支持、热门标签展示、标签筛选
 - 💾 **草稿保存** - 支持保存草稿,避免内容丢失
 - 🎯 **SEO友好** - 页面标题动态设置
+- 👤 **用户主页** - 公开用户资料页,查看其他用户信息及已发布文章
+- 🎴 **悬浮卡片** - 头像悬停显示用户信息卡片,点击跳转用户主页
+- 🔀 **切换账号** - 支持快速切换账号功能
 
 ## 🛠️ 技术栈
 
@@ -35,8 +38,8 @@ frontend/
 ├── public/                 # 静态资源
 ├── src/
 │   ├── api/                # API接口封装
-│   │   ├── auth.js         # 认证接口 (register, login, getCurrentUser, refreshToken)
-│   │   ├── posts.js        # 文章接口 (CRUD + 分页)
+│   │   ├── auth.js         # 认证接口 (register, login, getCurrentUser, refreshToken, getPublicUserProfile)
+│   │   ├── posts.js        # 文章接口 (CRUD + 分页 + 用户文章列表)
 │   │   ├── comments.js     # 评论接口 (CRUD + 分页 + 点赞)
 │   │   ├── likes.js        # 文章点赞接口
 │   │   ├── files.js        # 文件上传接口 (头像上传)
@@ -44,13 +47,14 @@ frontend/
 │   ├── assets/             # 资源文件
 │   │   └── main.css        # 全局样式 (含Tailwind导入)
 │   ├── components/         # 公共组件
-│   │   ├── Header.vue      # 顶部导航栏 (支持响应式、登录状态、头像显示)
+│   │   ├── Header.vue      # 顶部导航栏 (支持响应式、登录状态、头像显示、切换账号)
 │   │   ├── PostCard.vue    # 文章卡片 (展示文章信息 + 点赞功能 + 标签显示)
 │   │   ├── CommentList.vue # 评论列表 (分页加载、动态加载更多)
 │   │   ├── CommentItem.vue # 评论项 (编辑、删除、点赞功能)
 │   │   ├── Pagination.vue  # 分页组件 (支持首页/末页/上下页)
 │   │   ├── TagBadge.vue    # 标签徽章 (颜色、图标、自动转换Font Awesome类名)
-│   │   └── PopularTags.vue # 热门标签 (侧边栏、显示20个热门标签)
+│   │   ├── PopularTags.vue # 热门标签 (侧边栏、显示20个热门标签)
+│   │   └── UserProfileHoverCard.vue # 用户悬浮卡片 (悬停显示用户信息、点击跳转主页)
 │   ├── router/             # 路由配置
 │   │   └── index.js        # 路由定义 + 导航守卫
 │   ├── store/              # Vuex状态管理
@@ -65,6 +69,8 @@ frontend/
 │   │   ├── PostDetail.vue  # 文章详情 (Markdown渲染 + 评论 + 点赞 + 标签显示)
 │   │   ├── PostEdit.vue    # 文章编辑 (创建/更新 + 草稿功能 + 标签管理)
 │   │   ├── Profile.vue     # 个人中心 (我的文章 + 我的评论 + 头像上传)
+│   │   ├── ProfileEdit.vue # 编辑个人资料
+│   │   ├── UserProfile.vue # 公开用户主页 (查看其他用户资料及已发布文章)
 │   │   ├── MyComments.vue  # 我的评论列表
 │   │   ├── TagPosts.vue    # 标签文章列表 (特定标签的所有文章)
 │   │   └── NotFound.vue    # 404页面

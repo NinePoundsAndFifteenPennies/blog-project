@@ -352,4 +352,18 @@ public class PostServiceImpl implements PostService {
         
         return postMapper.toResponse(updatedPost, currentUser);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PostResponse> getPostsByUsername(String username, Pageable pageable, UserDetails currentUser) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到用户: " + username));
+        
+        // 只返回该用户已发布的文章（不包括草稿）
+        Page<Post> postsPage = postRepository.findByUserAndDraftFalse(user, pageable);
+        logger.debug("查询用户 {} 的已发布文章，总数: {}",
+                username, postsPage.getTotalElements());
+        
+        return postsPage.map(post -> postMapper.toResponse(post, currentUser));
+    }
 }

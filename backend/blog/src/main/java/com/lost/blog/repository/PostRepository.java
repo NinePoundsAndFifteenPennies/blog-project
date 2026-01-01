@@ -25,6 +25,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // 获取用户的所有文章（包括草稿）
     Page<Post> findByUser(User user, Pageable pageable);
 
+    // 获取用户的已发布文章（不包括草稿）
+    Page<Post> findByUserAndDraftFalse(User user, Pageable pageable);
+
     // 获取用户的草稿
     Page<Post> findByUserAndDraftTrue(User user, Pageable pageable);
 

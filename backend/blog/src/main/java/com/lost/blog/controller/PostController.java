@@ -96,4 +96,14 @@ public class PostController {
         PostResponse updatedPost = postService.removeCategoryFromPost(id, currentUser);
         return ResponseEntity.ok(updatedPost);
     }
+
+    // 获取指定用户的已发布文章（公开接口）
+    @GetMapping("/user/{username}")
+    public ResponseEntity<Page<PostResponse>> getPostsByUsername(
+            @PathVariable String username,
+            Pageable pageable,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        Page<PostResponse> posts = postService.getPostsByUsername(username, pageable, currentUser);
+        return ResponseEntity.ok(posts);
+    }
 }
