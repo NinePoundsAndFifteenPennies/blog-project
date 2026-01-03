@@ -19,6 +19,7 @@ public class PostResponse {
     private Long likeCount;  // 点赞数
     private Boolean isLiked;  // 当前用户是否已点赞
     private Long commentCount;  // 评论数
+    private Long viewCount;  // 浏览量
     private List<TagResponse> tags;  // 文章关联的标签列表
     private CategoryResponse category;  // 文章所属的分类
 
@@ -64,6 +65,9 @@ public class PostResponse {
 
     public Long getCommentCount() { return commentCount; }
     public void setCommentCount(Long commentCount) { this.commentCount = commentCount; }
+
+    public Long getViewCount() { return viewCount; }
+    public void setViewCount(Long viewCount) { this.viewCount = viewCount; }
 
     public List<TagResponse> getTags() { return tags; }
     public void setTags(List<TagResponse> tags) { this.tags = tags; }

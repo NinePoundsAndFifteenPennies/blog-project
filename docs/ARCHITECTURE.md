@@ -90,7 +90,8 @@ Controller ──► Service ──► Repository ──► Database
 | 映射器 | └── CategoryMapper.java | Category ↔ CategoryResponse 转换 |
 | 实体层 | **model/** | 数据库实体类 (JPA Entity) |
 | 实体 | └── User.java | 用户实体 |
-| 实体 | └── Post.java | 文章实体 |
+| 实体 | └── Post.java | 文章实体（含浏览量字段）|
+| 实体 | └── PostViewLog.java | 文章浏览日志实体（用于浏览量统计和防刷）|
 | 实体 | └── Tag.java | 标签实体 |
 | 实体 | └── Category.java | 分类实体 |
 | 实体 | └── Like.java | 点赞实体（支持文章和评论点赞）|
@@ -99,6 +100,7 @@ Controller ──► Service ──► Repository ──► Database
 | 数据访问层 | **repository/** | 提供数据库操作接口 |
 | Repository | └── UserRepository.java | 用户数据访问接口 |
 | Repository | └── PostRepository.java | 文章数据访问接口 |
+| Repository | └── PostViewLogRepository.java | 文章浏览日志数据访问接口 |
 | Repository | └── TagRepository.java | 标签数据访问接口 |
 | Repository | └── CategoryRepository.java | 分类数据访问接口 |
 | Repository | └── LikeRepository.java | 点赞数据访问接口（文章和评论）|
@@ -180,7 +182,8 @@ Service 层使用接口与实现分离：
 ### 主要实体
 
 - **User**: 用户信息（用户名、密码、邮箱、头像URL）
-- **Post**: 文章信息（标题、内容、作者、创建时间、是否草稿、标签）
+- **Post**: 文章信息（标题、内容、作者、创建时间、是否草稿、标签、浏览量）
+- **PostViewLog**: 文章浏览日志（文章、IP、设备信息、用户ID、来源URL、访问时间），用于浏览量统计、防刷和流量来源分析
 - **Tag**: 标签信息（名称、描述、颜色、图标、排序、创建者、创建时间）
 - **Like**: 点赞信息（用户、文章或评论、创建时间）
 - **Comment**: 评论信息（内容、用户、文章、父评论、被回复用户、层级、创建时间、更新时间）
@@ -190,6 +193,8 @@ Service 层使用接口与实现分离：
 - User ←─[一对多]─→ Post（一个用户可以有多篇文章）
 - User ←─[一对多]─→ Tag（一个用户可以创建多个标签）
 - Post ←─[多对多]─→ Tag（一篇文章可以有多个标签，一个标签可以被多篇文章使用）
+- Post ←─[一对多]─→ PostViewLog（一篇文章可以有多条浏览日志）
+- User ←─[一对多]─→ PostViewLog（一个用户可以有多条浏览记录，可选关联）
 - User ←─[一对多]─→ Like（一个用户可以点赞多篇文章或评论）
 - Post ←─[一对多]─→ Like（一篇文章可以有多个点赞）
 - User ←─[一对多]─→ Comment（一个用户可以发表多条评论）
@@ -254,7 +259,7 @@ uploads/
   - 自动标签创建（创建文章时）
   - 热门标签查询
   - 增强的参数验证和异常处理
-- **新增**: "记住我"功能、JWT自动刷新、增强的Markdown编辑器、头像上传系统、文章点赞功能、评论功能、评论点赞功能、子评论（回复）功能、子评论点赞功能、文章标签功能、创建者追踪、统一异常处理
+- **新增**: "记住我"功能、JWT自动刷新、增强的Markdown编辑器、头像上传系统、文章点赞功能、评论功能、评论点赞功能、子评论（回复）功能、子评论点赞功能、文章标签功能、创建者追踪、统一异常处理、**文章浏览量统计**（含防刷机制和访问日志）
 
 ### 架构差异
 

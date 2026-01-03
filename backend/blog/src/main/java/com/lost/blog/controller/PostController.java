@@ -3,6 +3,7 @@ package com.lost.blog.controller;
 import com.lost.blog.dto.PostRequest;
 import com.lost.blog.dto.PostResponse;
 import com.lost.blog.service.PostService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -36,8 +37,28 @@ public class PostController {
     @GetMapping("/{id}")
     public ResponseEntity<PostResponse> getPostById(
             @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails currentUser) {
-        PostResponse post = postService.getPostById(id, currentUser);
+            @AuthenticationPrincipal UserDetails currentUser,
+            HttpServletRequest request) {
+        // 获取 IP 地址（优先使用 X-Forwarded-For 头，适配 Nginx 代理）
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        // 如果有多个 IP，取第一个
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        
+        // 获取设备信息
+        String userAgent = request.getHeader("User-Agent");
+        
+        // 获取来源URL（用于流量来源分析）
+        String referer = request.getHeader("Referer");
+
+        PostResponse post = postService.getPostById(id, currentUser, ip, userAgent, referer);
         return ResponseEntity.ok(post);
     }
 

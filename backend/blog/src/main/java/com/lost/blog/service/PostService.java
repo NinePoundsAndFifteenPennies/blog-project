@@ -20,9 +20,12 @@ public interface PostService {
      * 根据ID获取一篇文章
      * @param id 文章ID
      * @param currentUser 当前用户（可能为null，用于草稿权限检查）
+     * @param ip 访问者IP地址（用于浏览量统计）
+     * @param userAgent 访问者User-Agent（用于浏览量统计）
+     * @param referer 访问来源URL（用于流量来源分析）
      * @return 文章响应数据
      */
-    PostResponse getPostById(Long id, UserDetails currentUser);
+    PostResponse getPostById(Long id, UserDetails currentUser, String ip, String userAgent, String referer);
 
     /**
      * 获取所有已发布的文章（分页）
