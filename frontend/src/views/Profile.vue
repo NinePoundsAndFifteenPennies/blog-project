@@ -409,6 +409,7 @@
 <script>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
+import { useRoute, useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import Pagination from '@/components/Pagination.vue'
 import { getMyPosts, deletePost } from '@/api/posts'
@@ -421,11 +422,14 @@ export default {
   components: { Header, Pagination },
   setup() {
     const store = useStore()
+    const route = useRoute()
+    const router = useRouter()
     const loading = ref(false)
     const posts = ref([])
     const comments = ref([])
-    const activeTab = ref('posts')
-    const currentPage = ref(1)
+    // Initialize from URL query parameters
+    const activeTab = ref(route.query.tab || 'posts')
+    const currentPage = ref(parseInt(route.query.page) || 1)
     const totalPages = ref(1)
     const totalElements = ref(0)
     const pageSize = 10
@@ -542,6 +546,8 @@ export default {
 
     const loadData = () => {
       currentPage.value = 1
+      // Update URL with current tab and reset page
+      router.replace({ query: { ...route.query, tab: activeTab.value, page: 1 } })
       if (activeTab.value === 'comments') {
         loadComments()
       } else {
@@ -699,6 +705,8 @@ export default {
 
     const handlePageChange = (page) => {
       currentPage.value = page
+      // Update URL with current page
+      router.replace({ query: { ...route.query, tab: activeTab.value, page } })
       if (activeTab.value === 'comments') {
         loadComments()
       } else {
@@ -712,8 +720,31 @@ export default {
       loadData()
     })
 
+    // Watch for URL query changes (e.g., browser back/forward)
+    watch(() => route.query, (newQuery) => {
+      const newTab = newQuery.tab || 'posts'
+      const newPage = parseInt(newQuery.page) || 1
+      
+      if (newTab !== activeTab.value) {
+        activeTab.value = newTab
+      }
+      if (newPage !== currentPage.value) {
+        currentPage.value = newPage
+        if (activeTab.value === 'comments') {
+          loadComments()
+        } else {
+          loadPosts()
+        }
+      }
+    })
+
     onMounted(() => {
-      loadPosts(true) // Load posts with stats update on mount
+      // Initialize from URL or use defaults
+      if (activeTab.value === 'comments') {
+        loadComments()
+      } else {
+        loadPosts(true) // Load posts with stats update on mount
+      }
       // Load comment count for the badge
       getMyComments({ page: 0, size: 1 }).then(res => {
         userStats.comments = res.totalElements || 0

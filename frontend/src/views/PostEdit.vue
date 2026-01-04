@@ -392,8 +392,8 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { marked } from 'marked'
 import hljs from 'highlight.js/lib/core'
 // 导入常用语言
@@ -517,6 +517,74 @@ export default {
     // 是否为编辑模式
     const isEditMode = computed(() => !!route.params.id)
 
+    // 原始内容（用于检测是否有未保存的更改）
+    const originalFormData = reactive({
+      title: '',
+      content: '',
+      contentType: 'MARKDOWN',
+      tags: []
+    })
+
+    // 检查是否有未保存的更改
+    const hasUnsavedChanges = computed(() => {
+      return formData.title !== originalFormData.title ||
+             formData.content !== originalFormData.content ||
+             formData.contentType !== originalFormData.contentType ||
+             JSON.stringify(formData.tags) !== JSON.stringify(originalFormData.tags)
+    })
+
+    // sessionStorage key for auto-save
+    const getAutoSaveKey = () => {
+      return isEditMode.value 
+        ? `postEdit_${route.params.id}` 
+        : 'postEdit_new'
+    }
+
+    // 保存到 sessionStorage
+    const saveToSession = () => {
+      try {
+        const data = {
+          title: formData.title,
+          content: formData.content,
+          contentType: formData.contentType,
+          tags: formData.tags,
+          timestamp: Date.now()
+        }
+        sessionStorage.setItem(getAutoSaveKey(), JSON.stringify(data))
+      } catch (e) {
+        console.error('Auto-save failed:', e)
+      }
+    }
+
+    // 从 sessionStorage 恢复
+    const restoreFromSession = () => {
+      try {
+        const data = sessionStorage.getItem(getAutoSaveKey())
+        if (data) {
+          const parsed = JSON.parse(data)
+          // Only restore if data is less than 24 hours old
+          if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+            return parsed
+          } else {
+            // Clear stale data
+            sessionStorage.removeItem(getAutoSaveKey())
+          }
+        }
+      } catch (e) {
+        console.error('Restore from session failed:', e)
+      }
+      return null
+    }
+
+    // 清除 sessionStorage
+    const clearSession = () => {
+      try {
+        sessionStorage.removeItem(getAutoSaveKey())
+      } catch (e) {
+        console.error('Clear session failed:', e)
+      }
+    }
+
     // 字数统计
     const wordCount = computed(() => {
       return formData.content.length
@@ -628,7 +696,24 @@ export default {
 
     // 加载文章数据(编辑模式)
     const loadPost = async () => {
-      if (!isEditMode.value) return
+      // First check if there's auto-saved content
+      const savedData = restoreFromSession()
+      
+      if (!isEditMode.value) {
+        // Create mode - restore from session if available
+        if (savedData) {
+          formData.title = savedData.title || ''
+          formData.content = savedData.content || ''
+          formData.contentType = savedData.contentType || 'MARKDOWN'
+          formData.tags = savedData.tags || []
+        }
+        // Set original data for unsaved changes detection
+        originalFormData.title = ''
+        originalFormData.content = ''
+        originalFormData.contentType = 'MARKDOWN'
+        originalFormData.tags = []
+        return
+      }
 
       try {
         const postId = route.params.id
@@ -638,10 +723,26 @@ export default {
           throw new Error('未找到文章')
         }
 
-        formData.title = post.title || ''
-        formData.content = post.content || ''
-        formData.contentType = post.contentType || 'MARKDOWN'
-        formData.tags = post.tags ? post.tags.map(tag => tag.name) : []
+        // Store original data for unsaved changes detection
+        originalFormData.title = post.title || ''
+        originalFormData.content = post.content || ''
+        originalFormData.contentType = post.contentType || 'MARKDOWN'
+        originalFormData.tags = post.tags ? post.tags.map(tag => tag.name) : []
+
+        // Check if there's saved session data that's newer
+        if (savedData && savedData.timestamp) {
+          // Use session data if it exists (user was editing and refreshed)
+          formData.title = savedData.title || ''
+          formData.content = savedData.content || ''
+          formData.contentType = savedData.contentType || 'MARKDOWN'
+          formData.tags = savedData.tags || []
+        } else {
+          // Use data from server
+          formData.title = post.title || ''
+          formData.content = post.content || ''
+          formData.contentType = post.contentType || 'MARKDOWN'
+          formData.tags = post.tags ? post.tags.map(tag => tag.name) : []
+        }
         isDraft.value = post.draft || false
       } catch (error) {
         console.error('加载文章失败:', error)
@@ -669,10 +770,17 @@ export default {
 
         if (isEditMode.value) {
           await updatePost(route.params.id, postData)
+          // Update original data after successful save
+          originalFormData.title = formData.title
+          originalFormData.content = formData.content
+          originalFormData.contentType = formData.contentType
+          originalFormData.tags = [...formData.tags]
+          clearSession()
           alert('草稿保存成功!')
           isDraft.value = true
         } else {
           const createdPost = await createPost(postData)
+          clearSession()
           alert('草稿保存成功!')
           // 创建草稿后跳转到编辑页面
           router.push(`/post/${createdPost.id}/edit`)
@@ -710,6 +818,14 @@ export default {
           alert('文章发布成功!')
         }
 
+        // Clear session after successful publish
+        clearSession()
+        // Update original data to prevent unsaved changes warning
+        originalFormData.title = formData.title
+        originalFormData.content = formData.content
+        originalFormData.contentType = formData.contentType
+        originalFormData.tags = [...formData.tags]
+
         router.push('/')
       } catch (error) {
         console.error('提交失败:', error)
@@ -719,9 +835,54 @@ export default {
       }
     }
 
+    // beforeunload handler for browser refresh warning
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedChanges.value) {
+        // Save current state to session before refresh
+        saveToSession()
+        // Show browser's default confirmation dialog
+        e.preventDefault()
+        e.returnValue = ''
+        return ''
+      }
+    }
+
     onMounted(() => {
       loadPost()
+      // Add beforeunload listener
+      window.addEventListener('beforeunload', handleBeforeUnload)
     })
+
+    onBeforeUnmount(() => {
+      // Remove beforeunload listener
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    })
+
+    // Route leave guard for unsaved changes warning
+    onBeforeRouteLeave((to, from, next) => {
+      if (hasUnsavedChanges.value) {
+        const answer = window.confirm('您有未保存的更改，确定要离开吗？')
+        if (!answer) {
+          next(false)
+          return
+        }
+        // Clear session if user confirms leaving
+        clearSession()
+      }
+      next()
+    })
+
+    // Watch for content changes and auto-save
+    watch(
+      () => [formData.title, formData.content, formData.contentType, formData.tags],
+      () => {
+        // Auto-save to session on content change
+        if (formData.title || formData.content) {
+          saveToSession()
+        }
+      },
+      { deep: true }
+    )
 
     // Markdown格式化插入函数
     const insertMarkdown = (type) => {
