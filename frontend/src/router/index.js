@@ -1,5 +1,37 @@
 import { createRouter, createWebHistory } from "vue-router";
 
+// Helper functions to save and restore scroll positions using sessionStorage
+const SCROLL_POSITIONS_KEY = "scrollPositions";
+
+function getScrollPositions() {
+  try {
+    const data = sessionStorage.getItem(SCROLL_POSITIONS_KEY);
+    return data ? JSON.parse(data) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveScrollPosition(key, position) {
+  try {
+    const positions = getScrollPositions();
+    positions[key] = position;
+    // Keep only the last 50 entries to avoid bloating sessionStorage
+    const keys = Object.keys(positions);
+    if (keys.length > 50) {
+      delete positions[keys[0]];
+    }
+    sessionStorage.setItem(SCROLL_POSITIONS_KEY, JSON.stringify(positions));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function getScrollPosition(key) {
+  const positions = getScrollPositions();
+  return positions[key] || null;
+}
+
 const routes = [
   {
     path: "/",
@@ -89,6 +121,13 @@ const router = createRouter({
     if (savedPosition) {
       return savedPosition;
     }
+
+    // Check if we have a saved position in sessionStorage (for page refresh)
+    const savedPos = getScrollPosition(to.fullPath);
+    if (savedPos) {
+      return { top: savedPos.top, left: savedPos.left, behavior: "auto" };
+    }
+
     // If navigating to the same route with different params (like pagination),
     // don't scroll to top
     if (to.path === from.path && to.query !== from.query) {
@@ -99,8 +138,16 @@ const router = createRouter({
   },
 });
 
-// 路由守卫
+// Save scroll position before leaving a route
 router.beforeEach((to, from, next) => {
+  // Save current scroll position for the page we're leaving
+  if (from.fullPath && from.fullPath !== "/") {
+    saveScrollPosition(from.fullPath, {
+      top: window.scrollY || document.documentElement.scrollTop,
+      left: window.scrollX || document.documentElement.scrollLeft,
+    });
+  }
+
   // 设置页面标题
   document.title = to.meta.title ? `${to.meta.title} - 博客系统` : "博客系统";
 
@@ -122,5 +169,18 @@ router.beforeEach((to, from, next) => {
     next();
   }
 });
+
+// Also save scroll position when the page is about to be unloaded (refresh)
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => {
+    const currentPath = router.currentRoute.value?.fullPath;
+    if (currentPath) {
+      saveScrollPosition(currentPath, {
+        top: window.scrollY || document.documentElement.scrollTop,
+        left: window.scrollX || document.documentElement.scrollLeft,
+      });
+    }
+  });
+}
 
 export default router;

@@ -380,6 +380,14 @@
         </div>
       </div>
     </div>
+
+    <!-- Table Editor Modal -->
+    <TableEditorModal
+      :is-open="showTableModal"
+      :format="tableFormat"
+      @close="showTableModal = false"
+      @insert="insertTable"
+    />
   </div>
 </template>
 
@@ -404,6 +412,7 @@ import typescript from 'highlight.js/lib/languages/typescript'
 import 'highlight.js/styles/atom-one-dark.css'
 
 import Header from '@/components/Header.vue'
+import TableEditorModal from '@/components/TableEditorModal.vue'
 import { getPostById, createPost, updatePost } from '@/api/posts'
 
 // 注册语言
@@ -447,7 +456,8 @@ marked.setOptions({
 export default {
   name: 'PostEdit',
   components: {
-    Header
+    Header,
+    TableEditorModal
   },
   setup() {
     const route = useRoute()
@@ -456,6 +466,8 @@ export default {
     const loading = ref(false)
     const contentTextarea = ref(null)
     const showLanguageModal = ref(false)
+    const showTableModal = ref(false)
+    const tableCursorPosition = ref(0) // Save cursor position when opening table modal
     const codeLanguage = ref('javascript')
     const availableLanguages = [
       { value: 'javascript', label: 'JavaScript' },
@@ -537,6 +549,11 @@ export default {
         // HTML 直接返回
         return formData.content
       }
+    })
+
+    // 表格编辑器格式（基于内容类型）
+    const tableFormat = computed(() => {
+      return formData.contentType === 'MARKDOWN' ? 'markdown' : 'html'
     })
 
     // 表单验证
@@ -778,9 +795,10 @@ export default {
           showLanguageModal.value = true
           return // 不直接插入，等用户选择语言
         case 'table':
-          insertText = '| 列1 | 列2 | 列3 |\n| --- | --- | --- |\n| 内容 | 内容 | 内容 |'
-          cursorOffset = 2
-          break
+          // 保存光标位置并显示表格编辑器
+          tableCursorPosition.value = start
+          showTableModal.value = true
+          return // 不直接插入，等用户配置表格
         case 'hr':
           insertText = '\n---\n'
           cursorOffset = insertText.length
@@ -824,6 +842,25 @@ export default {
 
       // 关闭模态框
       showLanguageModal.value = false
+    }
+
+    // 插入表格（来自表格编辑器模态框）
+    const insertTable = (tableContent) => {
+      const textarea = contentTextarea.value
+      if (!textarea) return
+
+      const start = tableCursorPosition.value
+      const beforeText = formData.content.substring(0, start)
+      const afterText = formData.content.substring(start)
+
+      formData.content = beforeText + tableContent + afterText
+
+      const cursorOffset = tableContent.length
+
+      setTimeout(() => {
+        textarea.focus()
+        textarea.setSelectionRange(start + cursorOffset, start + cursorOffset)
+      }, 0)
     }
 
     // 键盘快捷键处理
@@ -1095,24 +1132,10 @@ export default {
           cursorOffset = 12
           break
         case 'table':
-          insertText = `<table>
-  <thead>
-    <tr>
-      <th>列1</th>
-      <th>列2</th>
-      <th>列3</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>内容</td>
-      <td>内容</td>
-      <td>内容</td>
-    </tr>
-  </tbody>
-</table>`
-          cursorOffset = 30
-          break
+          // 保存光标位置并显示表格编辑器
+          tableCursorPosition.value = start
+          showTableModal.value = true
+          return // 不直接插入，等用户配置表格
         case 'div':
           insertText = `<div>${selectedText || '内容'}</div>`
           cursorOffset = selectedText ? insertText.length : 5
@@ -1157,7 +1180,10 @@ export default {
       tagInput,
       addTag,
       removeTag,
-      handleTagInputKeydown
+      handleTagInputKeydown,
+      showTableModal,
+      tableFormat,
+      insertTable
     }
   }
 }
