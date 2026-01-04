@@ -429,7 +429,7 @@ export default {
     const comments = ref([])
     // Initialize from URL query parameters
     const activeTab = ref(route.query.tab || 'posts')
-    const currentPage = ref(parseInt(route.query.page) || 1)
+    const currentPage = ref(parseInt(route.query.page, 10) || 1)
     const totalPages = ref(1)
     const totalElements = ref(0)
     const pageSize = 10
@@ -723,7 +723,7 @@ export default {
     // Watch for URL query changes (e.g., browser back/forward)
     watch(() => route.query, (newQuery) => {
       const newTab = newQuery.tab || 'posts'
-      const newPage = parseInt(newQuery.page) || 1
+      const newPage = parseInt(newQuery.page, 10) || 1
       
       if (newTab !== activeTab.value) {
         activeTab.value = newTab

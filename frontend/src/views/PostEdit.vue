@@ -533,11 +533,27 @@ export default {
              JSON.stringify(formData.tags) !== JSON.stringify(originalFormData.tags)
     })
 
+    // Auto-save expiry time: 24 hours in milliseconds
+    const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000
+
     // sessionStorage key for auto-save
     const getAutoSaveKey = () => {
       return isEditMode.value 
         ? `postEdit_${route.params.id}` 
         : 'postEdit_new'
+    }
+
+    // Debounce timer for auto-save
+    let autoSaveTimer = null
+
+    // 保存到 sessionStorage (debounced version called by watcher)
+    const debouncedSaveToSession = () => {
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer)
+      }
+      autoSaveTimer = setTimeout(() => {
+        saveToSession()
+      }, 500) // 500ms debounce
     }
 
     // 保存到 sessionStorage
@@ -562,8 +578,8 @@ export default {
         const data = sessionStorage.getItem(getAutoSaveKey())
         if (data) {
           const parsed = JSON.parse(data)
-          // Only restore if data is less than 24 hours old
-          if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+          // Only restore if data is not expired
+          if (Date.now() - parsed.timestamp < SESSION_EXPIRY_MS) {
             return parsed
           } else {
             // Clear stale data
@@ -872,13 +888,13 @@ export default {
       next()
     })
 
-    // Watch for content changes and auto-save
+    // Watch for content changes and auto-save (debounced)
     watch(
       () => [formData.title, formData.content, formData.contentType, formData.tags],
       () => {
-        // Auto-save to session on content change
+        // Auto-save to session on content change (debounced to reduce writes)
         if (formData.title || formData.content) {
-          saveToSession()
+          debouncedSaveToSession()
         }
       },
       { deep: true }
