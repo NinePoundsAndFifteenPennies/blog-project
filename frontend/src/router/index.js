@@ -19,7 +19,9 @@ function saveScrollPosition(key, position) {
     // Keep only the last 50 entries to avoid bloating sessionStorage
     const keys = Object.keys(positions);
     if (keys.length > 50) {
-      delete positions[keys[0]];
+      // Remove oldest 10 entries to maintain limit
+      const keysToRemove = keys.slice(0, keys.length - 40);
+      keysToRemove.forEach((k) => delete positions[k]);
     }
     sessionStorage.setItem(SCROLL_POSITIONS_KEY, JSON.stringify(positions));
   } catch {

@@ -214,6 +214,19 @@ export default {
       tableData.value = newData
     }
 
+    // Escape pipe and backslash characters for Markdown table cells
+    const escapeMarkdownCell = (text) => {
+      // First escape backslashes, then escape pipes
+      return text.replace(/\\/g, '\\\\').replace(/\|/g, '\\|')
+    }
+
+    // Escape HTML special characters to prevent XSS
+    const escapeHTML = (text) => {
+      const div = document.createElement('div')
+      div.textContent = text
+      return div.innerHTML
+    }
+
     // Generate Markdown table
     const generateMarkdown = (data) => {
       if (data.length === 0) return ''
@@ -221,14 +234,14 @@ export default {
       let markdown = ''
       
       // First row (header)
-      markdown += '| ' + data[0].join(' | ') + ' |\n'
+      markdown += '| ' + data[0].map(escapeMarkdownCell).join(' | ') + ' |\n'
       
       // Separator
       markdown += '| ' + data[0].map(() => '---').join(' | ') + ' |\n'
       
       // Data rows
       for (let i = 1; i < data.length; i++) {
-        markdown += '| ' + data[i].join(' | ') + ' |\n'
+        markdown += '| ' + data[i].map(escapeMarkdownCell).join(' | ') + ' |\n'
       }
       
       return markdown
@@ -243,7 +256,7 @@ export default {
       // Header
       html += '  <thead>\n    <tr>\n'
       data[0].forEach(cell => {
-        html += `      <th>${cell}</th>\n`
+        html += `      <th>${escapeHTML(cell)}</th>\n`
       })
       html += '    </tr>\n  </thead>\n'
       
@@ -253,7 +266,7 @@ export default {
         for (let i = 1; i < data.length; i++) {
           html += '    <tr>\n'
           data[i].forEach(cell => {
-            html += `      <td>${cell}</td>\n`
+            html += `      <td>${escapeHTML(cell)}</td>\n`
           })
           html += '    </tr>\n'
         }
