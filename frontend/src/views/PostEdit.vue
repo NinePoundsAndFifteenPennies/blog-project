@@ -856,10 +856,7 @@ export default {
       if (hasUnsavedChanges.value) {
         // Save current state to session before refresh
         saveToSession()
-        // Show browser's default confirmation dialog
-        e.preventDefault()
-        e.returnValue = ''
-        return ''
+        // Don't show warning - we have auto-save
       }
     }
 
@@ -874,7 +871,7 @@ export default {
       window.removeEventListener('beforeunload', handleBeforeUnload)
     })
 
-    // Route leave guard for unsaved changes warning
+    // Route leave guard for unsaved changes warning (navigation only)
     onBeforeRouteLeave((to, from, next) => {
       if (hasUnsavedChanges.value) {
         const answer = window.confirm('您有未保存的更改，确定要离开吗？')
