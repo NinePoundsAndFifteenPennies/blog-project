@@ -260,8 +260,8 @@ export default {
     // 排序切换
     const handleSortChange = () => {
       currentPage.value = 1
-      // Update URL with sort and page parameters
-      router.push({ query: { sort: selectedSort.value, page: 1 } })
+      // Update URL with sort and page parameters, preserving other query params
+      router.push({ query: { ...route.query, sort: selectedSort.value, page: 1 } })
       loadPosts()
     }
 
