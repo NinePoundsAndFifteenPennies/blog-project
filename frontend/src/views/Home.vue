@@ -55,15 +55,35 @@
           <!-- Section Header -->
           <div class="flex items-center justify-between mb-12">
             <div>
-              <h2 class="text-3xl font-bold text-gray-900 mb-2">最新文章</h2>
+              <h2 class="text-3xl font-bold text-gray-900 mb-2">{{ sortTitle }}</h2>
               <p class="text-gray-600">探索社区成员分享的精彩内容</p>
             </div>
-            <router-link v-if="isLoggedIn" to="/post/create" class="btn-secondary hidden md:inline-flex items-center space-x-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-              <span>写文章</span>
-            </router-link>
+            <div class="flex items-center space-x-4">
+              <!-- Sorting Dropdown -->
+              <div class="relative">
+                <select 
+                  v-model="selectedSort" 
+                  @change="handleSortChange"
+                  class="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer"
+                >
+                  <option value="time_desc">按时间 (新→旧)</option>
+                  <option value="time_asc">按时间 (旧→新)</option>
+                  <option value="hotness_desc">按热度 (高→低)</option>
+                  <option value="hotness_asc">按热度 (低→高)</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+              <router-link v-if="isLoggedIn" to="/post/create" class="btn-secondary hidden md:inline-flex items-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>写文章</span>
+              </router-link>
+            </div>
           </div>
 
           <!-- Stats -->
@@ -170,17 +190,41 @@ export default {
     const totalPages = ref(1)
     const totalElements = ref(0)
     const pageSize = 9 // 每页显示9篇文章 (3x3 grid)
+    
+    // 排序相关
+    const selectedSort = ref(route.query.sort || 'time_desc')
 
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
+    
+    // 动态标题
+    const sortTitle = computed(() => {
+      if (selectedSort.value.startsWith('hotness')) {
+        return '热门文章'
+      }
+      return '最新文章'
+    })
+
+    // 解析排序参数
+    const parseSortParams = () => {
+      const parts = selectedSort.value.split('_')
+      return {
+        sortBy: parts[0], // 'time' or 'hotness'
+        order: parts[1]   // 'asc' or 'desc'
+      }
+    }
 
     // 加载文章列表
     const loadPosts = async () => {
       loading.value = true
       try {
+        const { sortBy, order } = parseSortParams()
+        
         // 调用API获取文章列表 (page从0开始)
         const response = await getPosts({
           page: currentPage.value - 1,
-          size: pageSize
+          size: pageSize,
+          sortBy: sortBy,
+          order: order
         })
 
         // 处理后端返回的Spring Data格式
@@ -213,6 +257,14 @@ export default {
       }
     }
 
+    // 排序切换
+    const handleSortChange = () => {
+      currentPage.value = 1
+      // Update URL with sort and page parameters
+      router.push({ query: { sort: selectedSort.value, page: 1 } })
+      loadPosts()
+    }
+
     // 分页切换
     const handlePageChange = (page) => {
       currentPage.value = page
@@ -227,6 +279,15 @@ export default {
       const page = parseInt(newPage) || 1
       if (page !== currentPage.value) {
         currentPage.value = page
+        loadPosts()
+      }
+    })
+    
+    // Watch for sort query changes (e.g., browser back/forward)
+    watch(() => route.query.sort, (newSort) => {
+      const sort = newSort || 'time_desc'
+      if (sort !== selectedSort.value) {
+        selectedSort.value = sort
         loadPosts()
       }
     })
@@ -255,7 +316,10 @@ export default {
       totalPages,
       totalElements,
       isLoggedIn,
+      selectedSort,
+      sortTitle,
       handlePageChange,
+      handleSortChange,
       handleLikeChanged
     }
   }

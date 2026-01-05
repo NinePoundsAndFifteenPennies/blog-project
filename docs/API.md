@@ -314,16 +314,36 @@ Content-Type: application/json
 
 ### 获取文章列表
 
-分页获取所有已发布的文章。
+分页获取所有已发布的文章，支持按时间或热度排序。
 
 ```http
-GET /api/posts?page=0&size=10&sort=createdAt,desc
+GET /api/posts?page=0&size=10&sortBy=time&order=desc
 ```
 
 **查询参数:**
 - `page`: 页码（从 0 开始，默认 0）
 - `size`: 每页数量（默认 10）
-- `sort`: 排序字段和方向（默认 `createdAt,desc`）
+- `sortBy`: 排序方式（默认 `time`）
+  - `time`: 按创建时间排序
+  - `hotness`: 按热度排序（热度公式：`(viewCount * 0.1 + likeCount * 5 + commentCount * 10) / pow(hours + 2, 1.2)`）
+- `order`: 排序顺序（默认 `desc`）
+  - `desc`: 降序（时间从新到旧，热度从高到低）
+  - `asc`: 升序（时间从旧到新，热度从低到高）
+
+**示例请求:**
+```http
+# 按时间倒序（最新文章优先，默认）
+GET /api/posts?page=0&size=10
+
+# 按时间正序（最早文章优先）
+GET /api/posts?page=0&size=10&sortBy=time&order=asc
+
+# 按热度倒序（最热门文章优先）
+GET /api/posts?page=0&size=10&sortBy=hotness&order=desc
+
+# 按热度正序（最冷门文章优先）
+GET /api/posts?page=0&size=10&sortBy=hotness&order=asc
+```
 
 **成功响应:** `200 OK`
 ```json

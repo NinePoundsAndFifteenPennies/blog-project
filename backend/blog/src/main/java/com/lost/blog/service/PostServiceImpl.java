@@ -156,11 +156,23 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<PostResponse> getAllPosts(Pageable pageable, UserDetails currentUser) {
-        // 只返回已发布的文章（draft = false）
-        Page<Post> postsPage = postRepository.findByDraftFalse(pageable);
-        logger.debug("查询已发布文章列表，页码: {}，数量: {}",
-                pageable.getPageNumber(), postsPage.getTotalElements());
+    public Page<PostResponse> getAllPosts(String sortBy, String order, Pageable pageable, UserDetails currentUser) {
+        Page<Post> postsPage;
+        
+        if ("hotness".equalsIgnoreCase(sortBy)) {
+            // 按热度排序
+            boolean ascending = "asc".equalsIgnoreCase(order);
+            postsPage = postRepository.findByDraftFalseOrderByHotness(ascending, pageable);
+            logger.debug("查询已发布文章列表（按热度{}），页码: {}，数量: {}",
+                    ascending ? "升序" : "降序", pageable.getPageNumber(), postsPage.getTotalElements());
+        } else {
+            // 按时间排序（默认）
+            boolean ascending = "asc".equalsIgnoreCase(order);
+            postsPage = postRepository.findByDraftFalseOrderByCreatedAt(ascending, pageable);
+            logger.debug("查询已发布文章列表（按时间{}），页码: {}，数量: {}",
+                    ascending ? "升序" : "降序", pageable.getPageNumber(), postsPage.getTotalElements());
+        }
+        
         return postsPage.map(post -> postMapper.toResponse(post, currentUser));
     }
 
