@@ -38,4 +38,50 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     // 删除文章的所有评论（级联删除时使用）
     void deleteByPost(Post post);
 
+    // 按创建时间排序获取顶层评论（升序）
+    @Query("SELECT c FROM Comment c WHERE c.post.id = :postId AND c.parent IS NULL ORDER BY c.createdAt ASC")
+    Page<Comment> findTopLevelCommentsByPostOrderByCreatedAtAsc(@Param("postId") Long postId, Pageable pageable);
+
+    // 按创建时间排序获取顶层评论（降序）
+    @Query("SELECT c FROM Comment c WHERE c.post.id = :postId AND c.parent IS NULL ORDER BY c.createdAt DESC")
+    Page<Comment> findTopLevelCommentsByPostOrderByCreatedAtDesc(@Param("postId") Long postId, Pageable pageable);
+
+    // 按创建时间排序获取顶层评论（动态方向）
+    default Page<Comment> findTopLevelCommentsByPostOrderByCreatedAt(Long postId, boolean ascending, Pageable pageable) {
+        return ascending ? findTopLevelCommentsByPostOrderByCreatedAtAsc(postId, pageable) : findTopLevelCommentsByPostOrderByCreatedAtDesc(postId, pageable);
+    }
+
+    // 按热度排序获取顶层评论（升序）
+    // 热度公式: (likeCount * 1 + replyCount * 3 + bonus) / POW(hours + 2, 1.5)
+    // bonus = if(replyCount > 5, 10, 0)
+    @Query(value = """
+        SELECT c.* FROM comments c
+        LEFT JOIN (SELECT comment_id, COUNT(*) as like_count FROM likes WHERE comment_id IS NOT NULL GROUP BY comment_id) l ON c.id = l.comment_id
+        LEFT JOIN (SELECT parent_id, COUNT(*) as reply_count FROM comments WHERE parent_id IS NOT NULL GROUP BY parent_id) r ON c.id = r.parent_id
+        WHERE c.post_id = :postId AND c.parent_id IS NULL
+        ORDER BY (COALESCE(l.like_count, 0) * 1 + COALESCE(r.reply_count, 0) * 3 + IF(COALESCE(r.reply_count, 0) > 5, 10, 0)) / 
+                 POW(TIMESTAMPDIFF(HOUR, c.created_at, NOW()) + 2, 1.5) ASC
+        """, 
+        countQuery = "SELECT COUNT(*) FROM comments WHERE post_id = :postId AND parent_id IS NULL",
+        nativeQuery = true)
+    Page<Comment> findTopLevelCommentsByPostOrderByHotnessAsc(@Param("postId") Long postId, Pageable pageable);
+
+    // 按热度排序获取顶层评论（降序）
+    @Query(value = """
+        SELECT c.* FROM comments c
+        LEFT JOIN (SELECT comment_id, COUNT(*) as like_count FROM likes WHERE comment_id IS NOT NULL GROUP BY comment_id) l ON c.id = l.comment_id
+        LEFT JOIN (SELECT parent_id, COUNT(*) as reply_count FROM comments WHERE parent_id IS NOT NULL GROUP BY parent_id) r ON c.id = r.parent_id
+        WHERE c.post_id = :postId AND c.parent_id IS NULL
+        ORDER BY (COALESCE(l.like_count, 0) * 1 + COALESCE(r.reply_count, 0) * 3 + IF(COALESCE(r.reply_count, 0) > 5, 10, 0)) / 
+                 POW(TIMESTAMPDIFF(HOUR, c.created_at, NOW()) + 2, 1.5) DESC
+        """, 
+        countQuery = "SELECT COUNT(*) FROM comments WHERE post_id = :postId AND parent_id IS NULL",
+        nativeQuery = true)
+    Page<Comment> findTopLevelCommentsByPostOrderByHotnessDesc(@Param("postId") Long postId, Pageable pageable);
+
+    // 按热度排序获取顶层评论（动态方向）
+    default Page<Comment> findTopLevelCommentsByPostOrderByHotness(Long postId, boolean ascending, Pageable pageable) {
+        return ascending ? findTopLevelCommentsByPostOrderByHotnessAsc(postId, pageable) : findTopLevelCommentsByPostOrderByHotnessDesc(postId, pageable);
+    }
+
 }

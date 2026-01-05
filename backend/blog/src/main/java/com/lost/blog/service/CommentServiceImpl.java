@@ -202,13 +202,26 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<CommentResponse> getCommentsByPost(Long postId, Pageable pageable, UserDetails currentUser) {
+    public Page<CommentResponse> getCommentsByPost(Long postId, String sortBy, String order, Pageable pageable, UserDetails currentUser) {
         // 获取文章
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到文章ID: " + postId));
 
-        // 获取顶层评论（parent_id为null，按创建时间升序排列）
-        Page<Comment> comments = commentRepository.findByPostAndParentIsNull(post, pageable);
+        Page<Comment> comments;
+        
+        if ("hotness".equalsIgnoreCase(sortBy)) {
+            // 按热度排序
+            boolean ascending = "asc".equalsIgnoreCase(order);
+            comments = commentRepository.findTopLevelCommentsByPostOrderByHotness(post.getId(), ascending, pageable);
+            logger.debug("查询文章 {} 的顶层评论（按热度{}），总数: {}",
+                    postId, ascending ? "升序" : "降序", comments.getTotalElements());
+        } else {
+            // 按时间排序（默认）
+            boolean ascending = "asc".equalsIgnoreCase(order);
+            comments = commentRepository.findTopLevelCommentsByPostOrderByCreatedAt(post.getId(), ascending, pageable);
+            logger.debug("查询文章 {} 的顶层评论（按时间{}），总数: {}",
+                    postId, ascending ? "升序" : "降序", comments.getTotalElements());
+        }
 
         return comments.map(comment -> {
             CommentResponse response = commentMapper.toResponse(comment);

@@ -3,8 +3,26 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <h3 class="text-xl font-bold text-gray-900">
-        评论 ({{ totalElements }})
+        {{ sortTitle }} ({{ totalElements }})
       </h3>
+      <!-- Sorting Dropdown -->
+      <div class="relative">
+        <select 
+          v-model="selectedSort" 
+          @change="handleSortChange"
+          class="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-1.5 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer"
+        >
+          <option value="time_asc">按时间 (旧→新)</option>
+          <option value="time_desc">按时间 (新→旧)</option>
+          <option value="hotness_desc">按热度 (高→低)</option>
+          <option value="hotness_asc">按热度 (低→高)</option>
+        </select>
+        <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
     </div>
 
     <!-- Comment Form (only for logged-in users and non-draft posts) -->
@@ -189,9 +207,29 @@ export default {
     const LOAD_MORE_PAGES = 2 // Load 2 pages (20 comments) each time when clicking "Load More"
     const avatarLoadError = ref(false)
     const loadedCount = ref(0) // Track how many comments have been loaded
+    
+    // 排序相关
+    const selectedSort = ref('time_asc')
 
     const currentUser = computed(() => store.getters.currentUser)
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
+    
+    // 动态标题
+    const sortTitle = computed(() => {
+      if (selectedSort.value.startsWith('hotness')) {
+        return '热门评论'
+      }
+      return '评论'
+    })
+    
+    // 解析排序参数
+    const parseSortParams = () => {
+      const parts = selectedSort.value.split('_')
+      return {
+        sortBy: parts[0], // 'time' or 'hotness'
+        order: parts[1]   // 'asc' or 'desc'
+      }
+    }
 
     const userInitial = computed(() => {
       const name = currentUser.value?.username || ''
@@ -229,13 +267,17 @@ export default {
         loading.value = true
       }
       
+      const { sortBy, order } = parseSortParams()
+      
       try {
         if (!append) {
           // Initial load: load first batch of comments
           loadedCount.value = 0
           const response = await getPostComments(props.postId, {
             page: 0,
-            size: PAGE_SIZE
+            size: PAGE_SIZE,
+            sortBy: sortBy,
+            order: order
           })
 
           comments.value = response.content || []
@@ -255,7 +297,9 @@ export default {
             
             const response = await getPostComments(props.postId, {
               page: page,
-              size: PAGE_SIZE
+              size: PAGE_SIZE,
+              sortBy: sortBy,
+              order: order
             })
             
             if (response.content && response.content.length > 0) {
@@ -285,6 +329,12 @@ export default {
     const loadMore = async () => {
       if (loadingMore.value || !hasMore.value) return
       await loadComments(true)
+    }
+    
+    // 排序切换
+    const handleSortChange = () => {
+      loadedCount.value = 0
+      loadComments()
     }
 
     const submitComment = async () => {
@@ -390,7 +440,10 @@ export default {
       handleCommentUpdated,
       handleCommentDeleted,
       handleLikeChanged,
-      loadMore
+      loadMore,
+      selectedSort,
+      sortTitle,
+      handleSortChange
     }
   }
 }
