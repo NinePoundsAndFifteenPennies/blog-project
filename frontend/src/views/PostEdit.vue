@@ -380,12 +380,20 @@
         </div>
       </div>
     </div>
+
+    <!-- Table Editor Modal -->
+    <TableEditorModal
+      :is-open="showTableModal"
+      :format="tableFormat"
+      @close="showTableModal = false"
+      @insert="insertTable"
+    />
   </div>
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { marked } from 'marked'
 import hljs from 'highlight.js/lib/core'
 // 导入常用语言
@@ -404,6 +412,7 @@ import typescript from 'highlight.js/lib/languages/typescript'
 import 'highlight.js/styles/atom-one-dark.css'
 
 import Header from '@/components/Header.vue'
+import TableEditorModal from '@/components/TableEditorModal.vue'
 import { getPostById, createPost, updatePost } from '@/api/posts'
 
 // 注册语言
@@ -447,7 +456,8 @@ marked.setOptions({
 export default {
   name: 'PostEdit',
   components: {
-    Header
+    Header,
+    TableEditorModal
   },
   setup() {
     const route = useRoute()
@@ -456,6 +466,8 @@ export default {
     const loading = ref(false)
     const contentTextarea = ref(null)
     const showLanguageModal = ref(false)
+    const showTableModal = ref(false)
+    const tableCursorPosition = ref(0) // Save cursor position when opening table modal
     const codeLanguage = ref('javascript')
     const availableLanguages = [
       { value: 'javascript', label: 'JavaScript' },
@@ -505,6 +517,90 @@ export default {
     // 是否为编辑模式
     const isEditMode = computed(() => !!route.params.id)
 
+    // 原始内容（用于检测是否有未保存的更改）
+    const originalFormData = reactive({
+      title: '',
+      content: '',
+      contentType: 'MARKDOWN',
+      tags: []
+    })
+
+    // 检查是否有未保存的更改
+    const hasUnsavedChanges = computed(() => {
+      return formData.title !== originalFormData.title ||
+             formData.content !== originalFormData.content ||
+             formData.contentType !== originalFormData.contentType ||
+             JSON.stringify(formData.tags) !== JSON.stringify(originalFormData.tags)
+    })
+
+    // Auto-save expiry time: 24 hours in milliseconds
+    const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000
+
+    // sessionStorage key for auto-save
+    const getAutoSaveKey = () => {
+      return isEditMode.value 
+        ? `postEdit_${route.params.id}` 
+        : 'postEdit_new'
+    }
+
+    // Debounce timer for auto-save
+    let autoSaveTimer = null
+
+    // 保存到 sessionStorage (debounced version called by watcher)
+    const debouncedSaveToSession = () => {
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer)
+      }
+      autoSaveTimer = setTimeout(() => {
+        saveToSession()
+      }, 500) // 500ms debounce
+    }
+
+    // 保存到 sessionStorage
+    const saveToSession = () => {
+      try {
+        const data = {
+          title: formData.title,
+          content: formData.content,
+          contentType: formData.contentType,
+          tags: formData.tags,
+          timestamp: Date.now()
+        }
+        sessionStorage.setItem(getAutoSaveKey(), JSON.stringify(data))
+      } catch (e) {
+        console.error('Auto-save failed:', e)
+      }
+    }
+
+    // 从 sessionStorage 恢复
+    const restoreFromSession = () => {
+      try {
+        const data = sessionStorage.getItem(getAutoSaveKey())
+        if (data) {
+          const parsed = JSON.parse(data)
+          // Only restore if data is not expired
+          if (Date.now() - parsed.timestamp < SESSION_EXPIRY_MS) {
+            return parsed
+          } else {
+            // Clear stale data
+            sessionStorage.removeItem(getAutoSaveKey())
+          }
+        }
+      } catch (e) {
+        console.error('Restore from session failed:', e)
+      }
+      return null
+    }
+
+    // 清除 sessionStorage
+    const clearSession = () => {
+      try {
+        sessionStorage.removeItem(getAutoSaveKey())
+      } catch (e) {
+        console.error('Clear session failed:', e)
+      }
+    }
+
     // 字数统计
     const wordCount = computed(() => {
       return formData.content.length
@@ -537,6 +633,11 @@ export default {
         // HTML 直接返回
         return formData.content
       }
+    })
+
+    // 表格编辑器格式（基于内容类型）
+    const tableFormat = computed(() => {
+      return formData.contentType === 'MARKDOWN' ? 'markdown' : 'html'
     })
 
     // 表单验证
@@ -611,7 +712,24 @@ export default {
 
     // 加载文章数据(编辑模式)
     const loadPost = async () => {
-      if (!isEditMode.value) return
+      // First check if there's auto-saved content
+      const savedData = restoreFromSession()
+      
+      if (!isEditMode.value) {
+        // Create mode - restore from session if available
+        if (savedData) {
+          formData.title = savedData.title || ''
+          formData.content = savedData.content || ''
+          formData.contentType = savedData.contentType || 'MARKDOWN'
+          formData.tags = savedData.tags || []
+        }
+        // Set original data for unsaved changes detection
+        originalFormData.title = ''
+        originalFormData.content = ''
+        originalFormData.contentType = 'MARKDOWN'
+        originalFormData.tags = []
+        return
+      }
 
       try {
         const postId = route.params.id
@@ -621,10 +739,26 @@ export default {
           throw new Error('未找到文章')
         }
 
-        formData.title = post.title || ''
-        formData.content = post.content || ''
-        formData.contentType = post.contentType || 'MARKDOWN'
-        formData.tags = post.tags ? post.tags.map(tag => tag.name) : []
+        // Store original data for unsaved changes detection
+        originalFormData.title = post.title || ''
+        originalFormData.content = post.content || ''
+        originalFormData.contentType = post.contentType || 'MARKDOWN'
+        originalFormData.tags = post.tags ? post.tags.map(tag => tag.name) : []
+
+        // Check if there's saved session data that's newer
+        if (savedData && savedData.timestamp) {
+          // Use session data if it exists (user was editing and refreshed)
+          formData.title = savedData.title || ''
+          formData.content = savedData.content || ''
+          formData.contentType = savedData.contentType || 'MARKDOWN'
+          formData.tags = savedData.tags || []
+        } else {
+          // Use data from server
+          formData.title = post.title || ''
+          formData.content = post.content || ''
+          formData.contentType = post.contentType || 'MARKDOWN'
+          formData.tags = post.tags ? post.tags.map(tag => tag.name) : []
+        }
         isDraft.value = post.draft || false
       } catch (error) {
         console.error('加载文章失败:', error)
@@ -652,10 +786,17 @@ export default {
 
         if (isEditMode.value) {
           await updatePost(route.params.id, postData)
+          // Update original data after successful save
+          originalFormData.title = formData.title
+          originalFormData.content = formData.content
+          originalFormData.contentType = formData.contentType
+          originalFormData.tags = [...formData.tags]
+          clearSession()
           alert('草稿保存成功!')
           isDraft.value = true
         } else {
           const createdPost = await createPost(postData)
+          clearSession()
           alert('草稿保存成功!')
           // 创建草稿后跳转到编辑页面
           router.push(`/post/${createdPost.id}/edit`)
@@ -693,6 +834,14 @@ export default {
           alert('文章发布成功!')
         }
 
+        // Clear session after successful publish
+        clearSession()
+        // Update original data to prevent unsaved changes warning
+        originalFormData.title = formData.title
+        originalFormData.content = formData.content
+        originalFormData.contentType = formData.contentType
+        originalFormData.tags = [...formData.tags]
+
         router.push('/')
       } catch (error) {
         console.error('提交失败:', error)
@@ -702,9 +851,51 @@ export default {
       }
     }
 
+    // beforeunload handler for browser refresh warning
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedChanges.value) {
+        // Save current state to session before refresh
+        saveToSession()
+        // Don't show warning - we have auto-save
+      }
+    }
+
     onMounted(() => {
       loadPost()
+      // Add beforeunload listener
+      window.addEventListener('beforeunload', handleBeforeUnload)
     })
+
+    onBeforeUnmount(() => {
+      // Remove beforeunload listener
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    })
+
+    // Route leave guard for unsaved changes warning (navigation only)
+    onBeforeRouteLeave((to, from, next) => {
+      if (hasUnsavedChanges.value) {
+        const answer = window.confirm('您有未保存的更改，确定要离开吗？')
+        if (!answer) {
+          next(false)
+          return
+        }
+        // Clear session if user confirms leaving
+        clearSession()
+      }
+      next()
+    })
+
+    // Watch for content changes and auto-save (debounced)
+    watch(
+      () => [formData.title, formData.content, formData.contentType, formData.tags],
+      () => {
+        // Auto-save to session on content change (debounced to reduce writes)
+        if (formData.title || formData.content) {
+          debouncedSaveToSession()
+        }
+      },
+      { deep: true }
+    )
 
     // Markdown格式化插入函数
     const insertMarkdown = (type) => {
@@ -778,9 +969,10 @@ export default {
           showLanguageModal.value = true
           return // 不直接插入，等用户选择语言
         case 'table':
-          insertText = '| 列1 | 列2 | 列3 |\n| --- | --- | --- |\n| 内容 | 内容 | 内容 |'
-          cursorOffset = 2
-          break
+          // 保存光标位置并显示表格编辑器
+          tableCursorPosition.value = start
+          showTableModal.value = true
+          return // 不直接插入，等用户配置表格
         case 'hr':
           insertText = '\n---\n'
           cursorOffset = insertText.length
@@ -824,6 +1016,25 @@ export default {
 
       // 关闭模态框
       showLanguageModal.value = false
+    }
+
+    // 插入表格（来自表格编辑器模态框）
+    const insertTable = (tableContent) => {
+      const textarea = contentTextarea.value
+      if (!textarea) return
+
+      const start = tableCursorPosition.value
+      const beforeText = formData.content.substring(0, start)
+      const afterText = formData.content.substring(start)
+
+      formData.content = beforeText + tableContent + afterText
+
+      const cursorOffset = tableContent.length
+
+      setTimeout(() => {
+        textarea.focus()
+        textarea.setSelectionRange(start + cursorOffset, start + cursorOffset)
+      }, 0)
     }
 
     // 键盘快捷键处理
@@ -1095,24 +1306,10 @@ export default {
           cursorOffset = 12
           break
         case 'table':
-          insertText = `<table>
-  <thead>
-    <tr>
-      <th>列1</th>
-      <th>列2</th>
-      <th>列3</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>内容</td>
-      <td>内容</td>
-      <td>内容</td>
-    </tr>
-  </tbody>
-</table>`
-          cursorOffset = 30
-          break
+          // 保存光标位置并显示表格编辑器
+          tableCursorPosition.value = start
+          showTableModal.value = true
+          return // 不直接插入，等用户配置表格
         case 'div':
           insertText = `<div>${selectedText || '内容'}</div>`
           cursorOffset = selectedText ? insertText.length : 5
@@ -1157,7 +1354,10 @@ export default {
       tagInput,
       addTag,
       removeTag,
-      handleTagInputKeydown
+      handleTagInputKeydown,
+      showTableModal,
+      tableFormat,
+      insertTable
     }
   }
 }
