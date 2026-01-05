@@ -87,7 +87,6 @@ Getting current branch information...
 成功删除分支 feature/user-profile！
 操作完成！
 ```
-
 ---
 
 ## 使用场景 / Usage Scenarios
@@ -118,6 +117,94 @@ Getting current branch information...
 .\cleanup-test-branch.ps1
 ```
 
+---
+
+### 3. start-dev.ps1
+
+**功能**: 一键启动项目开发环境，先启动后端（Spring Boot），再启动前端（npm）
+
+**用途**:
+When developing locally, start backend and frontend services with a single command
+
+**使用方法**:
+
+```powershell
+cd scripts
+.\start-dev.ps1
+```
+
+**操作流程**:
+
+1. 自动定位项目根目录（无需关心当前执行路径）
+2. 在新 PowerShell 窗口中启动后端 Spring Boot 应用（`mvn spring-boot:run`）
+3. 等待后端初始化后，在当前控制台启动前端（`npm run serve`）
+4. 后端与前端进程相互独立，互不阻塞
+
+**示例输出**:
+
+```
+Project root: F:\javaCode\blog-project
+
+Starting backend (Spring Boot)...
+Backend started in a new window.
+
+Starting frontend (npm run serve)...
+
+> frontend@0.1.0 serve
+> vue-cli-service serve
+
+App running at:
+- Local:   http://localhost:3000/
+- Network: http://192.168.1.9:3000/
+```
+
+**说明**:
+
+* 后端运行在 **独立的 PowerShell 窗口** 中，方便查看日志和单独关闭
+* 前端运行在 **新建控制台**，可使用 `Ctrl + C` 停止
+* 后端代码修改后，**重新运行脚本即可生效**
+* 不涉及打包（jar）或 Docker，始终运行最新源码
+
+---
+
+## 使用场景 / Usage Scenarios
+
+### 场景 1: 测试新功能分支
+
+```powershell
+# 步骤 1: 拉取并切换到测试分支
+.\fetch-test-branch.ps1
+# 选择要测试的分支，比如 feature/new-feature
+
+# 步骤 2: 启动前后端进行测试
+.\start-dev.ps1
+
+# 步骤 3: 测试完成后清理
+.\cleanup-test-branch.ps1
+```
+
+### 场景 2: 日常本地开发
+
+```powershell
+# 直接启动完整开发环境
+.\start-dev.ps1
+```
+
+### 场景 3: 快速切换多个分支进行测试
+
+```powershell
+# 测试第一个分支
+.\fetch-test-branch.ps1  # 选择 feature/branch-1
+.\start-dev.ps1
+# ... 测试 ...
+.\cleanup-test-branch.ps1
+
+# 测试第二个分支
+.\fetch-test-branch.ps1  # 选择 feature/branch-2
+.\start-dev.ps1
+# ... 测试 ...
+.\cleanup-test-branch.ps1
+```
 ---
 
 ## 注意事项 / Notes
