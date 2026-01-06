@@ -237,11 +237,23 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                     </svg>
                   </button>
-                  <button @click="insertMarkdown('image')" type="button" class="toolbar-btn" title="图片">
+                  <button @click="insertMarkdown('image')" type="button" class="toolbar-btn" title="通过URL插入图片">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </button>
+                  <button @click="triggerContentImageUpload" type="button" class="toolbar-btn" title="上传本地图片">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                  </button>
+                  <input 
+                    ref="contentImageInput"
+                    type="file" 
+                    class="hidden" 
+                    accept="image/jpeg,image/png"
+                    @change="handleContentImageSelect"
+                  />
                   <button @click="insertMarkdown('codeblock')" type="button" class="toolbar-btn" title="代码块">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
@@ -571,6 +583,10 @@ export default {
     const coverImagePreview = ref('')
     const uploadingCover = ref(false)
 
+    // 内容图片相关
+    const contentImageInput = ref(null)
+    const uploadingContent = ref(false)
+
     // 是否为草稿状态（从后端加载）
     const isDraft = ref(false)
 
@@ -833,6 +849,68 @@ export default {
       }
       const cleanUrl = url.startsWith('/') ? url.substring(1) : url
       return `${window.location.origin}/${cleanUrl}`
+    }
+
+    // 触发内容图片上传
+    const triggerContentImageUpload = () => {
+      if (contentImageInput.value) {
+        contentImageInput.value.click()
+      }
+    }
+
+    // 处理内容图片上传
+    const handleContentImageSelect = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      // 验证文件类型
+      if (!file.type.match(/image\/(jpeg|png)/)) {
+        alert('只支持 JPG 和 PNG 格式的图片')
+        return
+      }
+
+      // 验证文件大小
+      if (file.size > 5 * 1024 * 1024) {
+        alert('文件大小不能超过 5MB')
+        return
+      }
+
+      try {
+        uploadingContent.value = true
+        
+        // 上传到服务器
+        const imageUrl = await uploadContentImage(file)
+        
+        // 插入图片到内容
+        const textarea = contentTextarea.value
+        if (textarea) {
+          const start = textarea.selectionStart
+          const end = textarea.selectionEnd
+          const imageMarkdown = formData.contentType === 'MARKDOWN' 
+            ? `![图片描述](${imageUrl})`
+            : `<img src="${imageUrl}" alt="图片描述" />`
+          
+          const before = formData.content.substring(0, start)
+          const after = formData.content.substring(end)
+          formData.content = before + imageMarkdown + after
+          
+          // 设置光标位置
+          setTimeout(() => {
+            const newPosition = start + imageMarkdown.length
+            textarea.focus()
+            textarea.setSelectionRange(newPosition, newPosition)
+          }, 0)
+        }
+        
+      } catch (error) {
+        console.error('上传内容图片失败:', error)
+        alert(error.message || '上传失败，请稍后重试')
+      } finally {
+        uploadingContent.value = false
+        if (contentImageInput.value) {
+          contentImageInput.value.value = ''
+        }
+      }
     }
 
     // 加载文章数据(编辑模式)
@@ -1496,7 +1574,11 @@ export default {
       uploadingCover,
       handleCoverImageSelect,
       removeCoverImage,
-      getFullImageUrl
+      getFullImageUrl,
+      contentImageInput,
+      uploadingContent,
+      triggerContentImageUpload,
+      handleContentImageSelect
     }
   }
 }
