@@ -84,65 +84,10 @@ public class FileServiceImpl implements FileService {
     }
 
     private String saveAvatarFile(Long userId, MultipartFile file) {
-        if (file.isEmpty()) {
-            throw new RuntimeException("文件不能为空");
-        }
-
-        try {
-            if (file.getSize() > MAX_FILE_SIZE) {
-                throw new RuntimeException("文件大小不能超过5MB");
-            }
-
-            String contentType = file.getContentType();
-            if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
-                throw new RuntimeException("只支持JPG和PNG格式的图片");
-            }
-
-            String originalFilename = file.getOriginalFilename();
-            String extension = "";
-            if (originalFilename != null && originalFilename.contains(".")) {
-                extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
-            }
-
-            if (!ALLOWED_EXTENSIONS.contains(extension)) {
-                throw new RuntimeException("只支持JPG和PNG格式的图片");
-            }
-
-            BufferedImage image = ImageIO.read(file.getInputStream());
-            if (image == null) {
-                throw new RuntimeException("无效的图片文件");
-            }
-
-            int width = image.getWidth();
-            int height = image.getHeight();
-            if (width < MIN_WIDTH || height < MIN_HEIGHT) {
-                throw new RuntimeException(String.format("图片尺寸太小，最小尺寸为%dx%d像素", MIN_WIDTH, MIN_HEIGHT));
-            }
-            if (width > MAX_WIDTH || height > MAX_HEIGHT) {
-                throw new RuntimeException(String.format("图片尺寸太大，最大尺寸为%dx%d像素", MAX_WIDTH, MAX_HEIGHT));
-            }
-
-            String filename = UUID.randomUUID().toString() + extension;
-
-            // base dir resolved to an absolute Path
-            Path baseDir = resolveBaseDir();
-            Path uploadPath = baseDir.resolve(String.valueOf(userId)).resolve("avatars");
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
-            Path filePath = uploadPath.resolve(filename);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            // 直接返回 URL 字符串（不依赖 Path.toString）
-            return "/uploads/" + userId + "/avatars/" + filename;
-
-        } catch (IOException e) {
-            throw new RuntimeException("文件上传失败: " + e.getMessage());
-        }
+        return saveImageFile(userId, file, "avatars");
     }
 
-    // 解析并返回 uploads 的绝对路径（如果配置是相对路径，则尝试向上查找真实目录）
+    @Override
     private Path resolveBaseDir() {
         Path configured = Paths.get(uploadBaseDir);
         if (configured.isAbsolute()) {
