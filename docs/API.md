@@ -314,16 +314,36 @@ Content-Type: application/json
 
 ### 获取文章列表
 
-分页获取所有已发布的文章。
+分页获取所有已发布的文章，支持按时间或热度排序。
 
 ```http
-GET /api/posts?page=0&size=10&sort=createdAt,desc
+GET /api/posts?page=0&size=10&sortBy=time&order=desc
 ```
 
 **查询参数:**
 - `page`: 页码（从 0 开始，默认 0）
 - `size`: 每页数量（默认 10）
-- `sort`: 排序字段和方向（默认 `createdAt,desc`）
+- `sortBy`: 排序方式（默认 `time`）
+  - `time`: 按创建时间排序
+  - `hotness`: 按热度排序（热度公式：`(viewCount * 0.1 + likeCount * 5 + commentCount * 10) / pow(hours + 2, 1.2)`）
+- `order`: 排序顺序（默认 `desc`）
+  - `desc`: 降序（时间从新到旧，热度从高到低）
+  - `asc`: 升序（时间从旧到新，热度从低到高）
+
+**示例请求:**
+```http
+# 按时间倒序（最新文章优先，默认）
+GET /api/posts?page=0&size=10
+
+# 按时间正序（最早文章优先）
+GET /api/posts?page=0&size=10&sortBy=time&order=asc
+
+# 按热度倒序（最热门文章优先）
+GET /api/posts?page=0&size=10&sortBy=hotness&order=desc
+
+# 按热度正序（最冷门文章优先）
+GET /api/posts?page=0&size=10&sortBy=hotness&order=asc
+```
 
 **成功响应:** `200 OK`
 ```json
@@ -841,10 +861,10 @@ Content-Type: application/json
 
 ### 获取文章评论
 
-获取指定文章的所有顶层评论，支持分页。
+获取指定文章的所有顶层评论，支持分页和排序（按时间或热度）。
 
 ```http
-GET /api/posts/{postId}/comments?page=0&size=20
+GET /api/posts/{postId}/comments?page=0&size=20&sortBy=time&order=asc
 ```
 
 **路径参数:**
@@ -853,6 +873,27 @@ GET /api/posts/{postId}/comments?page=0&size=20
 **查询参数:**
 - `page` (可选): 页码，从0开始，默认0
 - `size` (可选): 每页数量，默认20
+- `sortBy` (可选): 排序方式（默认 `time`）
+  - `time`: 按创建时间排序
+  - `hotness`: 按热度排序（热度公式：`(likeCount * 1 + replyCount * 3 + bonus) / pow(hours + 2, 1.5)`，bonus = if(replyCount > 5, 10, 0)）
+- `order` (可选): 排序顺序（默认 `asc`）
+  - `asc`: 升序（时间从旧到新，热度从低到高）
+  - `desc`: 降序（时间从新到旧，热度从高到低）
+
+**示例请求:**
+```http
+# 按时间正序（默认，最早的评论优先）
+GET /api/posts/1/comments?page=0&size=20
+
+# 按时间倒序（最新的评论优先）
+GET /api/posts/1/comments?page=0&size=20&sortBy=time&order=desc
+
+# 按热度倒序（最热门的评论优先）
+GET /api/posts/1/comments?page=0&size=20&sortBy=hotness&order=desc
+
+# 按热度正序（最冷门的评论优先）
+GET /api/posts/1/comments?page=0&size=20&sortBy=hotness&order=asc
+```
 
 **成功响应:** `200 OK`
 ```json
@@ -890,9 +931,12 @@ GET /api/posts/{postId}/comments?page=0&size=20
 
 **说明:**
 - 匿名用户可以访问此接口查看评论
-- **仅返回顶层评论**（parentId为null）
-- 评论按创建时间升序排列（最早的在前）
+- **仅返回顶层评论**（parentId为null），子评论排序不受影响
 - 每条评论包含点赞数量、当前用户的点赞状态和子评论数量（replyCount）
+- 热度算法特点：
+  - 重讨论：回复权重高（×3），回复多的评论排在前面
+  - 快代谢：重力因子1.5，旧评论会比文章更快让位给新评论
+  - 防马太效应：通过时间衰减，防止早期评论永远霸榜
 
 **错误响应:**
 - `404 Not Found` - 文章不存在

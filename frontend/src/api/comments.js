@@ -16,7 +16,7 @@ export function createComment(postId, content) {
 /**
  * 获取文章评论列表
  * @param {Number} postId - 文章ID
- * @param {Object} params - 分页参数 { page, size }
+ * @param {Object} params - 分页和排序参数 { page, size, sortBy, order }
  */
 export function getPostComments(postId, params = {}) {
     return request({
@@ -24,7 +24,9 @@ export function getPostComments(postId, params = {}) {
         method: 'get',
         params: {
             page: params.page || 0,
-            size: params.size || 20
+            size: params.size || 20,
+            sortBy: params.sortBy || 'time',
+            order: params.order || 'asc'
         }
     })
 }

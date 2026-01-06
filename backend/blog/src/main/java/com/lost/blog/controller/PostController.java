@@ -63,11 +63,15 @@ public class PostController {
     }
 
     // 获取所有已发布的文章（分页）
+    // sortBy: "time" (按时间排序，默认) 或 "hotness" (按热度排序)
+    // order: "desc" (降序，默认) 或 "asc" (升序)
     @GetMapping
     public ResponseEntity<Page<PostResponse>> getAllPosts(
+            @RequestParam(required = false, defaultValue = "time") String sortBy,
+            @RequestParam(required = false, defaultValue = "desc") String order,
             Pageable pageable,
             @AuthenticationPrincipal UserDetails currentUser) {
-        Page<PostResponse> posts = postService.getAllPosts(pageable, currentUser);
+        Page<PostResponse> posts = postService.getAllPosts(sortBy, order, pageable, currentUser);
         return ResponseEntity.ok(posts);
     }
 

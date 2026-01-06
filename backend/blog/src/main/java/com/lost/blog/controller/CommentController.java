@@ -69,12 +69,16 @@ public class CommentController {
     }
 
     // 获取文章的所有顶层评论（分页）
+    // sortBy: "time" (按时间排序，默认) 或 "hotness" (按热度排序)
+    // order: "desc" (降序，默认) 或 "asc" (升序)
     @GetMapping("/posts/{postId}/comments")
     public ResponseEntity<Page<CommentResponse>> getCommentsByPost(
             @PathVariable Long postId,
+            @RequestParam(required = false, defaultValue = "time") String sortBy,
+            @RequestParam(required = false, defaultValue = "asc") String order,
             Pageable pageable,
             @AuthenticationPrincipal UserDetails currentUser) {
-        Page<CommentResponse> comments = commentService.getCommentsByPost(postId, pageable, currentUser);
+        Page<CommentResponse> comments = commentService.getCommentsByPost(postId, sortBy, order, pageable, currentUser);
         return ResponseEntity.ok(comments);
     }
 

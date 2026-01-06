@@ -46,11 +46,13 @@ public interface CommentService {
     /**
      * 获取文章的所有顶层评论（分页）
      * @param postId 文章ID
+     * @param sortBy 排序方式："time"按时间排序，"hotness"按热度排序
+     * @param order 排序顺序："asc"升序，"desc"降序
      * @param pageable 分页信息
      * @param currentUser 当前登录用户（可为null，用于判断点赞状态）
      * @return 分页后的评论响应数据
      */
-    Page<CommentResponse> getCommentsByPost(Long postId, Pageable pageable, UserDetails currentUser);
+    Page<CommentResponse> getCommentsByPost(Long postId, String sortBy, String order, Pageable pageable, UserDetails currentUser);
 
     /**
      * 获取评论的所有回复（子评论）
