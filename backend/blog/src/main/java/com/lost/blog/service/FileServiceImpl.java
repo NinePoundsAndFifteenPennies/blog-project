@@ -2,6 +2,8 @@ package com.lost.blog.service;
 
 import com.lost.blog.model.User;
 import com.lost.blog.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,8 @@ import java.util.UUID;
 
 @Service
 public class FileServiceImpl implements FileService {
+
+    private static final Logger logger = LoggerFactory.getLogger(FileServiceImpl.class);
 
     private final UserRepository userRepository;
 
@@ -123,23 +127,60 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public void deleteImage(String imageUrl) {
+    public void deleteImage(String username, String imageUrl) {
         if (imageUrl == null || imageUrl.isEmpty()) {
             return;
         }
 
+        // Get user to validate ownership
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+
         try {
+            // Parse and validate the image URL
             String filePath = imageUrl.startsWith("/") ? imageUrl.substring(1) : imageUrl;
+            
+            // Ensure the path is within uploads directory
+            if (!filePath.startsWith("uploads/")) {
+                logger.warn("尝试删除非uploads目录的文件: {}", filePath);
+                throw new RuntimeException("无效的文件路径");
+            }
+            
+            // Extract user ID from path (format: uploads/{userId}/...)
+            String[] pathParts = filePath.split("/");
+            if (pathParts.length < 3) {
+                logger.warn("文件路径格式无效: {}", filePath);
+                throw new RuntimeException("无效的文件路径");
+            }
+            
+            String pathUserId = pathParts[1];
+            // Verify the user owns this file
+            if (!pathUserId.equals(String.valueOf(user.getId()))) {
+                logger.warn("用户 {} 尝试删除其他用户的文件: {}", username, filePath);
+                throw new RuntimeException("无权删除该文件");
+            }
+            
+            // Resolve path safely
             Path path = Paths.get(filePath);
             if (!path.isAbsolute()) {
-                // resolve relative to resolved base dir
                 path = resolveBaseDir().resolve(filePath).normalize();
             }
+            
+            // Final security check: ensure resolved path is still within base directory
+            Path baseDir = resolveBaseDir();
+            if (!path.startsWith(baseDir)) {
+                logger.warn("路径遍历攻击尝试: {}", filePath);
+                throw new RuntimeException("无效的文件路径");
+            }
+            
+            // Delete the file if it exists
             if (Files.exists(path)) {
                 Files.delete(path);
+                logger.info("用户 {} 删除了文件: {}", username, filePath);
             }
         } catch (IOException e) {
-            System.err.println("删除图片失败: " + e.getMessage());
+            logger.error("删除图片失败: {}", e.getMessage(), e);
+            throw new RuntimeException("删除文件失败: " + e.getMessage());
         }
     }
 

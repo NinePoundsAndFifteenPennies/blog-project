@@ -11,5 +11,5 @@ public interface FileService {
     
     String uploadContentImage(String username, org.springframework.web.multipart.MultipartFile file);
     
-    void deleteImage(String imageUrl);
+    void deleteImage(String username, String imageUrl);
 }

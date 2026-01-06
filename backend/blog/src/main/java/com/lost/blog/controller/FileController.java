@@ -139,7 +139,7 @@ public class FileController {
         }
 
         try {
-            fileService.deleteImage(imageUrl);
+            fileService.deleteImage(currentUser.getUsername(), imageUrl);
             
             Map<String, String> response = new HashMap<>();
             response.put("message", "图片删除成功");
