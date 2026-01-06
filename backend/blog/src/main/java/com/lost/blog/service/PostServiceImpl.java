@@ -77,6 +77,7 @@ public class PostServiceImpl implements PostService {
         post.setContent(postRequest.getContent());
         post.setContentType(postRequest.getContentType());
         post.setDraft(postRequest.getDraft() != null ? postRequest.getDraft() : false);
+        post.setCoverImageUrl(postRequest.getCoverImageUrl());
         post.setUser(user);
 
         // 处理标签
@@ -222,6 +223,7 @@ public class PostServiceImpl implements PostService {
         post.setContent(postRequest.getContent());
         post.setContentType(postRequest.getContentType());
         post.setDraft(willBeDraft);
+        post.setCoverImageUrl(postRequest.getCoverImageUrl());
 
         // 更新标签
         if (postRequest.getTags() != null) {

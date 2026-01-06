@@ -163,4 +163,77 @@ public class FileServiceImpl implements FileService {
         // fallback: create/use cwd/configured
         return cwd.resolve(configured).toAbsolutePath().normalize();
     }
+
+    @Override
+    public String uploadCoverImage(String username, MultipartFile file) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+        return saveImageFile(user.getId(), file, "covers");
+    }
+
+    @Override
+    public String uploadContentImage(String username, MultipartFile file) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+        return saveImageFile(user.getId(), file, "images");
+    }
+
+    private String saveImageFile(Long userId, MultipartFile file, String businessModule) {
+        if (file.isEmpty()) {
+            throw new RuntimeException("文件不能为空");
+        }
+
+        try {
+            if (file.getSize() > MAX_FILE_SIZE) {
+                throw new RuntimeException("文件大小不能超过5MB");
+            }
+
+            String contentType = file.getContentType();
+            if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
+                throw new RuntimeException("只支持JPG和PNG格式的图片");
+            }
+
+            String originalFilename = file.getOriginalFilename();
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
+            }
+
+            if (!ALLOWED_EXTENSIONS.contains(extension)) {
+                throw new RuntimeException("只支持JPG和PNG格式的图片");
+            }
+
+            BufferedImage image = ImageIO.read(file.getInputStream());
+            if (image == null) {
+                throw new RuntimeException("无效的图片文件");
+            }
+
+            int width = image.getWidth();
+            int height = image.getHeight();
+            if (width < MIN_WIDTH || height < MIN_HEIGHT) {
+                throw new RuntimeException(String.format("图片尺寸太小，最小尺寸为%dx%d像素", MIN_WIDTH, MIN_HEIGHT));
+            }
+            if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+                throw new RuntimeException(String.format("图片尺寸太大，最大尺寸为%dx%d像素", MAX_WIDTH, MAX_HEIGHT));
+            }
+
+            String filename = UUID.randomUUID().toString() + extension;
+
+            // base dir resolved to an absolute Path
+            Path baseDir = resolveBaseDir();
+            Path uploadPath = baseDir.resolve(String.valueOf(userId)).resolve(businessModule);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            Path filePath = uploadPath.resolve(filename);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            // 直接返回 URL 字符串
+            return "/uploads/" + userId + "/" + businessModule + "/" + filename;
+
+        } catch (IOException e) {
+            throw new RuntimeException("文件上传失败: " + e.getMessage());
+        }
+    }
 }

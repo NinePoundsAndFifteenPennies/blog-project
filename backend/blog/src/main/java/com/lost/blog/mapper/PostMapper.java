@@ -57,6 +57,9 @@ public class PostMapper {
         // 添加浏览量
         postResponse.setViewCount(post.getViewCount());
         
+        // 添加封面图片URL
+        postResponse.setCoverImageUrl(post.getCoverImageUrl());
+        
         // 添加标签信息
         if (post.getTags() != null && !post.getTags().isEmpty()) {
             postResponse.setTags(
