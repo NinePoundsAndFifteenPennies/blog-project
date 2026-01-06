@@ -1,7 +1,19 @@
 <template>
   <div class="card card-hover cursor-pointer group" @click="goToDetail">
     <!-- 头部区域 -->
-    <div class="relative h-52 bg-gradient-to-br from-primary-500 to-purple-600 overflow-hidden">
+    <div class="relative h-52 overflow-hidden">
+      <!-- 封面图片 -->
+      <img 
+        v-if="post.coverImageUrl" 
+        :src="getFullImageUrl(post.coverImageUrl)" 
+        :alt="post.title"
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+      />
+      <!-- 渐变色背景（无封面图时显示） -->
+      <div 
+        v-else 
+        class="w-full h-full bg-gradient-to-br from-primary-500 to-purple-600"
+      ></div>
       <!-- Subtle overlay -->
       <div class="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-all duration-200"></div>
     </div>
@@ -189,6 +201,16 @@ export default {
       avatarLoadError.value = false
     }
 
+    const getFullImageUrl = (url) => {
+      if (!url) return ''
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url
+      }
+      // Remove leading slash if present and add base URL
+      const cleanUrl = url.startsWith('/') ? url.substring(1) : url
+      return `${window.location.origin}/${cleanUrl}`
+    }
+
     const formatDate = (dateString) => {
       if (!dateString) return ''
       const date = new Date(dateString)
@@ -309,7 +331,8 @@ export default {
       handleTagClick,
       handleAvatarError,
       handleAvatarLoad,
-      handleLike
+      handleLike,
+      getFullImageUrl
     }
   }
 }

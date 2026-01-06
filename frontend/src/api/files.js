@@ -52,3 +52,43 @@ export async function saveUserAvatar(avatarUrl) {
         data: { avatarUrl },
     });
 }
+
+/**
+ * 上传封面图片
+ * @param {File} file - 图片文件
+ * @returns {Promise<string>} - 返回图片URL
+ */
+export async function uploadCoverImage(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await request({
+        url: '/files/upload/cover',
+        method: 'post',
+        data: formData,
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.imageUrl;
+}
+
+/**
+ * 上传内容图片（用于文章内容或评论）
+ * @param {File} file - 图片文件
+ * @returns {Promise<string>} - 返回图片URL
+ */
+export async function uploadContentImage(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await request({
+        url: '/files/upload/content',
+        method: 'post',
+        data: formData,
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+    return response.imageUrl;
+}
