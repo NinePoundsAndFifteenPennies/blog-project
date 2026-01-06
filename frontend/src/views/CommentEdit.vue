@@ -229,6 +229,7 @@ export default {
     const postId = ref(null)
     const contentImageInput = ref(null)
     const uploadingContent = ref(false)
+    const pendingContentImages = ref([]) // 待上传的内容图片 {file, placeholder}
 
     const previewContent = computed(() => {
       if (!content.value || contentMode.value !== 'markdown') return ''
@@ -259,6 +260,31 @@ export default {
       }
     }
 
+    const uploadPendingImages = async () => {
+      // 上传内容图片并替换占位符
+      if (pendingContentImages.value.length > 0) {
+        uploadingContent.value = true
+        
+        try {
+          for (const pending of pendingContentImages.value) {
+            // 上传图片
+            const imageUrl = await uploadContentImage(pending.file)
+            
+            // 替换内容中的占位符
+            content.value = content.value.replace(
+              new RegExp(pending.placeholder, 'g'),
+              imageUrl
+            )
+          }
+          
+          // 清空待上传列表
+          pendingContentImages.value = []
+        } finally {
+          uploadingContent.value = false
+        }
+      }
+    }
+
     const handleSave = async () => {
       if (!content.value.trim()) {
         error.value = '评论内容不能为空'
@@ -274,6 +300,9 @@ export default {
       error.value = ''
 
       try {
+        // 先上传所有待上传的图片
+        await uploadPendingImages()
+        
         const commentId = route.params.id
         await updateComment(commentId, content.value)
         
@@ -387,41 +416,48 @@ export default {
       }
 
       // 验证文件大小
-      if (file.size > 5 * 1024 * 1024) {
-        alert('文件大小不能超过 5MB')
+      if (file.size > 10 * 1024 * 1024) {
+        alert('文件大小不能超过 10MB')
         return
       }
 
       try {
-        uploadingContent.value = true
+        // 生成临时占位符ID
+        const placeholderId = `PENDING_IMAGE_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
         
-        // 上传到服务器
-        const imageUrl = await uploadContentImage(file)
+        // 存储文件和占位符
+        pendingContentImages.value.push({
+          file: file,
+          placeholder: placeholderId
+        })
         
-        // 插入图片到内容
+        // 插入占位符到内容
         const textarea = contentTextarea.value
         if (textarea) {
           const start = textarea.selectionStart
           const end = textarea.selectionEnd
-          const imageMarkdown = `![图片描述](${imageUrl})`
+          
+          // 使用占位符而不是实际URL
+          const imageMarkdown = `![](${placeholderId})\n*图片描述*`
           
           const before = content.value.substring(0, start)
           const after = content.value.substring(end)
           content.value = before + imageMarkdown + after
           
-          // 设置光标位置
+          // 设置光标位置 - position cursor to edit the caption
           setTimeout(() => {
-            const newPosition = start + imageMarkdown.length
+            // Position cursor on the caption text "图片描述"
+            const captionStart = start + imageMarkdown.indexOf('*图片描述*') + 1
+            const captionEnd = captionStart + 4 // length of "图片描述"
             textarea.focus()
-            textarea.setSelectionRange(newPosition, newPosition)
+            textarea.setSelectionRange(captionStart, captionEnd)
           }, 0)
         }
         
       } catch (err) {
-        console.error('上传内容图片失败:', err)
-        alert(err.message || '上传失败，请稍后重试')
+        console.error('处理内容图片失败:', err)
+        alert(err.message || '处理失败，请重试')
       } finally {
-        uploadingContent.value = false
         if (contentImageInput.value) {
           contentImageInput.value.value = ''
         }

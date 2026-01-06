@@ -127,7 +127,7 @@
                         <p class="mb-2 text-sm text-gray-500">
                           <span class="font-semibold">{{ uploadingCover ? '上传中...' : '点击上传封面图片' }}</span>
                         </p>
-                        <p class="text-xs text-gray-500">支持 PNG、JPG 格式，最大 5MB</p>
+                        <p class="text-xs text-gray-500">支持 PNG、JPG 格式，最大 10MB</p>
                       </div>
                     </label>
                   </div>
@@ -582,10 +582,12 @@ export default {
     const coverImageInput = ref(null)
     const coverImagePreview = ref('')
     const uploadingCover = ref(false)
+    const pendingCoverImageFile = ref(null) // 待上传的封面图片文件
 
     // 内容图片相关
     const contentImageInput = ref(null)
     const uploadingContent = ref(false)
+    const pendingContentImages = ref([]) // 待上传的内容图片 {file, placeholder}
 
     // 是否为草稿状态（从后端加载）
     const isDraft = ref(false)
@@ -801,25 +803,12 @@ export default {
       }
 
       // 验证文件大小
-      if (file.size > 5 * 1024 * 1024) {
-        alert('文件大小不能超过 5MB')
+      if (file.size > 10 * 1024 * 1024) {
+        alert('文件大小不能超过 10MB')
         return
       }
 
       try {
-        uploadingCover.value = true
-        
-        // 如果已有封面图片，先删除旧的
-        const oldImageUrl = formData.coverImageUrl
-        if (oldImageUrl && oldImageUrl.startsWith('/uploads/')) {
-          try {
-            await deleteImage(oldImageUrl)
-          } catch (error) {
-            console.error('删除旧封面图片失败:', error)
-            // 继续上传新图片
-          }
-        }
-        
         // 创建预览
         const reader = new FileReader()
         reader.onload = (e) => {
@@ -827,16 +816,16 @@ export default {
         }
         reader.readAsDataURL(file)
 
-        // 上传到服务器
-        const imageUrl = await uploadCoverImage(file)
-        formData.coverImageUrl = imageUrl
+        // 存储文件，稍后上传
+        pendingCoverImageFile.value = file
+        // 清除服务器URL（如果有）
+        formData.coverImageUrl = ''
         
       } catch (error) {
-        console.error('上传封面图片失败:', error)
-        alert(error.message || '上传失败，请稍后重试')
+        console.error('处理封面图片失败:', error)
+        alert(error.message || '处理失败，请重试')
         coverImagePreview.value = ''
       } finally {
-        uploadingCover.value = false
         if (coverImageInput.value) {
           coverImageInput.value.value = ''
         }
@@ -846,6 +835,9 @@ export default {
     // 删除封面图片
     const removeCoverImage = async () => {
       const imageUrlToDelete = formData.coverImageUrl
+      
+      // 清除待上传的文件
+      pendingCoverImageFile.value = null
       
       // 立即清空UI中的显示
       formData.coverImageUrl = ''
@@ -894,43 +886,58 @@ export default {
       }
 
       // 验证文件大小
-      if (file.size > 5 * 1024 * 1024) {
-        alert('文件大小不能超过 5MB')
+      if (file.size > 10 * 1024 * 1024) {
+        alert('文件大小不能超过 10MB')
         return
       }
 
       try {
-        uploadingContent.value = true
+        // 生成临时占位符ID
+        const placeholderId = `PENDING_IMAGE_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
         
-        // 上传到服务器
-        const imageUrl = await uploadContentImage(file)
+        // 存储文件和占位符
+        pendingContentImages.value.push({
+          file: file,
+          placeholder: placeholderId
+        })
         
-        // 插入图片到内容
+        // 插入占位符到内容
         const textarea = contentTextarea.value
         if (textarea) {
           const start = textarea.selectionStart
           const end = textarea.selectionEnd
+          
+          // 使用占位符而不是实际URL
           const imageMarkdown = formData.contentType === 'MARKDOWN' 
-            ? `![图片描述](${imageUrl})`
-            : `<img src="${imageUrl}" alt="图片描述" />`
+            ? `![](${placeholderId})\n*图片描述*`
+            : `<img src="${placeholderId}" alt="图片" />\n<p style="font-size: 0.875rem; color: #6b7280; text-align: center; margin-top: 0.25rem;">图片描述</p>`
           
           const before = formData.content.substring(0, start)
           const after = formData.content.substring(end)
           formData.content = before + imageMarkdown + after
           
-          // 设置光标位置
+          // 设置光标位置 - position cursor to edit the caption
           setTimeout(() => {
-            const newPosition = start + imageMarkdown.length
-            textarea.focus()
-            textarea.setSelectionRange(newPosition, newPosition)
+            if (formData.contentType === 'MARKDOWN') {
+              // Position cursor on the caption text "图片描述"
+              const captionStart = start + imageMarkdown.indexOf('*图片描述*') + 1
+              const captionEnd = captionStart + 4 // length of "图片描述"
+              textarea.focus()
+              textarea.setSelectionRange(captionStart, captionEnd)
+            } else {
+              // For HTML, position cursor on the caption text
+              const captionStart = start + imageMarkdown.indexOf('图片描述')
+              const captionEnd = captionStart + 4
+              textarea.focus()
+              textarea.setSelectionRange(captionStart, captionEnd)
+            }
           }, 0)
         }
         
       } catch (error) {
-        console.error('上传内容图片失败:', error)
-        alert(error.message || '上传失败，请稍后重试')
+        console.error('处理内容图片失败:', error)
+        alert(error.message || '处理失败，请重试')
       } finally {
-        uploadingContent.value = false
         if (contentImageInput.value) {
           contentImageInput.value.value = ''
         }
@@ -973,6 +980,7 @@ export default {
         originalFormData.content = post.content || ''
         originalFormData.contentType = post.contentType || 'MARKDOWN'
         originalFormData.tags = post.tags ? post.tags.map(tag => tag.name) : []
+        originalFormData.coverImageUrl = post.coverImageUrl || ''
 
         // Check if there's saved session data that's newer
         if (savedData && savedData.timestamp) {
@@ -998,6 +1006,56 @@ export default {
       }
     }
 
+    // 上传所有待上传的图片
+    const uploadPendingImages = async () => {
+      try {
+        // 1. 上传封面图片（如果有待上传的）
+        if (pendingCoverImageFile.value) {
+          uploadingCover.value = true
+          
+          // 如果已有封面图片，先删除旧的
+          const oldImageUrl = formData.coverImageUrl
+          if (oldImageUrl && oldImageUrl.startsWith('/uploads/')) {
+            try {
+              await deleteImage(oldImageUrl)
+            } catch (error) {
+              console.error('删除旧封面图片失败:', error)
+            }
+          }
+          
+          // 上传新封面
+          const coverUrl = await uploadCoverImage(pendingCoverImageFile.value)
+          formData.coverImageUrl = coverUrl
+          pendingCoverImageFile.value = null
+          uploadingCover.value = false
+        }
+        
+        // 2. 上传内容图片并替换占位符
+        if (pendingContentImages.value.length > 0) {
+          uploadingContent.value = true
+          
+          for (const pending of pendingContentImages.value) {
+            // 上传图片
+            const imageUrl = await uploadContentImage(pending.file)
+            
+            // 替换内容中的占位符
+            formData.content = formData.content.replace(
+              new RegExp(pending.placeholder, 'g'),
+              imageUrl
+            )
+          }
+          
+          // 清空待上传列表
+          pendingContentImages.value = []
+          uploadingContent.value = false
+        }
+      } catch (error) {
+        uploadingCover.value = false
+        uploadingContent.value = false
+        throw error
+      }
+    }
+
     // 保存草稿（draft = true）
     const saveDraft = async () => {
       if (!validateForm()) {
@@ -1007,6 +1065,9 @@ export default {
       loading.value = true
 
       try {
+        // 先上传所有待上传的图片
+        await uploadPendingImages()
+        
         const postData = {
           title: formData.title,
           content: formData.content,
@@ -1051,6 +1112,9 @@ export default {
       loading.value = true
 
       try {
+        // 先上传所有待上传的图片
+        await uploadPendingImages()
+        
         const postData = {
           title: formData.title,
           content: formData.content,

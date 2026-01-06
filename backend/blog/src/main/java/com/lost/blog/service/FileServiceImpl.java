@@ -31,7 +31,7 @@ public class FileServiceImpl implements FileService {
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList(".jpg", ".jpeg", ".png");
     private static final List<String> ALLOWED_CONTENT_TYPES = Arrays.asList("image/jpeg", "image/png");
 
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     private static final int MAX_WIDTH = 2000;
     private static final int MAX_HEIGHT = 2000;
     private static final int MIN_WIDTH = 50;
@@ -191,7 +191,7 @@ public class FileServiceImpl implements FileService {
 
         try {
             if (file.getSize() > MAX_FILE_SIZE) {
-                throw new RuntimeException("文件大小不能超过5MB");
+                throw new RuntimeException("文件大小不能超过10MB");
             }
 
             String contentType = file.getContentType();
