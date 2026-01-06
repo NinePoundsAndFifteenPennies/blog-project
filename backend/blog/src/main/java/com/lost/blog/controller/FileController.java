@@ -126,4 +126,30 @@ public class FileController {
                     .body("文件上传失败: " + e.getMessage());
         }
     }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteImage(
+            @AuthenticationPrincipal UserDetails currentUser,
+            @RequestParam("imageUrl") String imageUrl) {
+        
+        // 验证用户身份
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("未登录或token无效，请先登录");
+        }
+
+        try {
+            fileService.deleteImage(imageUrl);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "图片删除成功");
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("图片删除失败: " + e.getMessage());
+        }
+    }
 }

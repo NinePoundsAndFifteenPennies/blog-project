@@ -479,7 +479,7 @@ import 'highlight.js/styles/atom-one-dark.css'
 import Header from '@/components/Header.vue'
 import TableEditorModal from '@/components/TableEditorModal.vue'
 import { getPostById, createPost, updatePost } from '@/api/posts'
-import { uploadCoverImage, uploadContentImage } from '@/api/files'
+import { uploadCoverImage, uploadContentImage, deleteImage } from '@/api/files'
 
 // 注册语言
 hljs.registerLanguage('javascript', javascript)
@@ -809,6 +809,17 @@ export default {
       try {
         uploadingCover.value = true
         
+        // 如果已有封面图片，先删除旧的
+        const oldImageUrl = formData.coverImageUrl
+        if (oldImageUrl && oldImageUrl.startsWith('/uploads/')) {
+          try {
+            await deleteImage(oldImageUrl)
+          } catch (error) {
+            console.error('删除旧封面图片失败:', error)
+            // 继续上传新图片
+          }
+        }
+        
         // 创建预览
         const reader = new FileReader()
         reader.onload = (e) => {
@@ -833,11 +844,24 @@ export default {
     }
 
     // 删除封面图片
-    const removeCoverImage = () => {
+    const removeCoverImage = async () => {
+      const imageUrlToDelete = formData.coverImageUrl
+      
+      // 立即清空UI中的显示
       formData.coverImageUrl = ''
       coverImagePreview.value = ''
       if (coverImageInput.value) {
         coverImageInput.value.value = ''
+      }
+      
+      // 如果有服务器上的图片URL，异步删除它
+      if (imageUrlToDelete && imageUrlToDelete.startsWith('/uploads/')) {
+        try {
+          await deleteImage(imageUrlToDelete)
+        } catch (error) {
+          console.error('删除封面图片失败:', error)
+          // 不需要提示用户，因为UI已经更新了
+        }
       }
     }
 

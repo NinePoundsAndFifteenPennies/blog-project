@@ -10,4 +10,6 @@ public interface FileService {
     String uploadCoverImage(String username, org.springframework.web.multipart.MultipartFile file);
     
     String uploadContentImage(String username, org.springframework.web.multipart.MultipartFile file);
+    
+    void deleteImage(String imageUrl);
 }

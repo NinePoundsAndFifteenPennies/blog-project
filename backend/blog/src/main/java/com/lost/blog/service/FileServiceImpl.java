@@ -87,7 +87,6 @@ public class FileServiceImpl implements FileService {
         return saveImageFile(userId, file, "avatars");
     }
 
-    @Override
     private Path resolveBaseDir() {
         Path configured = Paths.get(uploadBaseDir);
         if (configured.isAbsolute()) {
@@ -121,6 +120,27 @@ public class FileServiceImpl implements FileService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
         return saveImageFile(user.getId(), file, "images");
+    }
+
+    @Override
+    public void deleteImage(String imageUrl) {
+        if (imageUrl == null || imageUrl.isEmpty()) {
+            return;
+        }
+
+        try {
+            String filePath = imageUrl.startsWith("/") ? imageUrl.substring(1) : imageUrl;
+            Path path = Paths.get(filePath);
+            if (!path.isAbsolute()) {
+                // resolve relative to resolved base dir
+                path = resolveBaseDir().resolve(filePath).normalize();
+            }
+            if (Files.exists(path)) {
+                Files.delete(path);
+            }
+        } catch (IOException e) {
+            System.err.println("删除图片失败: " + e.getMessage());
+        }
     }
 
     private String saveImageFile(Long userId, MultipartFile file, String businessModule) {

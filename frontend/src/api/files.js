@@ -92,3 +92,16 @@ export async function uploadContentImage(file) {
     });
     return response.imageUrl;
 }
+
+/**
+ * 删除图片
+ * @param {string} imageUrl - 图片URL
+ * @returns {Promise<Object>} - 返回删除结果
+ */
+export async function deleteImage(imageUrl) {
+    return request({
+        url: '/files/delete',
+        method: 'delete',
+        params: { imageUrl },
+    });
+}
