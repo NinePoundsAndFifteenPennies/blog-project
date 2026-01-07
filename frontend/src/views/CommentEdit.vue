@@ -23,46 +23,11 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Editor Section -->
             <div class="space-y-4">
-              <!-- Format Type Selector -->
-              <div class="card p-6">
-                <label class="block text-sm font-medium text-gray-700 mb-3">
-                  内容格式
-                </label>
-                <div class="flex space-x-4">
-                  <button
-                    @click="contentMode = 'text'"
-                    type="button"
-                    class="flex-1 px-4 py-3 rounded-lg border-2 transition-all duration-200"
-                    :class="contentMode === 'text'
-                      ? 'border-primary-500 bg-primary-50 text-primary-700'
-                      : 'border-gray-200 hover:border-gray-300'"
-                  >
-                    <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
-                    </svg>
-                    <span class="font-medium">纯文本</span>
-                  </button>
-                  <button
-                    @click="contentMode = 'markdown'"
-                    type="button"
-                    class="flex-1 px-4 py-3 rounded-lg border-2 transition-all duration-200"
-                    :class="contentMode === 'markdown'
-                      ? 'border-primary-500 bg-primary-50 text-primary-700'
-                      : 'border-gray-200 hover:border-gray-300'"
-                  >
-                    <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                    </svg>
-                    <span class="font-medium">Markdown</span>
-                  </button>
-                </div>
-              </div>
-
               <!-- Editor Card -->
               <div class="card p-6">
                 <div class="mb-4 flex items-center justify-between border-b border-gray-200 pb-3">
                   <span class="text-sm font-medium text-gray-700">
-                    评论内容 ({{ contentMode === 'markdown' ? 'Markdown' : '纯文本' }})
+                    评论内容 (Markdown)
                   </span>
                   <div class="flex items-center space-x-4 text-sm text-gray-500">
                     <span>{{ content.length }} / 3000</span>
@@ -70,7 +35,7 @@
                 </div>
 
                 <!-- Markdown Toolbar -->
-                <div v-if="contentMode === 'markdown'" class="mb-3 flex flex-wrap gap-1 pb-3 border-b border-gray-100">
+                <div class="mb-3 flex flex-wrap gap-1 pb-3 border-b border-gray-100">
                   <button @click="insertMarkdown('heading')" type="button" class="toolbar-btn" title="标题">
                     <span class="font-bold text-sm">H</span>
                   </button>
@@ -112,23 +77,6 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                     </svg>
                   </button>
-                  <button @click="insertMarkdown('image')" type="button" class="toolbar-btn" title="通过URL插入图片">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </button>
-                  <button @click="triggerContentImageUpload" type="button" class="toolbar-btn" title="上传本地图片">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                  </button>
-                  <input 
-                    ref="contentImageInput"
-                    type="file" 
-                    class="hidden" 
-                    accept="image/jpeg,image/png"
-                    @change="handleContentImageSelect"
-                  />
                   <button @click="insertMarkdown('codeblock')" type="button" class="toolbar-btn" title="代码块">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
@@ -140,9 +88,8 @@
                 <textarea
                   ref="contentTextarea"
                   v-model="content"
-                  :placeholder="contentMode === 'markdown' ? '支持 Markdown 语法，如 **加粗**、*斜体*、`代码` 等...' : '输入您的评论内容...'"
-                  class="w-full h-80 border-none outline-none resize-none leading-relaxed placeholder-gray-300"
-                  :class="contentMode === 'markdown' ? 'font-mono text-sm' : ''"
+                  placeholder="支持 Markdown 语法，如 **加粗**、*斜体*、`代码` 等..."
+                  class="w-full h-80 border-none outline-none resize-none leading-relaxed placeholder-gray-300 font-mono text-sm"
                 ></textarea>
                 <p v-if="error" class="mt-2 text-sm text-red-600">{{ error }}</p>
               </div>
@@ -157,8 +104,7 @@
                 </div>
 
                 <div v-if="content.trim()" class="min-h-[300px]">
-                  <div v-if="contentMode === 'markdown'" class="markdown-body" v-html="previewContent"></div>
-                  <div v-else class="text-gray-700 whitespace-pre-wrap">{{ content }}</div>
+                  <div class="markdown-body" v-html="previewContent"></div>
                 </div>
 
                 <div v-else class="text-center py-12 text-gray-400">
@@ -209,7 +155,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
 import Header from '@/components/Header.vue'
 import { updateComment } from '@/api/comments'
-import { uploadContentImage } from '@/api/files'
 
 export default {
   name: 'CommentEdit',
@@ -221,18 +166,14 @@ export default {
     const router = useRouter()
 
     const content = ref('')
-    const contentMode = ref('text')
     const saving = ref(false)
     const error = ref('')
     const contentTextarea = ref(null)
     const originalContent = ref('')
     const postId = ref(null)
-    const contentImageInput = ref(null)
-    const uploadingContent = ref(false)
-    const pendingContentImages = ref([]) // 待上传的内容图片 {file, placeholder}
 
     const previewContent = computed(() => {
-      if (!content.value || contentMode.value !== 'markdown') return ''
+      if (!content.value) return ''
       try {
         return marked(content.value)
       } catch (error) {
@@ -248,40 +189,10 @@ export default {
         content.value = commentData.content || ''
         originalContent.value = commentData.content || ''
         postId.value = commentData.postId
-        
-        // Detect if content is markdown
-        if (/[#*`[\]_~]/.test(content.value)) {
-          contentMode.value = 'markdown'
-        }
       } else {
         // If no comment data, redirect back
         alert('评论数据丢失')
         router.back()
-      }
-    }
-
-    const uploadPendingImages = async () => {
-      // 上传内容图片并替换占位符
-      if (pendingContentImages.value.length > 0) {
-        uploadingContent.value = true
-        
-        try {
-          for (const pending of pendingContentImages.value) {
-            // 上传图片
-            const imageUrl = await uploadContentImage(pending.file)
-            
-            // 替换内容中的占位符
-            content.value = content.value.replace(
-              new RegExp(pending.placeholder, 'g'),
-              imageUrl
-            )
-          }
-          
-          // 清空待上传列表
-          pendingContentImages.value = []
-        } finally {
-          uploadingContent.value = false
-        }
       }
     }
 
@@ -300,9 +211,6 @@ export default {
       error.value = ''
 
       try {
-        // 先上传所有待上传的图片
-        await uploadPendingImages()
-        
         const commentId = route.params.id
         await updateComment(commentId, content.value)
         
@@ -379,10 +287,6 @@ export default {
           insertText = `[${selectedText || '链接文本'}](url)`
           cursorOffset = selectedText ? insertText.length - 4 : insertText.length - 5
           break
-        case 'image':
-          insertText = `![${selectedText || '图片描述'}](url)`
-          cursorOffset = selectedText ? insertText.length - 4 : insertText.length - 5
-          break
         case 'codeblock':
           insertText = selectedText ? `\`\`\`\n${selectedText}\n\`\`\`` : '```\n代码块\n```'
           cursorOffset = selectedText ? insertText.length - 4 : insertText.length - 5
@@ -399,89 +303,19 @@ export default {
       }, 0)
     }
 
-    const triggerContentImageUpload = () => {
-      if (contentImageInput.value) {
-        contentImageInput.value.click()
-      }
-    }
-
-    const handleContentImageSelect = async (event) => {
-      const file = event.target.files[0]
-      if (!file) return
-
-      // 验证文件类型
-      if (!file.type.match(/image\/(jpeg|png)/)) {
-        alert('只支持 JPG 和 PNG 格式的图片')
-        return
-      }
-
-      // 验证文件大小
-      if (file.size > 10 * 1024 * 1024) {
-        alert('文件大小不能超过 10MB')
-        return
-      }
-
-      try {
-        // 生成临时占位符ID
-        const placeholderId = `PENDING_IMAGE_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        
-        // 存储文件和占位符
-        pendingContentImages.value.push({
-          file: file,
-          placeholder: placeholderId
-        })
-        
-        // 插入占位符到内容
-        const textarea = contentTextarea.value
-        if (textarea) {
-          const start = textarea.selectionStart
-          const end = textarea.selectionEnd
-          
-          // 使用占位符而不是实际URL
-          const imageMarkdown = `![](${placeholderId})\n*图片描述*`
-          
-          const before = content.value.substring(0, start)
-          const after = content.value.substring(end)
-          content.value = before + imageMarkdown + after
-          
-          // 设置光标位置 - position cursor to edit the caption
-          setTimeout(() => {
-            // Position cursor on the caption text "图片描述"
-            const captionStart = start + imageMarkdown.indexOf('*图片描述*') + 1
-            const captionEnd = captionStart + 4 // length of "图片描述"
-            textarea.focus()
-            textarea.setSelectionRange(captionStart, captionEnd)
-          }, 0)
-        }
-        
-      } catch (err) {
-        console.error('处理内容图片失败:', err)
-        alert(err.message || '处理失败，请重试')
-      } finally {
-        if (contentImageInput.value) {
-          contentImageInput.value.value = ''
-        }
-      }
-    }
-
     onMounted(() => {
       loadComment()
     })
 
     return {
       content,
-      contentMode,
       saving,
       error,
       contentTextarea,
       previewContent,
       handleSave,
       handleCancel,
-      insertMarkdown,
-      contentImageInput,
-      uploadingContent,
-      triggerContentImageUpload,
-      handleContentImageSelect
+      insertMarkdown
     }
   }
 }
