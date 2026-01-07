@@ -237,23 +237,11 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                     </svg>
                   </button>
-                  <button @click="insertMarkdown('image')" type="button" class="toolbar-btn" title="通过URL插入图片">
+                  <button @click="insertMarkdown('image')" type="button" class="toolbar-btn" title="图片">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </button>
-                  <button @click="triggerContentImageUpload" type="button" class="toolbar-btn" title="上传本地图片">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                  </button>
-                  <input 
-                    ref="contentImageInput"
-                    type="file" 
-                    class="hidden" 
-                    accept="image/jpeg,image/png"
-                    @change="handleContentImageSelect"
-                  />
                   <button @click="insertMarkdown('codeblock')" type="button" class="toolbar-btn" title="代码块">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
@@ -479,7 +467,7 @@ import 'highlight.js/styles/atom-one-dark.css'
 import Header from '@/components/Header.vue'
 import TableEditorModal from '@/components/TableEditorModal.vue'
 import { getPostById, createPost, updatePost } from '@/api/posts'
-import { uploadCoverImage, uploadContentImage, deleteImage } from '@/api/files'
+import { uploadCoverImage, deleteImage } from '@/api/files'
 
 // 注册语言
 hljs.registerLanguage('javascript', javascript)
@@ -583,11 +571,6 @@ export default {
     const coverImagePreview = ref('')
     const uploadingCover = ref(false)
     const pendingCoverImageFile = ref(null) // 待上传的封面图片文件
-
-    // 内容图片相关
-    const contentImageInput = ref(null)
-    const uploadingContent = ref(false)
-    const pendingContentImages = ref([]) // 待上传的内容图片 {file, placeholder}
 
     // 是否为草稿状态（从后端加载）
     const isDraft = ref(false)
@@ -867,83 +850,6 @@ export default {
       return `${window.location.origin}/${cleanUrl}`
     }
 
-    // 触发内容图片上传
-    const triggerContentImageUpload = () => {
-      if (contentImageInput.value) {
-        contentImageInput.value.click()
-      }
-    }
-
-    // 处理内容图片上传
-    const handleContentImageSelect = async (event) => {
-      const file = event.target.files[0]
-      if (!file) return
-
-      // 验证文件类型
-      if (!file.type.match(/image\/(jpeg|png)/)) {
-        alert('只支持 JPG 和 PNG 格式的图片')
-        return
-      }
-
-      // 验证文件大小
-      if (file.size > 10 * 1024 * 1024) {
-        alert('文件大小不能超过 10MB')
-        return
-      }
-
-      try {
-        // 生成临时占位符ID
-        const placeholderId = `PENDING_IMAGE_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        
-        // 存储文件和占位符
-        pendingContentImages.value.push({
-          file: file,
-          placeholder: placeholderId
-        })
-        
-        // 插入占位符到内容
-        const textarea = contentTextarea.value
-        if (textarea) {
-          const start = textarea.selectionStart
-          const end = textarea.selectionEnd
-          
-          // 使用占位符而不是实际URL
-          const imageMarkdown = formData.contentType === 'MARKDOWN' 
-            ? `![](${placeholderId})\n*图片描述*`
-            : `<img src="${placeholderId}" alt="图片" />\n<p style="font-size: 0.875rem; color: #6b7280; text-align: center; margin-top: 0.25rem;">图片描述</p>`
-          
-          const before = formData.content.substring(0, start)
-          const after = formData.content.substring(end)
-          formData.content = before + imageMarkdown + after
-          
-          // 设置光标位置 - position cursor to edit the caption
-          setTimeout(() => {
-            if (formData.contentType === 'MARKDOWN') {
-              // Position cursor on the caption text "图片描述"
-              const captionStart = start + imageMarkdown.indexOf('*图片描述*') + 1
-              const captionEnd = captionStart + 4 // length of "图片描述"
-              textarea.focus()
-              textarea.setSelectionRange(captionStart, captionEnd)
-            } else {
-              // For HTML, position cursor on the caption text
-              const captionStart = start + imageMarkdown.indexOf('图片描述')
-              const captionEnd = captionStart + 4
-              textarea.focus()
-              textarea.setSelectionRange(captionStart, captionEnd)
-            }
-          }, 0)
-        }
-        
-      } catch (error) {
-        console.error('处理内容图片失败:', error)
-        alert(error.message || '处理失败，请重试')
-      } finally {
-        if (contentImageInput.value) {
-          contentImageInput.value.value = ''
-        }
-      }
-    }
-
     // 加载文章数据(编辑模式)
     const loadPost = async () => {
       // First check if there's auto-saved content
@@ -1009,7 +915,7 @@ export default {
     // 上传所有待上传的图片
     const uploadPendingImages = async () => {
       try {
-        // 1. 上传封面图片（如果有待上传的）
+        // 上传封面图片（如果有待上传的）
         if (pendingCoverImageFile.value) {
           uploadingCover.value = true
           
@@ -1029,29 +935,8 @@ export default {
           pendingCoverImageFile.value = null
           uploadingCover.value = false
         }
-        
-        // 2. 上传内容图片并替换占位符
-        if (pendingContentImages.value.length > 0) {
-          uploadingContent.value = true
-          
-          for (const pending of pendingContentImages.value) {
-            // 上传图片
-            const imageUrl = await uploadContentImage(pending.file)
-            
-            // 替换内容中的占位符
-            formData.content = formData.content.replace(
-              new RegExp(pending.placeholder, 'g'),
-              imageUrl
-            )
-          }
-          
-          // 清空待上传列表
-          pendingContentImages.value = []
-          uploadingContent.value = false
-        }
       } catch (error) {
         uploadingCover.value = false
-        uploadingContent.value = false
         throw error
       }
     }
@@ -1662,11 +1547,7 @@ export default {
       uploadingCover,
       handleCoverImageSelect,
       removeCoverImage,
-      getFullImageUrl,
-      contentImageInput,
-      uploadingContent,
-      triggerContentImageUpload,
-      handleContentImageSelect
+      getFullImageUrl
     }
   }
 }

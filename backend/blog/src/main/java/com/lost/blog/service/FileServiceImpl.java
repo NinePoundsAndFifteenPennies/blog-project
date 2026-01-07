@@ -120,13 +120,6 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public String uploadContentImage(String username, MultipartFile file) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("用户不存在"));
-        return saveImageFile(user.getId(), file, "images");
-    }
-
-    @Override
     public void deleteImage(String username, String imageUrl) {
         if (imageUrl == null || imageUrl.isEmpty()) {
             return;

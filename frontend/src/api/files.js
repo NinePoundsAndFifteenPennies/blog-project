@@ -74,26 +74,6 @@ export async function uploadCoverImage(file) {
 }
 
 /**
- * 上传内容图片（用于文章内容或评论）
- * @param {File} file - 图片文件
- * @returns {Promise<string>} - 返回图片URL
- */
-export async function uploadContentImage(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await request({
-        url: '/files/upload/content',
-        method: 'post',
-        data: formData,
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-    });
-    return response.imageUrl;
-}
-
-/**
  * 删除图片
  * @param {string} imageUrl - 图片URL
  * @returns {Promise<Object>} - 返回删除结果
