@@ -32,8 +32,8 @@ public class FileServiceImpl implements FileService {
     private static final List<String> ALLOWED_CONTENT_TYPES = Arrays.asList("image/jpeg", "image/png");
 
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-    private static final int MAX_WIDTH = 2000;
-    private static final int MAX_HEIGHT = 2000;
+    private static final int MAX_WIDTH = 4096;  // 4K width
+    private static final int MAX_HEIGHT = 4096; // 4K height
     private static final int MIN_WIDTH = 50;
     private static final int MIN_HEIGHT = 50;
 

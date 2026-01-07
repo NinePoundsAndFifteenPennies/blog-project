@@ -40,6 +40,7 @@ public class PostServiceImpl implements PostService {
     private final com.lost.blog.repository.CommentRepository commentRepository;
     private final com.lost.blog.repository.LikeRepository likeRepository;
     private final com.lost.blog.repository.CategoryRepository categoryRepository;
+    private final FileService fileService;
 
     @Autowired
     public PostServiceImpl(PostRepository postRepository,
@@ -49,7 +50,8 @@ public class PostServiceImpl implements PostService {
                            PostMapper postMapper,
                            com.lost.blog.repository.CommentRepository commentRepository,
                            com.lost.blog.repository.LikeRepository likeRepository,
-                           com.lost.blog.repository.CategoryRepository categoryRepository) {
+                           com.lost.blog.repository.CategoryRepository categoryRepository,
+                           FileService fileService) {
         this.postRepository = postRepository;
         this.postViewLogRepository = postViewLogRepository;
         this.userRepository = userRepository;
@@ -58,6 +60,7 @@ public class PostServiceImpl implements PostService {
         this.commentRepository = commentRepository;
         this.likeRepository = likeRepository;
         this.categoryRepository = categoryRepository;
+        this.fileService = fileService;
     }
 
     @Override
@@ -218,12 +221,28 @@ public class PostServiceImpl implements PostService {
         boolean wasDraft = post.getDraft();
         boolean willBeDraft = postRequest.getDraft() != null ? postRequest.getDraft() : false;
 
+        // 处理封面图片更新 - 删除旧的封面图片（如果有变化）
+        String oldCoverImageUrl = post.getCoverImageUrl();
+        String newCoverImageUrl = postRequest.getCoverImageUrl();
+        
+        // 如果封面图片发生变化且旧的不为空，删除旧文件
+        if (oldCoverImageUrl != null && !oldCoverImageUrl.isEmpty() && 
+            !oldCoverImageUrl.equals(newCoverImageUrl)) {
+            try {
+                fileService.deleteImage(currentUser.getUsername(), oldCoverImageUrl);
+                logger.info("删除旧封面图片: {}", oldCoverImageUrl);
+            } catch (Exception e) {
+                logger.warn("删除旧封面图片失败: {}, 错误: {}", oldCoverImageUrl, e.getMessage());
+                // 继续执行，不影响文章更新
+            }
+        }
+
         // 更新字段
         post.setTitle(postRequest.getTitle());
         post.setContent(postRequest.getContent());
         post.setContentType(postRequest.getContentType());
         post.setDraft(willBeDraft);
-        post.setCoverImageUrl(postRequest.getCoverImageUrl());
+        post.setCoverImageUrl(newCoverImageUrl);
 
         // 更新标签
         if (postRequest.getTags() != null) {
@@ -281,6 +300,17 @@ public class PostServiceImpl implements PostService {
         // 删除该文章的所有浏览日志
         postViewLogRepository.deleteByPost(post);
         logger.info("删除文章ID: {} 的所有浏览日志", id);
+
+        // 删除封面图片（如果有）
+        if (post.getCoverImageUrl() != null && !post.getCoverImageUrl().isEmpty()) {
+            try {
+                fileService.deleteImage(currentUser.getUsername(), post.getCoverImageUrl());
+                logger.info("删除文章ID: {} 的封面图片: {}", id, post.getCoverImageUrl());
+            } catch (Exception e) {
+                logger.warn("删除文章封面图片失败: {}, 错误: {}", post.getCoverImageUrl(), e.getMessage());
+                // 继续执行，不影响文章删除
+            }
+        }
 
         postRepository.delete(post);
         logger.info("用户 {} 删除了文章，ID: {}，标题: {}",
