@@ -277,7 +277,8 @@ Content-Type: application/json
   "contentType": "MARKDOWN",
   "draft": false,
   "category": "技术文章",
-  "tags": ["Java", "Spring Boot"]
+  "tags": ["Java", "Spring Boot"],
+  "coverImageUrl": "/uploads/1/covers/abc123.jpg"
 }
 ```
 
@@ -288,6 +289,7 @@ Content-Type: application/json
 - `draft`: 是否为草稿（true: 草稿，false: 发布）
 - `category`: 分类名称（可选），如果分类不存在会自动创建
 - `tags`: 标签名称列表（可选），如果标签不存在会自动创建
+- `coverImageUrl`: 封面图片URL（可选），通过 `/api/files/upload/cover` 上传后获得
 
 **成功响应:** `201 Created`
 ```json
@@ -632,7 +634,7 @@ Content-Type: multipart/form-data
 ```
 
 **请求参数:**
-- `file`: 图片文件（JPG/PNG，最大 5MB，尺寸 50x50 至 2000x2000 像素）
+- `file`: 图片文件（JPG/PNG，最大 10MB，尺寸 50x50 至 4096x4096 像素）
 
 **成功响应:** `200 OK`
 ```json
@@ -659,7 +661,7 @@ Content-Type: multipart/form-data
 ```
 
 **请求参数:**
-- `file`: 图片文件（JPG/PNG，最大 5MB，尺寸 50x50 至 2000x2000 像素）
+- `file`: 图片文件（JPG/PNG，最大 10MB，尺寸 50x50 至 4096x4096 像素）
 
 **成功响应:** `200 OK`
 ```json
@@ -669,6 +671,67 @@ Content-Type: multipart/form-data
 ```
 
 **说明:** 旧头像文件会被自动删除。
+
+---
+
+### 上传文章封面图片
+
+上传文章封面图片。封面图片会在文章保存/发布时上传。
+
+```http
+POST /api/files/upload/cover
+Authorization: Bearer {token}
+Content-Type: multipart/form-data
+```
+
+**请求参数:**
+- `file`: 图片文件（JPG/PNG，最大 10MB，尺寸 50x50 至 4096x4096 像素）
+
+**成功响应:** `200 OK`
+```json
+{
+  "imageUrl": "/uploads/1/covers/xyz789.jpg"
+}
+```
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `400 Bad Request` - 文件格式、大小或尺寸不符合要求
+
+**说明:** 
+- 封面图片存储在 `uploads/{userId}/covers/` 目录下
+- 当文章封面更新或文章删除时，旧封面文件会被自动删除
+
+---
+
+### 删除图片
+
+删除用户上传的图片文件（包括封面图片）。
+
+```http
+DELETE /api/files/delete
+Authorization: Bearer {token}
+```
+
+**请求参数:**
+- `imageUrl`: 图片URL（如 `/uploads/1/covers/xyz789.jpg`）
+
+**成功响应:** `200 OK`
+```json
+{
+  "message": "图片删除成功"
+}
+```
+
+**错误响应:**
+- `401 Unauthorized` - 未登录或 token 无效
+- `403 Forbidden` - 无权删除该文件（只能删除自己的文件）
+- `400 Bad Request` - 无效的文件路径
+
+**安全特性:**
+- 验证用户身份和文件所有权
+- 防止路径遍历攻击
+- 只允许删除 `uploads/{userId}/` 目录下的文件
 
 ## 点赞相关接口
 
