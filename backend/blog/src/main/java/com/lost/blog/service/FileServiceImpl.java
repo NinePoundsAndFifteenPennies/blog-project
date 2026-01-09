@@ -154,8 +154,8 @@ public class FileServiceImpl implements FileService {
             }
             
             // Resolve path safely
-            // The filePath is in format "uploads/{userId}/...", and resolveBaseDir() returns the uploads directory
-            // So we need to strip the "uploads/" prefix before resolving
+            // The filePath is validated above to start with "uploads/", so we can safely strip it
+            // resolveBaseDir() returns the uploads directory, so we resolve relative to that
             String relativePath = filePath.substring("uploads/".length());
             Path path = resolveBaseDir().resolve(relativePath).normalize();
             
