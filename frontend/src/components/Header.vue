@@ -236,8 +236,11 @@ export default {
     // 处理搜索
     const handleSearch = () => {
       if (searchQuery.value.trim()) {
-        // TODO: 搜索功能暂未实现
-        console.log('搜索:', searchQuery.value)
+        // 导航到搜索结果页面，使用keyword参数
+        router.push({ 
+          path: '/search', 
+          query: { keyword: searchQuery.value.trim() } 
+        })
         searchQuery.value = ''
       }
     }

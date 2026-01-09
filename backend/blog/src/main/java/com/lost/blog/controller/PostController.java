@@ -131,4 +131,34 @@ public class PostController {
         Page<PostResponse> posts = postService.getPostsByUsername(username, pageable, currentUser);
         return ResponseEntity.ok(posts);
     }
+
+    /**
+     * 搜索文章
+     * 支持多维度搜索：关键词（标题+内容）、作者、标题、标签
+     * 搜索结果支持按时间或热度排序
+     * 
+     * @param keyword 通用关键词，匹配标题和内容
+     * @param author 作者用户名或昵称（模糊匹配）
+     * @param title 标题关键词（模糊匹配）
+     * @param tag 标签名称（模糊匹配）
+     * @param sortBy 排序方式：time（默认）或 hotness
+     * @param order 排序顺序：desc（默认）或 asc
+     * @param pageable 分页参数
+     * @param currentUser 当前登录用户（用于判断点赞状态）
+     * @return 分页搜索结果
+     */
+    @GetMapping("/search")
+    public ResponseEntity<Page<PostResponse>> searchPosts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String author,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String tag,
+            @RequestParam(required = false, defaultValue = "time") String sortBy,
+            @RequestParam(required = false, defaultValue = "desc") String order,
+            Pageable pageable,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        Page<PostResponse> posts = postService.searchPosts(
+                keyword, author, title, tag, sortBy, order, pageable, currentUser);
+        return ResponseEntity.ok(posts);
+    }
 }

@@ -83,4 +83,197 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     default Page<Post> findByDraftFalseOrderByHotness(boolean ascending, Pageable pageable) {
         return ascending ? findByDraftFalseOrderByHotnessAsc(pageable) : findByDraftFalseOrderByHotnessDesc(pageable);
     }
+
+    // ======================= 搜索相关方法 =======================
+
+    /**
+     * 综合搜索已发布文章（按创建时间降序）
+     * 支持按关键词（标题+内容）、作者、标签进行搜索
+     */
+    @Query(value = """
+        SELECT DISTINCT p.* FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN post_tags pt ON p.id = pt.post_id
+        LEFT JOIN tags t ON pt.tag_id = t.id
+        WHERE p.is_draft = false
+          AND (:keyword IS NULL OR :keyword = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:author IS NULL OR :author = '' 
+               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
+               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
+          AND (:title IS NULL OR :title = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :title, '%')))
+          AND (:tag IS NULL OR :tag = '' 
+               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :tag, '%')))
+        ORDER BY p.created_at DESC
+        """,
+        countQuery = """
+        SELECT COUNT(DISTINCT p.id) FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN post_tags pt ON p.id = pt.post_id
+        LEFT JOIN tags t ON pt.tag_id = t.id
+        WHERE p.is_draft = false
+          AND (:keyword IS NULL OR :keyword = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:author IS NULL OR :author = '' 
+               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
+               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
+          AND (:title IS NULL OR :title = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :title, '%')))
+          AND (:tag IS NULL OR :tag = '' 
+               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :tag, '%')))
+        """,
+        nativeQuery = true)
+    Page<Post> searchPostsByTimeDesc(
+            @Param("keyword") String keyword,
+            @Param("author") String author,
+            @Param("title") String title,
+            @Param("tag") String tag,
+            Pageable pageable);
+
+    /**
+     * 综合搜索已发布文章（按创建时间升序）
+     */
+    @Query(value = """
+        SELECT DISTINCT p.* FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN post_tags pt ON p.id = pt.post_id
+        LEFT JOIN tags t ON pt.tag_id = t.id
+        WHERE p.is_draft = false
+          AND (:keyword IS NULL OR :keyword = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:author IS NULL OR :author = '' 
+               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
+               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
+          AND (:title IS NULL OR :title = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :title, '%')))
+          AND (:tag IS NULL OR :tag = '' 
+               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :tag, '%')))
+        ORDER BY p.created_at ASC
+        """,
+        countQuery = """
+        SELECT COUNT(DISTINCT p.id) FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN post_tags pt ON p.id = pt.post_id
+        LEFT JOIN tags t ON pt.tag_id = t.id
+        WHERE p.is_draft = false
+          AND (:keyword IS NULL OR :keyword = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:author IS NULL OR :author = '' 
+               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
+               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
+          AND (:title IS NULL OR :title = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :title, '%')))
+          AND (:tag IS NULL OR :tag = '' 
+               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :tag, '%')))
+        """,
+        nativeQuery = true)
+    Page<Post> searchPostsByTimeAsc(
+            @Param("keyword") String keyword,
+            @Param("author") String author,
+            @Param("title") String title,
+            @Param("tag") String tag,
+            Pageable pageable);
+
+    /**
+     * 综合搜索已发布文章（按热度降序）
+     */
+    @Query(value = """
+        SELECT DISTINCT p.* FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN post_tags pt ON p.id = pt.post_id
+        LEFT JOIN tags t ON pt.tag_id = t.id
+        LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM likes WHERE post_id IS NOT NULL GROUP BY post_id) l ON p.id = l.post_id
+        LEFT JOIN (SELECT post_id, COUNT(*) as comment_count FROM comments GROUP BY post_id) c ON p.id = c.post_id
+        WHERE p.is_draft = false
+          AND (:keyword IS NULL OR :keyword = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:author IS NULL OR :author = '' 
+               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
+               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
+          AND (:title IS NULL OR :title = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :title, '%')))
+          AND (:tag IS NULL OR :tag = '' 
+               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :tag, '%')))
+        ORDER BY (p.view_count * 0.1 + COALESCE(l.like_count, 0) * 5 + COALESCE(c.comment_count, 0) * 10) / 
+                 POW(TIMESTAMPDIFF(HOUR, p.created_at, NOW()) + 2, 1.2) DESC
+        """,
+        countQuery = """
+        SELECT COUNT(DISTINCT p.id) FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN post_tags pt ON p.id = pt.post_id
+        LEFT JOIN tags t ON pt.tag_id = t.id
+        WHERE p.is_draft = false
+          AND (:keyword IS NULL OR :keyword = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:author IS NULL OR :author = '' 
+               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
+               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
+          AND (:title IS NULL OR :title = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :title, '%')))
+          AND (:tag IS NULL OR :tag = '' 
+               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :tag, '%')))
+        """,
+        nativeQuery = true)
+    Page<Post> searchPostsByHotnessDesc(
+            @Param("keyword") String keyword,
+            @Param("author") String author,
+            @Param("title") String title,
+            @Param("tag") String tag,
+            Pageable pageable);
+
+    /**
+     * 综合搜索已发布文章（按热度升序）
+     */
+    @Query(value = """
+        SELECT DISTINCT p.* FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN post_tags pt ON p.id = pt.post_id
+        LEFT JOIN tags t ON pt.tag_id = t.id
+        LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM likes WHERE post_id IS NOT NULL GROUP BY post_id) l ON p.id = l.post_id
+        LEFT JOIN (SELECT post_id, COUNT(*) as comment_count FROM comments GROUP BY post_id) c ON p.id = c.post_id
+        WHERE p.is_draft = false
+          AND (:keyword IS NULL OR :keyword = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:author IS NULL OR :author = '' 
+               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
+               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
+          AND (:title IS NULL OR :title = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :title, '%')))
+          AND (:tag IS NULL OR :tag = '' 
+               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :tag, '%')))
+        ORDER BY (p.view_count * 0.1 + COALESCE(l.like_count, 0) * 5 + COALESCE(c.comment_count, 0) * 10) / 
+                 POW(TIMESTAMPDIFF(HOUR, p.created_at, NOW()) + 2, 1.2) ASC
+        """,
+        countQuery = """
+        SELECT COUNT(DISTINCT p.id) FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN post_tags pt ON p.id = pt.post_id
+        LEFT JOIN tags t ON pt.tag_id = t.id
+        WHERE p.is_draft = false
+          AND (:keyword IS NULL OR :keyword = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:author IS NULL OR :author = '' 
+               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
+               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
+          AND (:title IS NULL OR :title = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :title, '%')))
+          AND (:tag IS NULL OR :tag = '' 
+               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :tag, '%')))
+        """,
+        nativeQuery = true)
+    Page<Post> searchPostsByHotnessAsc(
+            @Param("keyword") String keyword,
+            @Param("author") String author,
+            @Param("title") String title,
+            @Param("tag") String tag,
+            Pageable pageable);
 }

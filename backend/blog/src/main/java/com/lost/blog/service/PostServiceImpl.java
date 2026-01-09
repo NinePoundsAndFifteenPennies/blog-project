@@ -454,4 +454,82 @@ public class PostServiceImpl implements PostService {
         
         return postsPage.map(post -> postMapper.toResponse(post, currentUser));
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PostResponse> searchPosts(
+            String keyword,
+            String author,
+            String title,
+            String tag,
+            String sortBy,
+            String order,
+            Pageable pageable,
+            UserDetails currentUser) {
+        
+        // 预处理搜索词：去除首尾空格，处理特殊字符
+        String normalizedKeyword = normalizeSearchTerm(keyword);
+        String normalizedAuthor = normalizeSearchTerm(author);
+        String normalizedTitle = normalizeSearchTerm(title);
+        String normalizedTag = normalizeSearchTerm(tag);
+        
+        logger.debug("执行搜索：keyword={}, author={}, title={}, tag={}, sortBy={}, order={}",
+                normalizedKeyword, normalizedAuthor, normalizedTitle, normalizedTag, sortBy, order);
+        
+        Page<Post> postsPage;
+        boolean ascending = "asc".equalsIgnoreCase(order);
+        
+        // 根据排序方式选择不同的查询方法
+        if ("hotness".equalsIgnoreCase(sortBy)) {
+            if (ascending) {
+                postsPage = postRepository.searchPostsByHotnessAsc(
+                        normalizedKeyword, normalizedAuthor, normalizedTitle, normalizedTag, pageable);
+            } else {
+                postsPage = postRepository.searchPostsByHotnessDesc(
+                        normalizedKeyword, normalizedAuthor, normalizedTitle, normalizedTag, pageable);
+            }
+        } else {
+            // 默认按时间排序
+            if (ascending) {
+                postsPage = postRepository.searchPostsByTimeAsc(
+                        normalizedKeyword, normalizedAuthor, normalizedTitle, normalizedTag, pageable);
+            } else {
+                postsPage = postRepository.searchPostsByTimeDesc(
+                        normalizedKeyword, normalizedAuthor, normalizedTitle, normalizedTag, pageable);
+            }
+        }
+        
+        logger.debug("搜索结果：共 {} 条记录", postsPage.getTotalElements());
+        
+        return postsPage.map(post -> postMapper.toResponse(post, currentUser));
+    }
+
+    /**
+     * 预处理搜索词
+     * - 去除首尾空格
+     * - 转义SQL特殊字符（%和_）以防止意外的模式匹配
+     * - 移除URL中的协议前缀和常见标点符号，提升匹配效果
+     * - 空字符串转换为null，让SQL查询可以正确处理
+     */
+    private String normalizeSearchTerm(String term) {
+        if (term == null || term.trim().isEmpty()) {
+            return null;
+        }
+        
+        String normalized = term.trim();
+        
+        // 转义SQL LIKE的特殊字符
+        normalized = normalized.replace("\\", "\\\\");
+        normalized = normalized.replace("%", "\\%");
+        normalized = normalized.replace("_", "\\_");
+        
+        // 移除常见的URL协议前缀（如果用户搜索URL相关内容）
+        normalized = normalized.replaceAll("^(https?://|www\\.)", "");
+        
+        // 移除首尾的常见标点符号（保留中间的）
+        normalized = normalized.replaceAll("^[.,;:!?\"'`()\\[\\]{}]+", "");
+        normalized = normalized.replaceAll("[.,;:!?\"'`()\\[\\]{}]+$", "");
+        
+        return normalized.isEmpty() ? null : normalized;
+    }
 }

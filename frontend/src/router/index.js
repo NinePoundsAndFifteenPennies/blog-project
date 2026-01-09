@@ -112,6 +112,12 @@ const routes = [
         meta: { title: "标签文章" },
     },
     {
+        path: "/search",
+        name: "Search",
+        component: () => import("@/views/Search.vue"),
+        meta: { title: "搜索结果" },
+    },
+    {
         path: "/:pathMatch(.*)*",
         name: "NotFound",
         component: () => import("@/views/NotFound.vue"),
