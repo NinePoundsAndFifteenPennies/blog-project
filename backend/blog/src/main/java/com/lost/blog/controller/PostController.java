@@ -5,17 +5,21 @@ import com.lost.blog.dto.PostResponse;
 import com.lost.blog.service.PostService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 @RestController
 @RequestMapping("/api/posts")
+@Validated
 public class PostController {
 
     private final PostService postService;
@@ -149,12 +153,12 @@ public class PostController {
      */
     @GetMapping("/search")
     public ResponseEntity<Page<PostResponse>> searchPosts(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String author,
-            @RequestParam(required = false) String title,
-            @RequestParam(required = false) String tag,
-            @RequestParam(required = false, defaultValue = "time") String sortBy,
-            @RequestParam(required = false, defaultValue = "desc") String order,
+            @RequestParam(required = false) @Size(max = 200, message = "关键词长度不能超过200个字符") String keyword,
+            @RequestParam(required = false) @Size(max = 50, message = "作者名称长度不能超过50个字符") String author,
+            @RequestParam(required = false) @Size(max = 100, message = "标题长度不能超过100个字符") String title,
+            @RequestParam(required = false) @Size(max = 50, message = "标签名称长度不能超过50个字符") String tag,
+            @RequestParam(required = false, defaultValue = "time") @Pattern(regexp = "^(time|hotness)$", message = "sortBy只能是time或hotness") String sortBy,
+            @RequestParam(required = false, defaultValue = "desc") @Pattern(regexp = "^(asc|desc)$", message = "order只能是asc或desc") String order,
             Pageable pageable,
             @AuthenticationPrincipal UserDetails currentUser) {
         Page<PostResponse> posts = postService.searchPosts(
