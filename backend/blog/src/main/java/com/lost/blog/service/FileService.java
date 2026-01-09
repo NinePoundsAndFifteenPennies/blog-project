@@ -6,4 +6,8 @@ public interface FileService {
     String updateAvatar(String username, org.springframework.web.multipart.MultipartFile file);
     
     void deleteAvatar(String avatarUrl);
+    
+    String uploadCoverImage(String username, org.springframework.web.multipart.MultipartFile file);
+    
+    void deleteImage(String username, String imageUrl);
 }

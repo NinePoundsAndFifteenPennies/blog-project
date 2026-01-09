@@ -66,6 +66,10 @@ public class Post {
     @Column(nullable = false)
     private Long viewCount = 0L;
 
+    // 封面图片URL字段（可选）
+    @Column(name = "cover_image_url", length = 500)
+    private String coverImageUrl;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -179,6 +183,14 @@ public class Post {
 
     public void setViewCount(Long viewCount) {
         this.viewCount = viewCount;
+    }
+
+    public String getCoverImageUrl() {
+        return coverImageUrl;
+    }
+
+    public void setCoverImageUrl(String coverImageUrl) {
+        this.coverImageUrl = coverImageUrl;
     }
 }
 

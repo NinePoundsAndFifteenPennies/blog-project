@@ -2,6 +2,8 @@ package com.lost.blog.service;
 
 import com.lost.blog.model.User;
 import com.lost.blog.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,8 @@ import java.util.UUID;
 @Service
 public class FileServiceImpl implements FileService {
 
+    private static final Logger logger = LoggerFactory.getLogger(FileServiceImpl.class);
+
     private final UserRepository userRepository;
 
     // 不再硬编码，支持通过配置覆盖
@@ -27,9 +31,9 @@ public class FileServiceImpl implements FileService {
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList(".jpg", ".jpeg", ".png");
     private static final List<String> ALLOWED_CONTENT_TYPES = Arrays.asList("image/jpeg", "image/png");
 
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
-    private static final int MAX_WIDTH = 2000;
-    private static final int MAX_HEIGHT = 2000;
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    private static final int MAX_WIDTH = 4096;  // 4K width
+    private static final int MAX_HEIGHT = 4096; // 4K height
     private static final int MIN_WIDTH = 50;
     private static final int MIN_HEIGHT = 50;
 
@@ -84,13 +88,103 @@ public class FileServiceImpl implements FileService {
     }
 
     private String saveAvatarFile(Long userId, MultipartFile file) {
+        return saveImageFile(userId, file, "avatars");
+    }
+
+    private Path resolveBaseDir() {
+        Path configured = Paths.get(uploadBaseDir);
+        if (configured.isAbsolute()) {
+            return configured.toAbsolutePath().normalize();
+        }
+
+        Path cwd = Paths.get(System.getProperty("user.dir"));
+        for (int i = 0; i < 4; i++) {
+            Path candidate = cwd;
+            for (int j = 0; j < i; j++) {
+                if (candidate.getParent() != null) candidate = candidate.getParent();
+            }
+            candidate = candidate.resolve(configured);
+            if (Files.exists(candidate)) {
+                return candidate.toAbsolutePath().normalize();
+            }
+        }
+        // fallback: create/use cwd/configured
+        return cwd.resolve(configured).toAbsolutePath().normalize();
+    }
+
+    @Override
+    public String uploadCoverImage(String username, MultipartFile file) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+        return saveImageFile(user.getId(), file, "covers");
+    }
+
+    @Override
+    public void deleteImage(String username, String imageUrl) {
+        if (imageUrl == null || imageUrl.isEmpty()) {
+            return;
+        }
+
+        // Get user to validate ownership
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+
+        try {
+            // Parse and validate the image URL
+            String filePath = imageUrl.startsWith("/") ? imageUrl.substring(1) : imageUrl;
+            
+            // Ensure the path is within uploads directory
+            if (!filePath.startsWith("uploads/")) {
+                logger.warn("尝试删除非uploads目录的文件: {}", filePath);
+                throw new RuntimeException("无效的文件路径");
+            }
+            
+            // Extract user ID from path (format: uploads/{userId}/...)
+            String[] pathParts = filePath.split("/");
+            if (pathParts.length < 3) {
+                logger.warn("文件路径格式无效: {}", filePath);
+                throw new RuntimeException("无效的文件路径");
+            }
+            
+            String pathUserId = pathParts[1];
+            // Verify the user owns this file
+            if (!pathUserId.equals(String.valueOf(user.getId()))) {
+                logger.warn("用户 {} 尝试删除其他用户的文件: {}", username, filePath);
+                throw new RuntimeException("无权删除该文件");
+            }
+            
+            // Resolve path safely
+            Path path = Paths.get(filePath);
+            if (!path.isAbsolute()) {
+                path = resolveBaseDir().resolve(filePath).normalize();
+            }
+            
+            // Final security check: ensure resolved path is still within base directory
+            Path baseDir = resolveBaseDir();
+            if (!path.startsWith(baseDir)) {
+                logger.warn("路径遍历攻击尝试: {}", filePath);
+                throw new RuntimeException("无效的文件路径");
+            }
+            
+            // Delete the file if it exists
+            if (Files.exists(path)) {
+                Files.delete(path);
+                logger.info("用户 {} 删除了文件: {}", username, filePath);
+            }
+        } catch (IOException e) {
+            logger.error("删除图片失败: {}", e.getMessage(), e);
+            throw new RuntimeException("删除文件失败: " + e.getMessage());
+        }
+    }
+
+    private String saveImageFile(Long userId, MultipartFile file, String businessModule) {
         if (file.isEmpty()) {
             throw new RuntimeException("文件不能为空");
         }
 
         try {
             if (file.getSize() > MAX_FILE_SIZE) {
-                throw new RuntimeException("文件大小不能超过5MB");
+                throw new RuntimeException("文件大小不能超过10MB");
             }
 
             String contentType = file.getContentType();
@@ -126,7 +220,7 @@ public class FileServiceImpl implements FileService {
 
             // base dir resolved to an absolute Path
             Path baseDir = resolveBaseDir();
-            Path uploadPath = baseDir.resolve(String.valueOf(userId)).resolve("avatars");
+            Path uploadPath = baseDir.resolve(String.valueOf(userId)).resolve(businessModule);
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
@@ -134,33 +228,11 @@ public class FileServiceImpl implements FileService {
             Path filePath = uploadPath.resolve(filename);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-            // 直接返回 URL 字符串（不依赖 Path.toString）
-            return "/uploads/" + userId + "/avatars/" + filename;
+            // 直接返回 URL 字符串
+            return "/uploads/" + userId + "/" + businessModule + "/" + filename;
 
         } catch (IOException e) {
             throw new RuntimeException("文件上传失败: " + e.getMessage());
         }
-    }
-
-    // 解析并返回 uploads 的绝对路径（如果配置是相对路径，则尝试向上查找真实目录）
-    private Path resolveBaseDir() {
-        Path configured = Paths.get(uploadBaseDir);
-        if (configured.isAbsolute()) {
-            return configured.toAbsolutePath().normalize();
-        }
-
-        Path cwd = Paths.get(System.getProperty("user.dir"));
-        for (int i = 0; i < 4; i++) {
-            Path candidate = cwd;
-            for (int j = 0; j < i; j++) {
-                if (candidate.getParent() != null) candidate = candidate.getParent();
-            }
-            candidate = candidate.resolve(configured);
-            if (Files.exists(candidate)) {
-                return candidate.toAbsolutePath().normalize();
-            }
-        }
-        // fallback: create/use cwd/configured
-        return cwd.resolve(configured).toAbsolutePath().normalize();
     }
 }

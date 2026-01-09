@@ -22,6 +22,7 @@ public class PostResponse {
     private Long viewCount;  // 浏览量
     private List<TagResponse> tags;  // 文章关联的标签列表
     private CategoryResponse category;  // 文章所属的分类
+    private String coverImageUrl;  // 封面图片URL
 
     // Getters and Setters
     public Long getId() { return id; }
@@ -74,4 +75,7 @@ public class PostResponse {
 
     public CategoryResponse getCategory() { return category; }
     public void setCategory(CategoryResponse category) { this.category = category; }
+
+    public String getCoverImageUrl() { return coverImageUrl; }
+    public void setCoverImageUrl(String coverImageUrl) { this.coverImageUrl = coverImageUrl; }
 }

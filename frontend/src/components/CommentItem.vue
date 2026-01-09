@@ -1,53 +1,49 @@
 <template>
   <div class="border-b border-gray-100 py-6 last:border-b-0">
     <div class="flex space-x-4">
-      <!-- Avatar -->
       <div class="flex-shrink-0">
-        <UserProfileHoverCard 
-          v-if="comment.authorUsername"
-          :username="comment.authorUsername"
-          :user-data="authorData"
+        <UserProfileHoverCard
+            v-if="comment.authorUsername"
+            :username="comment.authorUsername"
+            :user-data="authorData"
         >
-          <div 
-            class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600"
+          <div
+              class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600"
           >
-            <img 
-              v-if="displayAvatarUrl && !avatarLoadError" 
-              :src="displayAvatarUrl" 
-              :alt="authorDisplayName"
-              :key="displayAvatarUrl"
-              class="w-full h-full object-cover"
-              @error="handleAvatarError"
-              @load="handleAvatarLoad"
+            <img
+                v-if="displayAvatarUrl && !avatarLoadError"
+                :src="displayAvatarUrl"
+                :alt="authorDisplayName"
+                :key="displayAvatarUrl"
+                class="w-full h-full object-cover"
+                @error="handleAvatarError"
+                @load="handleAvatarLoad"
             />
             <span v-else>{{ authorInitial }}</span>
           </div>
         </UserProfileHoverCard>
-        <div 
-          v-else
-          class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600"
+        <div
+            v-else
+            class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600"
         >
           <span>{{ authorInitial }}</span>
         </div>
       </div>
 
-      <!-- Content -->
       <div class="flex-1 min-w-0">
-        <!-- Header -->
         <div class="flex items-center justify-between mb-2">
           <div>
             <span class="font-semibold text-gray-900">{{ authorDisplayName }}</span>
             <span class="text-gray-400 text-sm ml-2">{{ formatDate(comment.updatedAt || comment.createdAt) }}</span>
             <span v-if="comment.updatedAt" class="text-gray-400 text-xs ml-2">(已编辑)</span>
           </div>
-          
-          <!-- Actions for comment author or post author -->
+
           <div v-if="canManage" class="flex items-center space-x-2">
             <button
-              v-if="isCommentAuthor"
-              @click="handleEdit"
-              class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
-              title="编辑评论"
+                v-if="isCommentAuthor"
+                @click="handleEdit"
+                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
+                title="编辑评论"
             >
               <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -55,9 +51,9 @@
               编辑
             </button>
             <button
-              @click="handleDelete"
-              class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-              title="删除评论"
+                @click="handleDelete"
+                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                title="删除评论"
             >
               <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -67,38 +63,32 @@
           </div>
         </div>
 
-        <!-- Content Display -->
         <div>
-          <!-- Render based on content type -->
-          <div v-if="isMarkdown" class="markdown-body text-gray-700 mb-3" v-html="renderedContent"></div>
-          <div v-else class="text-gray-700 mb-3 whitespace-pre-wrap">{{ comment.content }}</div>
+          <div class="markdown-body text-gray-700 mb-3" v-html="renderedContent"></div>
         </div>
 
-        <!-- Footer Actions -->
         <div class="flex items-center space-x-4 text-sm">
-          <!-- Like Button -->
           <button
-            @click="handleLike"
-            class="flex items-center space-x-1 transition-colors"
-            :class="comment.liked ? 'text-red-500' : 'text-gray-400 hover:text-red-500'"
-            :title="comment.liked ? '取消点赞' : '点赞'"
+              @click="handleLike"
+              class="flex items-center space-x-1 transition-colors"
+              :class="comment.liked ? 'text-red-500' : 'text-gray-400 hover:text-red-500'"
+              :title="comment.liked ? '取消点赞' : '点赞'"
           >
-            <svg 
-              class="w-4 h-4" 
-              :fill="comment.liked ? 'currentColor' : 'none'" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
+            <svg
+                class="w-4 h-4"
+                :fill="comment.liked ? 'currentColor' : 'none'"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
             >
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
             <span>{{ comment.likeCount || 0 }}</span>
           </button>
-          
-          <!-- Reply Button (only for top-level comments and when not showing post link) -->
+
           <button
-            v-if="!showPostLink && isLoggedIn && !isDraft && comment.level === 0"
-            @click="toggleReplies"
-            class="flex items-center space-x-1 text-gray-400 hover:text-primary-600 transition-colors"
+              v-if="!showPostLink && isLoggedIn && !isDraft && comment.level === 0"
+              @click="toggleReplies"
+              class="flex items-center space-x-1 text-gray-400 hover:text-primary-600 transition-colors"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
@@ -106,29 +96,27 @@
             <span>回复</span>
           </button>
 
-          <!-- Show Replies Button (only when there are replies) -->
           <button
-            v-if="!showPostLink && comment.level === 0 && (comment.replyCount > 0 || localReplyCount > 0)"
-            @click="toggleRepliesVisibility"
-            class="flex items-center space-x-1 text-primary-600 hover:text-primary-700 font-medium transition-colors"
+              v-if="!showPostLink && comment.level === 0 && (comment.replyCount > 0 || localReplyCount > 0)"
+              @click="toggleRepliesVisibility"
+              class="flex items-center space-x-1 text-primary-600 hover:text-primary-700 font-medium transition-colors"
           >
-            <svg 
-              class="w-4 h-4 transition-transform"
-              :class="{ 'rotate-180': showReplies }"
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
+            <svg
+                class="w-4 h-4 transition-transform"
+                :class="{ 'rotate-180': showReplies }"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
             >
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
             <span>{{ showReplies ? '收起回复' : `查看 ${displayReplyCount} 条回复` }}</span>
           </button>
-          
-          <!-- Show post title if this is from "My Comments" view -->
+
           <router-link
-            v-if="comment.postId && comment.postTitle && showPostLink"
-            :to="`/post/${comment.postId}`"
-            class="text-gray-500 hover:text-primary-600 flex items-center space-x-1"
+              v-if="comment.postId && comment.postTitle && showPostLink"
+              :to="`/post/${comment.postId}`"
+              class="text-gray-500 hover:text-primary-600 flex items-center space-x-1"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -137,20 +125,19 @@
           </router-link>
         </div>
 
-        <!-- Reply Form -->
         <div v-if="showReplyForm && !showPostLink" class="mt-4">
           <div class="flex space-x-3">
             <div class="flex-shrink-0">
-              <div 
-                class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600"
+              <div
+                  class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600"
               >
-                <img 
-                  v-if="currentUserAvatarUrl && !replyAvatarLoadError" 
-                  :src="currentUserAvatarUrl" 
-                  :alt="currentUsername"
-                  class="w-full h-full object-cover"
-                  @error="handleReplyAvatarError"
-                  @load="handleReplyAvatarLoad"
+                <img
+                    v-if="currentUserAvatarUrl && !replyAvatarLoadError"
+                    :src="currentUserAvatarUrl"
+                    :alt="currentUsername"
+                    class="w-full h-full object-cover"
+                    @error="handleReplyAvatarError"
+                    @load="handleReplyAvatarLoad"
                 />
                 <span v-else>{{ currentUserInitial }}</span>
               </div>
@@ -158,28 +145,27 @@
 
             <div class="flex-1">
               <textarea
-                v-model="replyContent"
-                ref="replyTextarea"
-                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-                rows="3"
-                :placeholder="replyPlaceholder"
+                  v-model="replyContent"
+                  ref="replyTextarea"
+                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                  rows="3"
+                  :placeholder="replyPlaceholder"
               ></textarea>
-
               <div class="flex items-center justify-between mt-2">
                 <span class="text-xs text-gray-500">
                   {{ replyContent.length }} / 3000
                 </span>
                 <div class="flex space-x-2">
                   <button
-                    @click="cancelReply"
-                    class="px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                      @click="cancelReply"
+                      class="px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                   >
                     取消
                   </button>
                   <button
-                    @click="submitReply"
-                    class="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-                    :disabled="!replyContent.trim() || replyContent.length > 3000 || submittingReply"
+                      @click="submitReply"
+                      class="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                      :disabled="!replyContent.trim() || replyContent.length > 3000 || submittingReply"
                   >
                     {{ submittingReply ? '发送中...' : '发送' }}
                   </button>
@@ -189,16 +175,15 @@
           </div>
         </div>
 
-        <!-- Reply List -->
         <ReplyList
-          v-if="showReplies && !showPostLink"
-          ref="replyListRef"
-          :comment-id="comment.id"
-          :post-author-username="postAuthorUsername"
-          :is-draft="isDraft"
-          :visible="showReplies"
-          @reply-count-changed="handleReplyCountChanged"
-          @reply-clicked="handleReplyToReply"
+            v-if="showReplies && !showPostLink"
+            ref="replyListRef"
+            :comment-id="comment.id"
+            :post-author-username="postAuthorUsername"
+            :is-draft="isDraft"
+            :visible="showReplies"
+            @reply-count-changed="handleReplyCountChanged"
+            @reply-clicked="handleReplyToReply"
         />
       </div>
     </div>
@@ -251,14 +236,14 @@ export default {
     const submittingReply = ref(false)
     const replyToUserId = ref(null)
     const replyToUsername = ref('')
-    const replyToCommentId = ref(null) // Store the ID of the comment/reply being replied to
+    const replyToCommentId = ref(null)
     const replyTextarea = ref(null)
     const replyListRef = ref(null)
     const localReplyCount = ref(props.comment.replyCount || 0)
 
     const currentUser = computed(() => store.getters.currentUser)
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
-    
+
     const isCommentAuthor = computed(() => {
       return currentUser.value?.username === props.comment.authorUsername
     })
@@ -270,13 +255,11 @@ export default {
     const canManage = computed(() => {
       return isCommentAuthor.value || isPostAuthor.value
     })
-    
-    // Check if the comment author is the current user
+
     const isCurrentUser = computed(() => {
       return currentUser.value?.username === props.comment.authorUsername
     })
-    
-    // Use current user's avatar if author is current user, otherwise use comment author's avatar
+
     const displayAvatarUrl = computed(() => {
       if (isCurrentUser.value && currentUser.value?.avatarUrl) {
         return getFullAvatarUrl(currentUser.value.avatarUrl)
@@ -285,7 +268,7 @@ export default {
     })
 
     const currentUserAvatarUrl = computed(() => getFullAvatarUrl(currentUser.value?.avatarUrl))
-    
+
     const currentUsername = computed(() => currentUser.value?.username || '')
 
     const currentUserInitial = computed(() => {
@@ -297,42 +280,37 @@ export default {
       return localReplyCount.value || props.comment.replyCount || 0
     })
 
+    // [修改点2]：更新回复框的 placeholder，提示支持 Markdown
     const replyPlaceholder = computed(() => {
-      return '写下你的回复...'
+      if (replyToUsername.value) {
+        return `回复 @${replyToUsername.value}... (支持 Markdown)`
+      }
+      return '写下你的回复... (支持 Markdown)'
     })
-    
-    // Reset avatar error when avatar URL changes
+
     watch(displayAvatarUrl, () => {
       avatarLoadError.value = false
     })
 
     const authorInitial = computed(() => {
-      // Backend now returns authorNickname in comments
       const name = props.comment.authorNickname || props.comment.authorUsername || ''
       return name ? name.charAt(0).toUpperCase() : 'A'
     })
 
     const authorDisplayName = computed(() => {
-      // Backend now returns authorNickname in comment responses
       return props.comment.authorNickname || props.comment.authorUsername || '匿名用户'
     })
 
     const authorData = computed(() => {
-      // Backend now provides authorNickname in comment responses
       return {
         username: props.comment.authorUsername,
         nickname: props.comment.authorNickname,
         avatarUrl: displayAvatarUrl.value
-        // Note: bio, location, socialLink not available in comment API
       }
     })
 
-    // Check if content looks like markdown
-    const isMarkdown = computed(() => {
-      const content = props.comment.content || ''
-      // Simple heuristic: check for common markdown patterns
-      return /[#*`[\]_~]/.test(content)
-    })
+    // [修改点3]：删除 isMarkdown 计算属性，我们现在总是渲染 Markdown
+    // const isMarkdown = computed(() => { ... })
 
     const renderedContent = computed(() => {
       if (!props.comment.content) return ''
@@ -343,6 +321,8 @@ export default {
         return props.comment.content
       }
     })
+
+    // ... (后续方法保持不变: handleAvatarError, formatDate, handleEdit, handleDelete, handleLike, toggleReplies 等) ...
 
     const handleAvatarError = () => {
       avatarLoadError.value = true
@@ -380,7 +360,6 @@ export default {
     }
 
     const handleEdit = () => {
-      // Navigate to comment edit page with comment data
       router.push({
         name: 'CommentEdit',
         params: { id: props.comment.id },
@@ -440,8 +419,8 @@ export default {
       showReplyForm.value = !showReplyForm.value
       replyToUserId.value = null
       replyToUsername.value = ''
-      replyToCommentId.value = null // Reset when toggling
-      
+      replyToCommentId.value = null
+
       if (showReplyForm.value) {
         nextTick(() => {
           replyTextarea.value?.focus()
@@ -458,7 +437,7 @@ export default {
       replyContent.value = ''
       replyToUserId.value = null
       replyToUsername.value = ''
-      replyToCommentId.value = null // Reset when cancelling
+      replyToCommentId.value = null
     }
 
     const submitReply = async () => {
@@ -466,18 +445,15 @@ export default {
 
       submittingReply.value = true
       try {
-        // Use replyToCommentId if replying to a sub-comment, otherwise use the top-level comment ID
         const targetCommentId = replyToCommentId.value || props.comment.id
-        // Always set replyToUsername - if not set (replying to top comment), use the comment author's username
         const usernameToReply = replyToUsername.value || props.comment.authorUsername
         await createReply(targetCommentId, replyContent.value, replyToUserId.value, usernameToReply)
         replyContent.value = ''
         replyToUserId.value = null
         replyToUsername.value = ''
-        replyToCommentId.value = null // Reset after submitting
+        replyToCommentId.value = null
         showReplyForm.value = false
-        
-        // Show replies section and reload
+
         showReplies.value = true
         if (replyListRef.value) {
           replyListRef.value.reload()
@@ -485,10 +461,9 @@ export default {
       } catch (error) {
         console.error('发表回复失败:', error)
         if (error.response?.status === 403) {
-          // Parse the error message from backend
-          const errorMsg = typeof error.response?.data === 'string' 
-            ? error.response.data 
-            : error.response?.data?.message || '操作被拒绝'
+          const errorMsg = typeof error.response?.data === 'string'
+              ? error.response.data
+              : error.response?.data?.message || '操作被拒绝'
           alert(errorMsg)
         } else {
           alert('发表回复失败，请稍后重试')
@@ -505,9 +480,9 @@ export default {
     const handleReplyToReply = ({ replyId, replyToUserId: userId, replyToUsername: username }) => {
       replyToUserId.value = userId
       replyToUsername.value = username
-      replyToCommentId.value = replyId // Store the reply ID to use when submitting
+      replyToCommentId.value = replyId
       showReplyForm.value = true
-      
+
       nextTick(() => {
         replyTextarea.value?.focus()
       })
@@ -527,7 +502,7 @@ export default {
       authorInitial,
       authorDisplayName,
       authorData,
-      isMarkdown,
+      // isMarkdown, // 移除
       renderedContent,
       showReplyForm,
       showReplies,

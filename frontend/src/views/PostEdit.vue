@@ -83,6 +83,59 @@
 
               <div class="card p-6">
                 <label class="block text-sm font-medium text-gray-700 mb-3">
+                  封面图片（可选）
+                </label>
+                <div class="space-y-3">
+                  <!-- 封面图片预览 -->
+                  <div v-if="formData.coverImageUrl || coverImagePreview" class="relative group">
+                    <img 
+                      :src="coverImagePreview || getFullImageUrl(formData.coverImageUrl)" 
+                      alt="封面预览"
+                      class="w-full h-48 object-cover rounded-lg"
+                    />
+                    <button
+                      @click="removeCoverImage"
+                      type="button"
+                      class="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors opacity-0 group-hover:opacity-100"
+                      title="删除封面图片"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  <!-- 上传按钮 -->
+                  <div v-else>
+                    <label 
+                      class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-colors"
+                      :class="{ 'opacity-50 cursor-not-allowed': uploadingCover }"
+                    >
+                      <input 
+                        ref="coverImageInput"
+                        type="file" 
+                        class="hidden" 
+                        accept="image/jpeg,image/png"
+                        @change="handleCoverImageSelect"
+                        :disabled="uploadingCover"
+                      />
+                      <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                        <svg v-if="!uploadingCover" class="w-12 h-12 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <div v-else class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-3"></div>
+                        <p class="mb-2 text-sm text-gray-500">
+                          <span class="font-semibold">{{ uploadingCover ? '上传中...' : '点击上传封面图片' }}</span>
+                        </p>
+                        <p class="text-xs text-gray-500">支持 PNG、JPG 格式，最大 10MB</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card p-6">
+                <label class="block text-sm font-medium text-gray-700 mb-3">
                   内容类型
                 </label>
                 <div class="flex space-x-4">
@@ -414,6 +467,7 @@ import 'highlight.js/styles/atom-one-dark.css'
 import Header from '@/components/Header.vue'
 import TableEditorModal from '@/components/TableEditorModal.vue'
 import { getPostById, createPost, updatePost } from '@/api/posts'
+import { uploadCoverImage, deleteImage } from '@/api/files'
 
 // 注册语言
 hljs.registerLanguage('javascript', javascript)
@@ -500,7 +554,8 @@ export default {
       title: '',
       content: '',
       contentType: 'MARKDOWN',  // 默认 Markdown
-      tags: []  // 标签数组
+      tags: [],  // 标签数组
+      coverImageUrl: ''  // 封面图片URL
     })
 
     const errors = reactive({
@@ -510,6 +565,12 @@ export default {
 
     // 标签输入
     const tagInput = ref('')
+
+    // 封面图片相关
+    const coverImageInput = ref(null)
+    const coverImagePreview = ref('')
+    const uploadingCover = ref(false)
+    const pendingCoverImageFile = ref(null) // 待上传的封面图片文件
 
     // 是否为草稿状态（从后端加载）
     const isDraft = ref(false)
@@ -522,7 +583,8 @@ export default {
       title: '',
       content: '',
       contentType: 'MARKDOWN',
-      tags: []
+      tags: [],
+      coverImageUrl: ''
     })
 
     // 检查是否有未保存的更改
@@ -530,7 +592,8 @@ export default {
       return formData.title !== originalFormData.title ||
              formData.content !== originalFormData.content ||
              formData.contentType !== originalFormData.contentType ||
-             JSON.stringify(formData.tags) !== JSON.stringify(originalFormData.tags)
+             JSON.stringify(formData.tags) !== JSON.stringify(originalFormData.tags) ||
+             formData.coverImageUrl !== originalFormData.coverImageUrl
     })
 
     // Auto-save expiry time: 24 hours in milliseconds
@@ -564,6 +627,7 @@ export default {
           content: formData.content,
           contentType: formData.contentType,
           tags: formData.tags,
+          coverImageUrl: formData.coverImageUrl,
           timestamp: Date.now()
         }
         sessionStorage.setItem(getAutoSaveKey(), JSON.stringify(data))
@@ -710,6 +774,82 @@ export default {
       formData.tags.splice(index, 1)
     }
 
+    // 处理封面图片选择
+    const handleCoverImageSelect = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      // 验证文件类型
+      if (!file.type.match(/image\/(jpeg|png)/)) {
+        alert('只支持 JPG 和 PNG 格式的图片')
+        return
+      }
+
+      // 验证文件大小
+      if (file.size > 10 * 1024 * 1024) {
+        alert('文件大小不能超过 10MB')
+        return
+      }
+
+      try {
+        // 创建预览
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          coverImagePreview.value = e.target.result
+        }
+        reader.readAsDataURL(file)
+
+        // 存储文件，稍后上传
+        pendingCoverImageFile.value = file
+        // 清除服务器URL（如果有）
+        formData.coverImageUrl = ''
+        
+      } catch (error) {
+        console.error('处理封面图片失败:', error)
+        alert(error.message || '处理失败，请重试')
+        coverImagePreview.value = ''
+      } finally {
+        if (coverImageInput.value) {
+          coverImageInput.value.value = ''
+        }
+      }
+    }
+
+    // 删除封面图片
+    const removeCoverImage = async () => {
+      const imageUrlToDelete = formData.coverImageUrl
+      
+      // 清除待上传的文件
+      pendingCoverImageFile.value = null
+      
+      // 立即清空UI中的显示
+      formData.coverImageUrl = ''
+      coverImagePreview.value = ''
+      if (coverImageInput.value) {
+        coverImageInput.value.value = ''
+      }
+      
+      // 如果有服务器上的图片URL，异步删除它
+      if (imageUrlToDelete && imageUrlToDelete.startsWith('/uploads/')) {
+        try {
+          await deleteImage(imageUrlToDelete)
+        } catch (error) {
+          console.error('删除封面图片失败:', error)
+          // 不需要提示用户，因为UI已经更新了
+        }
+      }
+    }
+
+    // 获取完整图片URL
+    const getFullImageUrl = (url) => {
+      if (!url) return ''
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url
+      }
+      const cleanUrl = url.startsWith('/') ? url.substring(1) : url
+      return `${window.location.origin}/${cleanUrl}`
+    }
+
     // 加载文章数据(编辑模式)
     const loadPost = async () => {
       // First check if there's auto-saved content
@@ -722,12 +862,14 @@ export default {
           formData.content = savedData.content || ''
           formData.contentType = savedData.contentType || 'MARKDOWN'
           formData.tags = savedData.tags || []
+          formData.coverImageUrl = savedData.coverImageUrl || ''
         }
         // Set original data for unsaved changes detection
         originalFormData.title = ''
         originalFormData.content = ''
         originalFormData.contentType = 'MARKDOWN'
         originalFormData.tags = []
+        originalFormData.coverImageUrl = ''
         return
       }
 
@@ -744,6 +886,7 @@ export default {
         originalFormData.content = post.content || ''
         originalFormData.contentType = post.contentType || 'MARKDOWN'
         originalFormData.tags = post.tags ? post.tags.map(tag => tag.name) : []
+        originalFormData.coverImageUrl = post.coverImageUrl || ''
 
         // Check if there's saved session data that's newer
         if (savedData && savedData.timestamp) {
@@ -752,18 +895,49 @@ export default {
           formData.content = savedData.content || ''
           formData.contentType = savedData.contentType || 'MARKDOWN'
           formData.tags = savedData.tags || []
+          formData.coverImageUrl = savedData.coverImageUrl || ''
         } else {
           // Use data from server
           formData.title = post.title || ''
           formData.content = post.content || ''
           formData.contentType = post.contentType || 'MARKDOWN'
           formData.tags = post.tags ? post.tags.map(tag => tag.name) : []
+          formData.coverImageUrl = post.coverImageUrl || ''
         }
         isDraft.value = post.draft || false
       } catch (error) {
         console.error('加载文章失败:', error)
         alert('加载文章失败')
         router.push('/')
+      }
+    }
+
+    // 上传所有待上传的图片
+    const uploadPendingImages = async () => {
+      try {
+        // 上传封面图片（如果有待上传的）
+        if (pendingCoverImageFile.value) {
+          uploadingCover.value = true
+          
+          // 如果已有封面图片，先删除旧的
+          const oldImageUrl = formData.coverImageUrl
+          if (oldImageUrl && oldImageUrl.startsWith('/uploads/')) {
+            try {
+              await deleteImage(oldImageUrl)
+            } catch (error) {
+              console.error('删除旧封面图片失败:', error)
+            }
+          }
+          
+          // 上传新封面
+          const coverUrl = await uploadCoverImage(pendingCoverImageFile.value)
+          formData.coverImageUrl = coverUrl
+          pendingCoverImageFile.value = null
+          uploadingCover.value = false
+        }
+      } catch (error) {
+        uploadingCover.value = false
+        throw error
       }
     }
 
@@ -776,12 +950,16 @@ export default {
       loading.value = true
 
       try {
+        // 先上传所有待上传的图片
+        await uploadPendingImages()
+        
         const postData = {
           title: formData.title,
           content: formData.content,
           contentType: formData.contentType,
           draft: true,  // 标记为草稿
-          tags: formData.tags  // 包含标签
+          tags: formData.tags,  // 包含标签
+          coverImageUrl: formData.coverImageUrl  // 包含封面图片
         }
 
         if (isEditMode.value) {
@@ -791,6 +969,7 @@ export default {
           originalFormData.content = formData.content
           originalFormData.contentType = formData.contentType
           originalFormData.tags = [...formData.tags]
+          originalFormData.coverImageUrl = formData.coverImageUrl
           clearSession()
           alert('草稿保存成功!')
           isDraft.value = true
@@ -818,12 +997,16 @@ export default {
       loading.value = true
 
       try {
+        // 先上传所有待上传的图片
+        await uploadPendingImages()
+        
         const postData = {
           title: formData.title,
           content: formData.content,
           contentType: formData.contentType,
           draft: false,  // 标记为已发布
-          tags: formData.tags  // 包含标签
+          tags: formData.tags,  // 包含标签
+          coverImageUrl: formData.coverImageUrl  // 包含封面图片
         }
 
         if (isEditMode.value) {
@@ -841,6 +1024,7 @@ export default {
         originalFormData.content = formData.content
         originalFormData.contentType = formData.contentType
         originalFormData.tags = [...formData.tags]
+        originalFormData.coverImageUrl = formData.coverImageUrl
 
         router.push('/')
       } catch (error) {
@@ -1357,7 +1541,13 @@ export default {
       handleTagInputKeydown,
       showTableModal,
       tableFormat,
-      insertTable
+      insertTable,
+      coverImageInput,
+      coverImagePreview,
+      uploadingCover,
+      handleCoverImageSelect,
+      removeCoverImage,
+      getFullImageUrl
     }
   }
 }

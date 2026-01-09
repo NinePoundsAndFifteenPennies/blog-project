@@ -27,6 +27,9 @@ public class PostRequest {
     // 新增：分类名称（可选）
     private String category;
 
+    // 新增：封面图片URL（可选）
+    private String coverImageUrl;
+
     // Getters and Setters
     public String getTitle() {
         return title;
@@ -74,5 +77,13 @@ public class PostRequest {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getCoverImageUrl() {
+        return coverImageUrl;
+    }
+
+    public void setCoverImageUrl(String coverImageUrl) {
+        this.coverImageUrl = coverImageUrl;
     }
 }

@@ -23,46 +23,11 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Editor Section -->
             <div class="space-y-4">
-              <!-- Format Type Selector -->
-              <div class="card p-6">
-                <label class="block text-sm font-medium text-gray-700 mb-3">
-                  内容格式
-                </label>
-                <div class="flex space-x-4">
-                  <button
-                    @click="contentMode = 'text'"
-                    type="button"
-                    class="flex-1 px-4 py-3 rounded-lg border-2 transition-all duration-200"
-                    :class="contentMode === 'text'
-                      ? 'border-primary-500 bg-primary-50 text-primary-700'
-                      : 'border-gray-200 hover:border-gray-300'"
-                  >
-                    <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
-                    </svg>
-                    <span class="font-medium">纯文本</span>
-                  </button>
-                  <button
-                    @click="contentMode = 'markdown'"
-                    type="button"
-                    class="flex-1 px-4 py-3 rounded-lg border-2 transition-all duration-200"
-                    :class="contentMode === 'markdown'
-                      ? 'border-primary-500 bg-primary-50 text-primary-700'
-                      : 'border-gray-200 hover:border-gray-300'"
-                  >
-                    <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                    </svg>
-                    <span class="font-medium">Markdown</span>
-                  </button>
-                </div>
-              </div>
-
               <!-- Editor Card -->
               <div class="card p-6">
                 <div class="mb-4 flex items-center justify-between border-b border-gray-200 pb-3">
                   <span class="text-sm font-medium text-gray-700">
-                    评论内容 ({{ contentMode === 'markdown' ? 'Markdown' : '纯文本' }})
+                    评论内容 (Markdown)
                   </span>
                   <div class="flex items-center space-x-4 text-sm text-gray-500">
                     <span>{{ content.length }} / 3000</span>
@@ -70,7 +35,7 @@
                 </div>
 
                 <!-- Markdown Toolbar -->
-                <div v-if="contentMode === 'markdown'" class="mb-3 flex flex-wrap gap-1 pb-3 border-b border-gray-100">
+                <div class="mb-3 flex flex-wrap gap-1 pb-3 border-b border-gray-100">
                   <button @click="insertMarkdown('heading')" type="button" class="toolbar-btn" title="标题">
                     <span class="font-bold text-sm">H</span>
                   </button>
@@ -123,9 +88,8 @@
                 <textarea
                   ref="contentTextarea"
                   v-model="content"
-                  :placeholder="contentMode === 'markdown' ? '支持 Markdown 语法，如 **加粗**、*斜体*、`代码` 等...' : '输入您的评论内容...'"
-                  class="w-full h-80 border-none outline-none resize-none leading-relaxed placeholder-gray-300"
-                  :class="contentMode === 'markdown' ? 'font-mono text-sm' : ''"
+                  placeholder="支持 Markdown 语法，如 **加粗**、*斜体*、`代码` 等..."
+                  class="w-full h-80 border-none outline-none resize-none leading-relaxed placeholder-gray-300 font-mono text-sm"
                 ></textarea>
                 <p v-if="error" class="mt-2 text-sm text-red-600">{{ error }}</p>
               </div>
@@ -140,8 +104,7 @@
                 </div>
 
                 <div v-if="content.trim()" class="min-h-[300px]">
-                  <div v-if="contentMode === 'markdown'" class="markdown-body" v-html="previewContent"></div>
-                  <div v-else class="text-gray-700 whitespace-pre-wrap">{{ content }}</div>
+                  <div class="markdown-body" v-html="previewContent"></div>
                 </div>
 
                 <div v-else class="text-center py-12 text-gray-400">
@@ -203,7 +166,6 @@ export default {
     const router = useRouter()
 
     const content = ref('')
-    const contentMode = ref('text')
     const saving = ref(false)
     const error = ref('')
     const contentTextarea = ref(null)
@@ -211,7 +173,7 @@ export default {
     const postId = ref(null)
 
     const previewContent = computed(() => {
-      if (!content.value || contentMode.value !== 'markdown') return ''
+      if (!content.value) return ''
       try {
         return marked(content.value)
       } catch (error) {
@@ -227,11 +189,6 @@ export default {
         content.value = commentData.content || ''
         originalContent.value = commentData.content || ''
         postId.value = commentData.postId
-        
-        // Detect if content is markdown
-        if (/[#*`[\]_~]/.test(content.value)) {
-          contentMode.value = 'markdown'
-        }
       } else {
         // If no comment data, redirect back
         alert('评论数据丢失')
@@ -352,7 +309,6 @@ export default {
 
     return {
       content,
-      contentMode,
       saving,
       error,
       contentTextarea,
