@@ -286,22 +286,27 @@ export default {
       })
     }
 
+    // HTML转义函数（防止XSS攻击）
+    const escapeHtml = (str) => {
+      const htmlEntities = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }
+      return str.replace(/[&<>"']/g, char => htmlEntities[char])
+    }
+
+    // 转义特殊正则字符
+    const escapeRegex = (str) => {
+      return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    }
+
     // 高亮关键词
     const highlightText = (text) => {
       if (!text || !props.highlightKeyword) {
         return text
-      }
-      
-      // 对关键词进行HTML转义，防止XSS攻击
-      const escapeHtml = (str) => {
-        const div = document.createElement('div')
-        div.textContent = str
-        return div.innerHTML
-      }
-      
-      // 转义特殊正则字符
-      const escapeRegex = (str) => {
-        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       }
       
       const escapedText = escapeHtml(text)
