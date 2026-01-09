@@ -48,7 +48,13 @@
                 class="w-64 px-4 py-2 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                 @keyup.enter="handleSearch"
             >
-            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg 
+              class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2 cursor-pointer hover:text-primary-600 transition-colors duration-200" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+              @click="handleSearch"
+            >
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
@@ -204,15 +210,16 @@
 
 <script>
 import { useStore } from 'vuex'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { getFullAvatarUrl } from '@/utils/avatar'
-import { computed, ref, onMounted, onUnmounted, watch } from 'vue' // 1. 导入 watch
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 
 export default {
   name: 'Header',
   setup() {
     const store = useStore()
     const router = useRouter()
+    const route = useRoute()
 
     const scrolled = ref(false)
     const showUserMenu = ref(false)
@@ -227,11 +234,18 @@ export default {
     })
     const userAvatarUrl = computed(() => getFullAvatarUrl(currentUser.value?.avatarUrl))
 
-    // 2. 添加这个 watch 监听器
+    // 监听头像 URL 变化，重置错误状态
     watch(userAvatarUrl, () => {
-      // 当头像 URL 变化时，重置错误状态
       avatarLoadError.value = false
     })
+
+    // 监听路由变化，同步搜索关键词到搜索栏
+    watch(() => route.query.keyword, (newKeyword) => {
+      // 如果当前在搜索页面，将关键词同步到搜索栏
+      if (route.path === '/search' && newKeyword) {
+        searchQuery.value = newKeyword
+      }
+    }, { immediate: true })
 
     // 处理搜索
     const handleSearch = () => {
@@ -241,7 +255,7 @@ export default {
           path: '/search', 
           query: { keyword: searchQuery.value.trim() } 
         })
-        searchQuery.value = ''
+        // 不再清空搜索框，保留关键词
       }
     }
 

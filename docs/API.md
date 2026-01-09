@@ -557,6 +557,116 @@ GET /api/posts/user/{username}?page=0&size=10
 
 ---
 
+### 搜索文章
+
+多维度搜索已发布的文章，支持按关键词、作者、标题、标签搜索，结果支持按时间或热度排序。
+
+```http
+GET /api/posts/search?keyword=spring&author=john&title=教程&tag=Java&sortBy=time&order=desc&page=0&size=10
+```
+
+**查询参数:**
+- `keyword` (可选): 通用关键词，匹配文章标题和内容，长度不超过200字符
+- `author` (可选): 作者用户名或昵称（模糊匹配），长度不超过50字符
+- `title` (可选): 标题关键词（模糊匹配），长度不超过100字符
+- `tag` (可选): 标签名称（模糊匹配），长度不超过50字符
+- `sortBy` (可选): 排序方式（默认 `time`）
+  - `time`: 按创建时间排序
+  - `hotness`: 按热度排序
+- `order` (可选): 排序顺序（默认 `desc`）
+  - `desc`: 降序
+  - `asc`: 升序
+- `page` (可选): 页码，从0开始，默认0
+- `size` (可选): 每页数量，默认10
+
+**示例请求:**
+```http
+# 按关键词搜索（匹配标题和内容）
+GET /api/posts/search?keyword=Spring Boot
+
+# 按作者搜索
+GET /api/posts/search?author=john
+
+# 按标题搜索
+GET /api/posts/search?title=入门教程
+
+# 按标签搜索
+GET /api/posts/search?tag=Java
+
+# 组合搜索：关键词 + 作者 + 按热度排序
+GET /api/posts/search?keyword=spring&author=john&sortBy=hotness&order=desc
+
+# 带分页的搜索
+GET /api/posts/search?keyword=spring&page=0&size=20
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "title": "Spring Boot入门教程",
+      "content": "这是一篇关于Spring Boot的教程...",
+      "authorUsername": "john",
+      "authorNickname": "John Doe",
+      "authorAvatarUrl": "/uploads/1/avatars/abc.jpg",
+      "createdAt": "2025-10-26T10:00:00",
+      "updatedAt": null,
+      "publishedAt": "2025-10-26T10:00:00",
+      "contentType": "MARKDOWN",
+      "draft": false,
+      "likeCount": 5,
+      "isLiked": false,
+      "commentCount": 3,
+      "viewCount": 28,
+      "tags": [
+        {
+          "id": 1,
+          "name": "Java",
+          "color": "#FF5733"
+        },
+        {
+          "id": 2,
+          "name": "Spring",
+          "color": "#6DB33F"
+        }
+      ],
+      "category": {
+        "id": 1,
+        "name": "技术文章"
+      }
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10
+  },
+  "totalElements": 1,
+  "totalPages": 1,
+  "last": true,
+  "first": true
+}
+```
+
+**搜索算法说明:**
+- **文本匹配**: 使用SQL LIKE进行模糊匹配，不区分大小写
+- **特殊字符处理**: 
+  - SQL特殊字符（`%`、`_`、`\`）会被自动转义
+  - URL协议前缀（`http://`、`https://`、`www.`）会被移除
+  - 首尾标点符号会被清理
+
+**说明:**
+- 无需认证即可访问
+- 仅返回已发布的文章（draft = false）
+- 如果携带JWT token，响应中会包含当前用户的点赞状态（isLiked）
+- 至少需要提供一个搜索条件（keyword、author、title、tag中的一个）
+
+**错误响应:**
+- `400 Bad Request` - 参数不符合要求（长度超限、排序参数非法等）
+
+---
+
 ### 更新文章
 
 更新指定文章，仅作者可操作。
