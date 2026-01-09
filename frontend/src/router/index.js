@@ -100,6 +100,12 @@ const routes = [
         meta: { title: "编辑评论", requiresAuth: true },
     },
     {
+        path: "/comment/:id/reply",
+        name: "ReplyCreate",
+        component: () => import("@/views/ReplyCreate.vue"),
+        meta: { title: "写回复", requiresAuth: true },
+    },
+    {
         path: "/tags/:tagName",
         name: "TagPosts",
         component: () => import("@/views/TagPosts.vue"),

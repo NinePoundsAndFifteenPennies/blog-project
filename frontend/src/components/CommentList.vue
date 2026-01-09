@@ -42,8 +42,59 @@
         </div>
 
         <div class="flex-1">
+          <!-- Markdown Toolbar -->
+          <div class="mb-2 flex flex-wrap gap-1 pb-2 border-b border-gray-100">
+            <button @click="insertMarkdown('heading')" type="button" class="toolbar-btn" title="标题">
+              <span class="font-bold text-sm">H</span>
+            </button>
+            <button @click="insertMarkdown('bold')" type="button" class="toolbar-btn" title="粗体">
+              <span class="font-bold">B</span>
+            </button>
+            <button @click="insertMarkdown('italic')" type="button" class="toolbar-btn" title="斜体">
+              <span class="italic">I</span>
+            </button>
+            <button @click="insertMarkdown('strikethrough')" type="button" class="toolbar-btn" title="删除线">
+              <span class="line-through">S</span>
+            </button>
+            <button @click="insertMarkdown('code')" type="button" class="toolbar-btn" title="行内代码">
+              <span class="font-mono text-xs">&lt;/&gt;</span>
+            </button>
+
+            <div class="w-px h-6 bg-gray-300 mx-1"></div>
+
+            <button @click="insertMarkdown('ul')" type="button" class="toolbar-btn" title="无序列表">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <button @click="insertMarkdown('ol')" type="button" class="toolbar-btn" title="有序列表">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </button>
+            <button @click="insertMarkdown('quote')" type="button" class="toolbar-btn" title="引用">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
+            </button>
+
+            <div class="w-px h-6 bg-gray-300 mx-1"></div>
+
+            <button @click="insertMarkdown('link')" type="button" class="toolbar-btn" title="链接">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            </button>
+            <button @click="insertMarkdown('codeblock')" type="button" class="toolbar-btn" title="代码块">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+              </svg>
+            </button>
+          </div>
+
           <textarea
               v-model="newComment"
+              ref="commentTextarea"
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
               rows="6"
               placeholder="支持 Markdown 语法，如 **加粗**、*斜体*、# 标题 等..."
@@ -170,7 +221,7 @@ export default {
     const submitting = ref(false)
     const comments = ref([])
     const newComment = ref('')
-    // commentMode ref removed as we only use markdown
+    const commentTextarea = ref(null)
     const totalPages = ref(1)
     const totalElements = ref(0)
     const PAGE_SIZE = 10
@@ -367,6 +418,72 @@ export default {
       }
     }
 
+    const insertMarkdown = (type) => {
+      const textarea = commentTextarea.value
+      if (!textarea) return
+
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const selectedText = newComment.value.substring(start, end)
+      const beforeText = newComment.value.substring(0, start)
+      const afterText = newComment.value.substring(end)
+
+      let insertText = ''
+      let cursorOffset = 0
+
+      switch (type) {
+        case 'heading':
+          insertText = `## ${selectedText || '标题'}`
+          cursorOffset = selectedText ? insertText.length : insertText.length - 2
+          break
+        case 'bold':
+          insertText = `**${selectedText || '粗体文本'}**`
+          cursorOffset = selectedText ? insertText.length : insertText.length - 2
+          break
+        case 'italic':
+          insertText = `*${selectedText || '斜体文本'}*`
+          cursorOffset = selectedText ? insertText.length : insertText.length - 1
+          break
+        case 'strikethrough':
+          insertText = `~~${selectedText || '删除线文本'}~~`
+          cursorOffset = selectedText ? insertText.length : insertText.length - 2
+          break
+        case 'code':
+          insertText = `\`${selectedText || '代码'}\``
+          cursorOffset = selectedText ? insertText.length : insertText.length - 1
+          break
+        case 'ul':
+          insertText = selectedText ? `- ${selectedText}` : '- 列表项'
+          cursorOffset = insertText.length
+          break
+        case 'ol':
+          insertText = selectedText ? `1. ${selectedText}` : '1. 列表项'
+          cursorOffset = insertText.length
+          break
+        case 'quote':
+          insertText = selectedText ? `> ${selectedText}` : '> 引用内容'
+          cursorOffset = insertText.length
+          break
+        case 'link':
+          insertText = `[${selectedText || '链接文本'}](url)`
+          cursorOffset = selectedText ? insertText.length - 4 : insertText.length - 5
+          break
+        case 'codeblock':
+          insertText = selectedText ? `\`\`\`\n${selectedText}\n\`\`\`` : '```\n代码块\n```'
+          cursorOffset = selectedText ? insertText.length - 4 : insertText.length - 5
+          break
+        default:
+          return
+      }
+
+      newComment.value = beforeText + insertText + afterText
+
+      setTimeout(() => {
+        textarea.focus()
+        textarea.setSelectionRange(start + cursorOffset, start + cursorOffset)
+      }, 0)
+    }
+
     onMounted(() => {
       loadComments()
       window.addEventListener('scroll', handleScroll)
@@ -382,7 +499,7 @@ export default {
       submitting,
       comments,
       newComment,
-      // commentMode removed
+      commentTextarea,
       totalPages,
       totalElements,
       hasMore,
@@ -401,8 +518,20 @@ export default {
       loadMore,
       selectedSort,
       sortTitle,
-      handleSortChange
+      handleSortChange,
+      insertMarkdown
     }
   }
 }
 </script>
+
+<style scoped>
+.toolbar-btn {
+  @apply px-2 py-1.5 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100
+  transition-colors duration-150 flex items-center justify-center min-w-[28px];
+}
+
+.toolbar-btn:active {
+  @apply bg-gray-200;
+}
+</style>

@@ -76,9 +76,7 @@
 
         <!-- Content Display -->
         <div>
-          <!-- Render based on content type -->
-          <span v-if="isMarkdown" class="markdown-body text-gray-700 text-sm inline" v-html="renderedContent"></span>
-          <span v-else class="text-gray-700 text-sm whitespace-pre-wrap">{{ reply.content }}</span>
+          <span class="markdown-body text-gray-700 text-sm inline" v-html="renderedContent"></span>
         </div>
 
         <!-- Footer Actions -->
@@ -217,13 +215,6 @@ export default {
       }
     })
 
-    // Check if content looks like markdown
-    const isMarkdown = computed(() => {
-      const content = props.reply.content || ''
-      // Simple heuristic: check for common markdown patterns
-      return /[#*`[\]_~]/.test(content)
-    })
-
     const renderedContent = computed(() => {
       if (!props.reply.content) return ''
       try {
@@ -319,11 +310,18 @@ export default {
     }
 
     const handleReply = () => {
-      // When replying to a reply, pass the reply's ID so it can be used as the parent
-      emit('reply-clicked', {
-        replyId: props.reply.id,
-        replyToUserId: null,
-        replyToUsername: props.reply.authorUsername
+      // Navigate to the ReplyCreate page when replying to a reply
+      router.push({
+        name: 'ReplyCreate',
+        params: { id: props.reply.id },
+        state: {
+          replyData: {
+            commentId: props.reply.id,
+            postId: props.reply.postId,
+            replyToUserId: null,
+            replyToUsername: props.reply.authorUsername
+          }
+        }
       })
     }
 
@@ -338,7 +336,6 @@ export default {
       authorDisplayName,
       replyToDisplayName,
       authorData,
-      isMarkdown,
       renderedContent,
       indentLevel,
       handleAvatarError,

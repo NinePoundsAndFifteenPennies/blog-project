@@ -87,7 +87,7 @@
 
           <button
               v-if="!showPostLink && isLoggedIn && !isDraft && comment.level === 0"
-              @click="toggleReplies"
+              @click="navigateToReply"
               class="flex items-center space-x-1 text-gray-400 hover:text-primary-600 transition-colors"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -125,56 +125,6 @@
           </router-link>
         </div>
 
-        <div v-if="showReplyForm && !showPostLink" class="mt-4">
-          <div class="flex space-x-3">
-            <div class="flex-shrink-0">
-              <div
-                  class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600"
-              >
-                <img
-                    v-if="currentUserAvatarUrl && !replyAvatarLoadError"
-                    :src="currentUserAvatarUrl"
-                    :alt="currentUsername"
-                    class="w-full h-full object-cover"
-                    @error="handleReplyAvatarError"
-                    @load="handleReplyAvatarLoad"
-                />
-                <span v-else>{{ currentUserInitial }}</span>
-              </div>
-            </div>
-
-            <div class="flex-1">
-              <textarea
-                  v-model="replyContent"
-                  ref="replyTextarea"
-                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-                  rows="3"
-                  :placeholder="replyPlaceholder"
-              ></textarea>
-              <div class="flex items-center justify-between mt-2">
-                <span class="text-xs text-gray-500">
-                  {{ replyContent.length }} / 3000
-                </span>
-                <div class="flex space-x-2">
-                  <button
-                      @click="cancelReply"
-                      class="px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    取消
-                  </button>
-                  <button
-                      @click="submitReply"
-                      class="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-                      :disabled="!replyContent.trim() || replyContent.length > 3000 || submittingReply"
-                  >
-                    {{ submittingReply ? '发送中...' : '发送' }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <ReplyList
             v-if="showReplies && !showPostLink"
             ref="replyListRef"
@@ -191,11 +141,11 @@
 </template>
 
 <script>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { marked } from 'marked'
-import { deleteComment, likeComment, unlikeComment, createReply } from '@/api/comments'
+import { deleteComment, likeComment, unlikeComment } from '@/api/comments'
 import { getFullAvatarUrl } from '@/utils/avatar'
 import ReplyList from './ReplyList.vue'
 import UserProfileHoverCard from './UserProfileHoverCard.vue'
@@ -229,15 +179,7 @@ export default {
     const store = useStore()
     const router = useRouter()
     const avatarLoadError = ref(false)
-    const replyAvatarLoadError = ref(false)
-    const showReplyForm = ref(false)
     const showReplies = ref(false)
-    const replyContent = ref('')
-    const submittingReply = ref(false)
-    const replyToUserId = ref(null)
-    const replyToUsername = ref('')
-    const replyToCommentId = ref(null)
-    const replyTextarea = ref(null)
     const replyListRef = ref(null)
     const localReplyCount = ref(props.comment.replyCount || 0)
 
@@ -267,25 +209,8 @@ export default {
       return props.comment.authorAvatarUrl
     })
 
-    const currentUserAvatarUrl = computed(() => getFullAvatarUrl(currentUser.value?.avatarUrl))
-
-    const currentUsername = computed(() => currentUser.value?.username || '')
-
-    const currentUserInitial = computed(() => {
-      const name = currentUser.value?.username || ''
-      return name ? name.charAt(0).toUpperCase() : 'A'
-    })
-
     const displayReplyCount = computed(() => {
       return localReplyCount.value || props.comment.replyCount || 0
-    })
-
-    // [修改点2]：更新回复框的 placeholder，提示支持 Markdown
-    const replyPlaceholder = computed(() => {
-      if (replyToUsername.value) {
-        return `回复 @${replyToUsername.value}... (支持 Markdown)`
-      }
-      return '写下你的回复... (支持 Markdown)'
     })
 
     watch(displayAvatarUrl, () => {
@@ -415,86 +340,49 @@ export default {
       }
     }
 
-    const toggleReplies = () => {
-      showReplyForm.value = !showReplyForm.value
-      replyToUserId.value = null
-      replyToUsername.value = ''
-      replyToCommentId.value = null
-
-      if (showReplyForm.value) {
-        nextTick(() => {
-          replyTextarea.value?.focus()
-        })
-      }
-    }
-
     const toggleRepliesVisibility = () => {
       showReplies.value = !showReplies.value
     }
 
-    const cancelReply = () => {
-      showReplyForm.value = false
-      replyContent.value = ''
-      replyToUserId.value = null
-      replyToUsername.value = ''
-      replyToCommentId.value = null
-    }
-
-    const submitReply = async () => {
-      if (!replyContent.value.trim() || replyContent.value.length > 3000) return
-
-      submittingReply.value = true
-      try {
-        const targetCommentId = replyToCommentId.value || props.comment.id
-        const usernameToReply = replyToUsername.value || props.comment.authorUsername
-        await createReply(targetCommentId, replyContent.value, replyToUserId.value, usernameToReply)
-        replyContent.value = ''
-        replyToUserId.value = null
-        replyToUsername.value = ''
-        replyToCommentId.value = null
-        showReplyForm.value = false
-
-        showReplies.value = true
-        if (replyListRef.value) {
-          replyListRef.value.reload()
+    // Navigate to the ReplyCreate page
+    const navigateToReply = () => {
+      router.push({
+        name: 'ReplyCreate',
+        params: { id: props.comment.id },
+        state: {
+          replyData: {
+            commentId: props.comment.id,
+            postId: props.comment.postId,
+            replyToUserId: null,
+            replyToUsername: props.comment.authorUsername
+          }
         }
-      } catch (error) {
-        console.error('发表回复失败:', error)
-        if (error.response?.status === 403) {
-          const errorMsg = typeof error.response?.data === 'string'
-              ? error.response.data
-              : error.response?.data?.message || '操作被拒绝'
-          alert(errorMsg)
-        } else {
-          alert('发表回复失败，请稍后重试')
-        }
-      } finally {
-        submittingReply.value = false
-      }
+      })
     }
 
     const handleReplyCountChanged = (count) => {
       localReplyCount.value = count
     }
 
+    // Handle reply to reply - navigate to ReplyCreate page with the reply info
     const handleReplyToReply = ({ replyId, replyToUserId: userId, replyToUsername: username }) => {
-      replyToUserId.value = userId
-      replyToUsername.value = username
-      replyToCommentId.value = replyId
-      showReplyForm.value = true
-
-      nextTick(() => {
-        replyTextarea.value?.focus()
+      router.push({
+        name: 'ReplyCreate',
+        params: { id: replyId },
+        state: {
+          replyData: {
+            commentId: replyId,
+            postId: props.comment.postId,
+            replyToUserId: userId,
+            replyToUsername: username
+          }
+        }
       })
     }
 
     return {
       avatarLoadError,
-      replyAvatarLoadError,
       displayAvatarUrl,
-      currentUserAvatarUrl,
-      currentUsername,
-      currentUserInitial,
       isCommentAuthor,
       isPostAuthor,
       canManage,
@@ -502,29 +390,19 @@ export default {
       authorInitial,
       authorDisplayName,
       authorData,
-      // isMarkdown, // 移除
       renderedContent,
-      showReplyForm,
       showReplies,
-      replyContent,
-      submittingReply,
-      replyPlaceholder,
-      replyTextarea,
       replyListRef,
       localReplyCount,
       displayReplyCount,
       handleAvatarError,
       handleAvatarLoad,
-      handleReplyAvatarError,
-      handleReplyAvatarLoad,
       formatDate,
       handleEdit,
       handleDelete,
       handleLike,
-      toggleReplies,
+      navigateToReply,
       toggleRepliesVisibility,
-      cancelReply,
-      submitReply,
       handleReplyCountChanged,
       handleReplyToReply
     }
