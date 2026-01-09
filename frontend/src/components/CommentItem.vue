@@ -257,14 +257,6 @@ export default {
       avatarLoadError.value = false
     }
 
-    const handleReplyAvatarError = () => {
-      replyAvatarLoadError.value = true
-    }
-
-    const handleReplyAvatarLoad = () => {
-      replyAvatarLoadError.value = false
-    }
-
     const formatDate = (dateString) => {
       if (!dateString) return ''
       const date = new Date(dateString)
