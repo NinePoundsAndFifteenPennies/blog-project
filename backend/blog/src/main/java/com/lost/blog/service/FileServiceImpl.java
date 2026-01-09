@@ -154,10 +154,10 @@ public class FileServiceImpl implements FileService {
             }
             
             // Resolve path safely
-            Path path = Paths.get(filePath);
-            if (!path.isAbsolute()) {
-                path = resolveBaseDir().resolve(filePath).normalize();
-            }
+            // The filePath is validated above to start with "uploads/", so we can safely strip it
+            // resolveBaseDir() returns the uploads directory, so we resolve relative to that
+            String relativePath = filePath.substring("uploads/".length());
+            Path path = resolveBaseDir().resolve(relativePath).normalize();
             
             // Final security check: ensure resolved path is still within base directory
             Path baseDir = resolveBaseDir();
