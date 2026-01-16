@@ -86,4 +86,29 @@ public interface PostService {
      * @return 分页后的文章响应数据
      */
     Page<PostResponse> getPostsByUsername(String username, Pageable pageable, UserDetails currentUser);
+
+    /**
+     * 搜索文章
+     * 支持按关键词（标题+内容）、作者、标题、标签等多维度搜索
+     * 搜索词会进行预处理：去除前后空格、特殊字符转义等
+     * 
+     * @param keyword 通用关键词（匹配标题和内容）
+     * @param author 作者用户名或昵称（模糊匹配）
+     * @param title 标题关键词（模糊匹配）
+     * @param tag 标签名称（模糊匹配）
+     * @param sortBy 排序方式："time"按时间排序，"hotness"按热度排序
+     * @param order 排序顺序："asc"升序，"desc"降序
+     * @param pageable 分页信息
+     * @param currentUser 当前用户（可为null，用于判断点赞状态）
+     * @return 分页后的搜索结果
+     */
+    Page<PostResponse> searchPosts(
+            String keyword,
+            String author,
+            String title,
+            String tag,
+            String sortBy,
+            String order,
+            Pageable pageable,
+            UserDetails currentUser);
 }

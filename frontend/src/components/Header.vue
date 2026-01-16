@@ -40,17 +40,14 @@
         <!-- Right Section -->
         <div class="hidden md:flex items-center space-x-4">
           <!-- Search Bar -->
-          <div class="relative">
-            <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="搜索文章..."
-                class="w-64 px-4 py-2 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
-                @keyup.enter="handleSearch"
-            >
-            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+          <div class="w-64">
+            <SearchPreview
+              :search-function="searchGlobal"
+              :initial-value="currentKeyword"
+              placeholder="搜索文章..."
+              @select="handleSearchSelect"
+              @search="handleSearch"
+            />
           </div>
 
           <!-- User Menu -->
@@ -204,20 +201,23 @@
 
 <script>
 import { useStore } from 'vuex'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { getFullAvatarUrl } from '@/utils/avatar'
-import { computed, ref, onMounted, onUnmounted, watch } from 'vue' // 1. 导入 watch
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import SearchPreview from '@/components/SearchPreview.vue'
+import { searchPosts } from '@/api/posts'
 
 export default {
   name: 'Header',
+  components: { SearchPreview },
   setup() {
     const store = useStore()
     const router = useRouter()
+    const route = useRoute()
 
     const scrolled = ref(false)
     const showUserMenu = ref(false)
     const showMobileMenu = ref(false)
-    const searchQuery = ref('')
     const avatarLoadError = ref(false)
 
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
@@ -227,18 +227,46 @@ export default {
     })
     const userAvatarUrl = computed(() => getFullAvatarUrl(currentUser.value?.avatarUrl))
 
-    // 2. 添加这个 watch 监听器
+    // 监听头像 URL 变化，重置错误状态
     watch(userAvatarUrl, () => {
-      // 当头像 URL 变化时，重置错误状态
       avatarLoadError.value = false
     })
 
-    // 处理搜索
-    const handleSearch = () => {
-      if (searchQuery.value.trim()) {
-        // TODO: 搜索功能暂未实现
-        console.log('搜索:', searchQuery.value)
-        searchQuery.value = ''
+    // 当前搜索关键词（从路由获取，用于保持搜索栏状态）
+    const currentKeyword = computed(() => {
+      if (route.path === '/search' && route.query.keyword) {
+        return route.query.keyword
+      }
+      return ''
+    })
+
+    // 全局搜索函数（用于 SearchPreview）
+    const searchGlobal = async (keyword) => {
+      try {
+        const res = await searchPosts({
+          keyword,
+          sortBy: 'hotness',
+          size: 8
+        })
+        return res.content || []
+      } catch (error) {
+        console.error('Search failed:', error)
+        return []
+      }
+    }
+
+    // 处理搜索预览选中
+    const handleSearchSelect = (post) => {
+      router.push(`/post/${post.id}`)
+    }
+
+    // 处理搜索（回车跳转到搜索页）
+    const handleSearch = (keyword) => {
+      if (keyword && keyword.trim()) {
+        router.push({ 
+          path: '/search', 
+          query: { keyword: keyword.trim() } 
+        })
       }
     }
 
@@ -290,12 +318,14 @@ export default {
       scrolled,
       showUserMenu,
       showMobileMenu,
-      searchQuery,
       isLoggedIn,
       currentUser,
       userInitial,
       userAvatarUrl,
       avatarLoadError,
+      currentKeyword,
+      searchGlobal,
+      handleSearchSelect,
       handleSearch,
       handleLogout,
       handleSwitchAccount,

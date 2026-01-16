@@ -112,3 +112,24 @@ export function removeCategoryFromPost(postId) {
         method: 'delete'
     })
 }
+
+/**
+ * 搜索文章
+ * 支持多维度搜索：关键词（标题+内容+作者昵称+标签）、作者、标题、标签
+ * @param {Object} params - 搜索参数
+ * @param {String} params.keyword - 通用关键词，匹配标题、内容、作者昵称/用户名和标签名称
+ * @param {String} params.author - 作者用户名或昵称（模糊匹配）
+ * @param {String} params.title - 标题关键词（模糊匹配）
+ * @param {String} params.tag - 标签名称（模糊匹配）
+ * @param {String} params.sortBy - 排序方式：time（默认）或 hotness
+ * @param {String} params.order - 排序顺序：desc（默认）或 asc
+ * @param {Number} params.page - 页码（从0开始）
+ * @param {Number} params.size - 每页数量
+ */
+export function searchPosts(params) {
+    return request({
+        url: '/posts/search',
+        method: 'get',
+        params: params
+    })
+}

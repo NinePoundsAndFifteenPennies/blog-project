@@ -22,7 +22,8 @@
     <div class="p-6">
       <!-- 标题 -->
       <h3 class="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200 leading-tight">
-        {{ post.title }}
+        <span v-if="highlightKeyword" v-html="highlightText(post.title)"></span>
+        <template v-else>{{ post.title }}</template>
       </h3>
 
       <!-- 标签 -->
@@ -42,7 +43,8 @@
 
       <!-- 摘要 -->
       <p class="text-gray-600 mb-4 line-clamp-3 leading-relaxed text-sm">
-        {{ post.summary || '暂无摘要' }}
+        <span v-if="highlightKeyword" v-html="highlightText(post.summary || '暂无摘要')"></span>
+        <template v-else>{{ post.summary || '暂无摘要' }}</template>
       </p>
 
       <!-- 底部信息栏 -->
@@ -144,6 +146,10 @@ export default {
     post: {
       type: Object,
       required: true
+    },
+    highlightKeyword: {
+      type: String,
+      default: ''
     }
   },
   emits: ['like-changed'],
@@ -280,6 +286,39 @@ export default {
       })
     }
 
+    // HTML转义函数（防止XSS攻击）
+    const escapeHtml = (str) => {
+      const htmlEntities = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }
+      return str.replace(/[&<>"']/g, char => htmlEntities[char])
+    }
+
+    // 转义特殊正则字符
+    const escapeRegex = (str) => {
+      return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    }
+
+    // 高亮关键词
+    const highlightText = (text) => {
+      if (!text || !props.highlightKeyword) {
+        return text
+      }
+      
+      const escapedText = escapeHtml(text)
+      const escapedKeyword = escapeRegex(props.highlightKeyword)
+      
+      // 创建不区分大小写的正则表达式
+      const regex = new RegExp(`(${escapedKeyword})`, 'gi')
+      
+      // 用高亮样式替换匹配的关键词
+      return escapedText.replace(regex, '<mark class="bg-yellow-200 text-yellow-900 px-0.5 rounded">$1</mark>')
+    }
+
     // 点赞功能
     const handleLike = async () => {
       // 检查是否登录
@@ -332,7 +371,8 @@ export default {
       handleAvatarError,
       handleAvatarLoad,
       handleLike,
-      getFullImageUrl
+      getFullImageUrl,
+      highlightText
     }
   }
 }
