@@ -2,13 +2,16 @@
   <div class="relative w-full" ref="searchContainer">
     <!-- Search Input -->
     <div class="relative group">
-      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <svg class="h-5 w-5 text-gray-400 group-focus-within:text-primary-500 transition-colors duration-200"
+      <button
+        @click="handleSearchIconClick"
+        class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 hover:text-primary-500 transition-colors duration-200 cursor-pointer"
+      >
+        <svg class="h-5 w-5 group-focus-within:text-primary-500"
              fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
-      </div>
+      </button>
       <input
           v-model="searchQuery"
           type="text"
@@ -19,6 +22,7 @@
           @keydown.up.prevent="navigateUp"
           @keydown.enter.prevent="handleEnter"
           @keydown.esc="closePreview"
+          @focus="handleFocus"
           autocomplete="off"
       >
       <!-- Clear Button -->
@@ -143,7 +147,7 @@
 </template>
 
 <script>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 
 export default {
   name: 'SearchPreview',
@@ -155,17 +159,28 @@ export default {
     placeholder: {
       type: String,
       default: '搜索文章...'
+    },
+    initialValue: {
+      type: String,
+      default: ''
     }
   },
   emits: ['search', 'select'],
   setup(props, { emit }) {
-    const searchQuery = ref('')
+    const searchQuery = ref(props.initialValue || '')
     const showPreview = ref(false)
-    const selectedIndex = ref(0)
+    const selectedIndex = ref(-1)  // Start with -1 to allow going to search page
     const searchContainer = ref(null)
     const searchResults = ref([])
     const loading = ref(false)
     let debounceTimer = null
+
+    // Watch for initialValue changes (e.g., from URL)
+    watch(() => props.initialValue, (newVal) => {
+      if (newVal !== undefined && newVal !== searchQuery.value) {
+        searchQuery.value = newVal
+      }
+    })
 
     // Clean markdown URL part only, keep link text
     const cleanMarkdown = (text) => {
@@ -300,7 +315,7 @@ export default {
       debounceTimer = setTimeout(async () => {
         loading.value = true
         showPreview.value = true
-        selectedIndex.value = 0
+        selectedIndex.value = -1  // Don't auto-select any item
         
         try {
           const results = await props.searchFunction(searchQuery.value)
@@ -314,24 +329,43 @@ export default {
       }, 300)
     }
 
+    // Handle focus - show preview if there's a query
+    const handleFocus = () => {
+      if (searchQuery.value.trim() && searchResults.value.length > 0) {
+        showPreview.value = true
+      }
+    }
+
+    // Handle search icon click
+    const handleSearchIconClick = () => {
+      if (searchQuery.value.trim()) {
+        emit('search', searchQuery.value)
+      }
+    }
+
     // Keyboard navigation
     const navigateDown = () => {
-      if (searchResults.value.length > 0 && selectedIndex.value < searchResults.value.length - 1) {
-        selectedIndex.value++
+      if (searchResults.value.length > 0) {
+        if (selectedIndex.value < searchResults.value.length - 1) {
+          selectedIndex.value++
+        }
       }
     }
 
     const navigateUp = () => {
-      if (selectedIndex.value > 0) {
+      if (selectedIndex.value > -1) {  // Allow going back to -1 (no selection)
         selectedIndex.value--
       }
     }
 
     const handleEnter = () => {
-      if (searchResults.value.length > 0 && selectedIndex.value >= 0) {
+      // Only select result if an item is actually selected (index >= 0)
+      if (selectedIndex.value >= 0 && searchResults.value.length > 0) {
         selectResult(searchResults.value[selectedIndex.value].post)
       } else {
+        // No item selected or no results - go to search page
         emit('search', searchQuery.value)
+        closePreview()
       }
     }
 
@@ -385,6 +419,8 @@ export default {
       searchResults,
       loading,
       handleInput,
+      handleFocus,
+      handleSearchIconClick,
       navigateDown,
       navigateUp,
       handleEnter,

@@ -141,7 +141,7 @@
           </div>
 
           <!-- Tabs and Search -->
-          <div class="card mb-8 backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.1s; overflow: visible;">
+          <div class="card mb-8 backdrop-blur-sm bg-white/90 animate-slide-up relative z-20" style="animation-delay: 0.1s; overflow: visible;">
             <div class="p-4" style="overflow: visible;">
               <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                 <div class="flex border-b border-gray-200 flex-1">
@@ -184,7 +184,7 @@
                 </div>
                 
                 <!-- Search Box for Posts -->
-                <div v-if="activeTab === 'posts' && userStats.posts > 0" class="w-full md:w-80 relative">
+                <div v-if="activeTab === 'posts' && userStats.posts > 0" class="w-full md:w-80 relative z-30">
                   <SearchPreview
                     :search-function="searchMyPosts"
                     placeholder="搜索我的文章..."
@@ -202,7 +202,7 @@
           </div>
 
           <!-- Posts List -->
-          <div v-if="activeTab !== 'comments' && visibleList.length" class="space-y-4 animate-slide-up" style="animation-delay: 0.2s;">
+          <div v-if="activeTab !== 'comments' && visibleList.length" class="space-y-4 animate-slide-up relative z-10" style="animation-delay: 0.2s;">
             <div
                 v-for="post in visibleList"
                 :key="post.id"

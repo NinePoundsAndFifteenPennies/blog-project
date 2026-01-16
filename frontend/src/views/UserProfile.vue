@@ -95,7 +95,7 @@
             </div>
 
             <!-- Posts Tab Header -->
-            <div class="card mb-8 backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.1s; overflow: visible;">
+            <div class="card mb-8 backdrop-blur-sm bg-white/90 animate-slide-up relative z-20" style="animation-delay: 0.1s; overflow: visible;">
               <div class="p-6" style="overflow: visible;">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                   <div class="flex items-center">
@@ -106,7 +106,7 @@
                   </div>
                   
                   <!-- Search Box -->
-                  <div v-if="totalPosts > 0" class="w-full md:w-96 relative">
+                  <div v-if="totalPosts > 0" class="w-full md:w-96 relative z-30">
                     <SearchPreview
                       :search-function="searchUserPosts"
                       :placeholder="`搜索 ${displayName} 的文章...`"
@@ -124,7 +124,7 @@
             </div>
 
             <!-- Posts List -->
-            <div v-else-if="posts.length" class="space-y-4 animate-slide-up" style="animation-delay: 0.2s;">
+            <div v-else-if="posts.length" class="space-y-4 animate-slide-up relative z-10" style="animation-delay: 0.2s;">
               <div
                   v-for="post in posts"
                   :key="post.id"

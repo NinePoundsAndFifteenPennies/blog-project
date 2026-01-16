@@ -43,6 +43,7 @@
           <div class="w-64">
             <SearchPreview
               :search-function="searchGlobal"
+              :initial-value="currentKeyword"
               placeholder="搜索文章..."
               @select="handleSearchSelect"
               @search="handleSearch"
@@ -217,7 +218,6 @@ export default {
     const scrolled = ref(false)
     const showUserMenu = ref(false)
     const showMobileMenu = ref(false)
-    const searchQuery = ref('')
     const avatarLoadError = ref(false)
 
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
@@ -232,13 +232,13 @@ export default {
       avatarLoadError.value = false
     })
 
-    // 监听路由变化，同步搜索关键词到搜索栏
-    watch(() => route.query.keyword, (newKeyword) => {
-      // 如果当前在搜索页面，将关键词同步到搜索栏
-      if (route.path === '/search' && newKeyword) {
-        searchQuery.value = newKeyword
+    // 当前搜索关键词（从路由获取，用于保持搜索栏状态）
+    const currentKeyword = computed(() => {
+      if (route.path === '/search' && route.query.keyword) {
+        return route.query.keyword
       }
-    }, { immediate: true })
+      return ''
+    })
 
     // 全局搜索函数（用于 SearchPreview）
     const searchGlobal = async (keyword) => {
@@ -323,6 +323,7 @@ export default {
       userInitial,
       userAvatarUrl,
       avatarLoadError,
+      currentKeyword,
       searchGlobal,
       handleSearchSelect,
       handleSearch,
