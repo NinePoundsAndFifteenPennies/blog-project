@@ -181,25 +181,29 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     /**
      * 综合搜索已发布文章（按热度降序）
+     * 使用子查询先过滤文章ID，然后再JOIN获取完整数据并排序
      */
     @Query(value = """
-        SELECT DISTINCT p.* FROM posts p
-        LEFT JOIN users u ON p.user_id = u.id
-        LEFT JOIN post_tags pt ON p.id = pt.post_id
-        LEFT JOIN tags t ON pt.tag_id = t.id
+        SELECT p.* FROM posts p
         LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM likes WHERE post_id IS NOT NULL GROUP BY post_id) l ON p.id = l.post_id
         LEFT JOIN (SELECT post_id, COUNT(*) as comment_count FROM comments GROUP BY post_id) c ON p.id = c.post_id
-        WHERE p.is_draft = false
-          AND (:keyword IS NULL OR :keyword = '' 
-               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
-               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
-          AND (:author IS NULL OR :author = '' 
-               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
-               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
-          AND (:title IS NULL OR :title = '' 
-               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :title, '%')))
-          AND (:tag IS NULL OR :tag = '' 
-               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :tag, '%')))
+        WHERE p.id IN (
+            SELECT DISTINCT p2.id FROM posts p2
+            LEFT JOIN users u ON p2.user_id = u.id
+            LEFT JOIN post_tags pt ON p2.id = pt.post_id
+            LEFT JOIN tags t ON pt.tag_id = t.id
+            WHERE p2.is_draft = false
+              AND (:keyword IS NULL OR :keyword = '' 
+                   OR LOWER(p2.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                   OR LOWER(p2.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+              AND (:author IS NULL OR :author = '' 
+                   OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
+                   OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
+              AND (:title IS NULL OR :title = '' 
+                   OR LOWER(p2.title) LIKE LOWER(CONCAT('%', :title, '%')))
+              AND (:tag IS NULL OR :tag = '' 
+                   OR LOWER(t.name) LIKE LOWER(CONCAT('%', :tag, '%')))
+        )
         ORDER BY (p.view_count * 0.1 + COALESCE(l.like_count, 0) * 5 + COALESCE(c.comment_count, 0) * 10) / 
                  POW(TIMESTAMPDIFF(HOUR, p.created_at, NOW()) + 2, 1.2) DESC
         """,
@@ -230,25 +234,29 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     /**
      * 综合搜索已发布文章（按热度升序）
+     * 使用子查询先过滤文章ID，然后再JOIN获取完整数据并排序
      */
     @Query(value = """
-        SELECT DISTINCT p.* FROM posts p
-        LEFT JOIN users u ON p.user_id = u.id
-        LEFT JOIN post_tags pt ON p.id = pt.post_id
-        LEFT JOIN tags t ON pt.tag_id = t.id
+        SELECT p.* FROM posts p
         LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM likes WHERE post_id IS NOT NULL GROUP BY post_id) l ON p.id = l.post_id
         LEFT JOIN (SELECT post_id, COUNT(*) as comment_count FROM comments GROUP BY post_id) c ON p.id = c.post_id
-        WHERE p.is_draft = false
-          AND (:keyword IS NULL OR :keyword = '' 
-               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
-               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
-          AND (:author IS NULL OR :author = '' 
-               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
-               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
-          AND (:title IS NULL OR :title = '' 
-               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :title, '%')))
-          AND (:tag IS NULL OR :tag = '' 
-               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :tag, '%')))
+        WHERE p.id IN (
+            SELECT DISTINCT p2.id FROM posts p2
+            LEFT JOIN users u ON p2.user_id = u.id
+            LEFT JOIN post_tags pt ON p2.id = pt.post_id
+            LEFT JOIN tags t ON pt.tag_id = t.id
+            WHERE p2.is_draft = false
+              AND (:keyword IS NULL OR :keyword = '' 
+                   OR LOWER(p2.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                   OR LOWER(p2.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+              AND (:author IS NULL OR :author = '' 
+                   OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
+                   OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
+              AND (:title IS NULL OR :title = '' 
+                   OR LOWER(p2.title) LIKE LOWER(CONCAT('%', :title, '%')))
+              AND (:tag IS NULL OR :tag = '' 
+                   OR LOWER(t.name) LIKE LOWER(CONCAT('%', :tag, '%')))
+        )
         ORDER BY (p.view_count * 0.1 + COALESCE(l.like_count, 0) * 5 + COALESCE(c.comment_count, 0) * 10) / 
                  POW(TIMESTAMPDIFF(HOUR, p.created_at, NOW()) + 2, 1.2) ASC
         """,
