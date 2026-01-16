@@ -40,23 +40,13 @@
         <!-- Right Section -->
         <div class="hidden md:flex items-center space-x-4">
           <!-- Search Bar -->
-          <div class="relative">
-            <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="搜索文章..."
-                class="w-64 px-4 py-2 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
-                @keyup.enter="handleSearch"
-            >
-            <svg 
-              class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2 cursor-pointer hover:text-primary-600 transition-colors duration-200" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-              @click="handleSearch"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+          <div class="w-64">
+            <SearchPreview
+              :search-function="searchGlobal"
+              placeholder="搜索文章..."
+              @select="handleSearchSelect"
+              @search="handleSearch"
+            />
           </div>
 
           <!-- User Menu -->
@@ -213,9 +203,12 @@ import { useStore } from 'vuex'
 import { useRouter, useRoute } from 'vue-router'
 import { getFullAvatarUrl } from '@/utils/avatar'
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import SearchPreview from '@/components/SearchPreview.vue'
+import { searchPosts } from '@/api/posts'
 
 export default {
   name: 'Header',
+  components: { SearchPreview },
   setup() {
     const store = useStore()
     const router = useRouter()
@@ -247,15 +240,33 @@ export default {
       }
     }, { immediate: true })
 
-    // 处理搜索
-    const handleSearch = () => {
-      if (searchQuery.value.trim()) {
-        // 导航到搜索结果页面，使用keyword参数
+    // 全局搜索函数（用于 SearchPreview）
+    const searchGlobal = async (keyword) => {
+      try {
+        const res = await searchPosts({
+          keyword,
+          sortBy: 'hotness',
+          size: 8
+        })
+        return res.content || []
+      } catch (error) {
+        console.error('Search failed:', error)
+        return []
+      }
+    }
+
+    // 处理搜索预览选中
+    const handleSearchSelect = (post) => {
+      router.push(`/post/${post.id}`)
+    }
+
+    // 处理搜索（回车跳转到搜索页）
+    const handleSearch = (keyword) => {
+      if (keyword && keyword.trim()) {
         router.push({ 
           path: '/search', 
-          query: { keyword: searchQuery.value.trim() } 
+          query: { keyword: keyword.trim() } 
         })
-        // 不再清空搜索框，保留关键词
       }
     }
 
@@ -307,12 +318,13 @@ export default {
       scrolled,
       showUserMenu,
       showMobileMenu,
-      searchQuery,
       isLoggedIn,
       currentUser,
       userInitial,
       userAvatarUrl,
       avatarLoadError,
+      searchGlobal,
+      handleSearchSelect,
       handleSearch,
       handleLogout,
       handleSwitchAccount,

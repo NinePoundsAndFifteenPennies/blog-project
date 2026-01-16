@@ -96,13 +96,23 @@
 
             <!-- Posts Tab Header -->
             <div class="card mb-8 backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.1s;">
-              <div class="flex border-b border-gray-200">
-                <div class="px-8 py-4 font-semibold text-primary-600 relative">
-                  <span>TA的文章</span>
-                  <span class="ml-2 px-2.5 py-0.5 text-xs font-bold rounded-full bg-primary-100 text-primary-700">
-                    {{ totalPosts }}
-                  </span>
-                  <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
+              <div class="p-6">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                  <div class="flex items-center">
+                    <span class="text-xl font-semibold text-gray-900">TA的文章</span>
+                    <span class="ml-2 px-2.5 py-0.5 text-xs font-bold rounded-full bg-primary-100 text-primary-700">
+                      {{ totalPosts }}
+                    </span>
+                  </div>
+                  
+                  <!-- Search Box -->
+                  <div v-if="totalPosts > 0" class="w-full md:w-96">
+                    <SearchPreview
+                      :search-function="searchUserPosts"
+                      :placeholder="`搜索 ${displayName} 的文章...`"
+                      @select="handleSearchSelect"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -194,13 +204,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import Header from '@/components/Header.vue'
 import Pagination from '@/components/Pagination.vue'
+import SearchPreview from '@/components/SearchPreview.vue'
 import { getPublicUserProfile } from '@/api/auth'
-import { getPostsByUsername } from '@/api/posts'
+import { getPostsByUsername, searchPosts } from '@/api/posts'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'UserProfile',
-  components: { Header, Pagination },
+  components: { Header, Pagination, SearchPreview },
   setup() {
     const route = useRoute()
     const router = useRouter()
@@ -255,11 +266,8 @@ export default {
       loading.value = true
       error.value = null
 
-      // If viewing own profile while logged in, redirect to /profile
-      if (currentUser.value && username.value === currentUser.value.username) {
-        router.replace('/profile')
-        return
-      }
+      // Don't redirect for own profile - allow search on own profile too
+      // Removed: if (currentUser.value && username.value === currentUser.value.username)
 
       try {
         userProfile.value = await getPublicUserProfile(username.value)
@@ -284,10 +292,12 @@ export default {
           size: pageSize
         })
         
-        posts.value = (res.content || []).map(p => ({
+        const mappedPosts = (res.content || []).map(p => ({
           ...p,
           summary: p.content?.replace(/[#*`\n]/g, '').slice(0, 100) || ''
         }))
+        
+        posts.value = mappedPosts
         
         totalPages.value = res.totalPages || 1
         totalPosts.value = res.totalElements || 0
@@ -302,6 +312,27 @@ export default {
       currentPage.value = page
       loadPosts()
       window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
+    // Search function for SearchPreview component
+    const searchUserPosts = async (keyword) => {
+      try {
+        const res = await searchPosts({
+          keyword,
+          author: username.value,
+          sortBy: 'hotness',
+          size: 8
+        })
+        return res.content || []
+      } catch (error) {
+        console.error('Search failed:', error)
+        return []
+      }
+    }
+
+    // Handle search result selection
+    const handleSearchSelect = (post) => {
+      router.push(`/post/${post.id}`)
     }
 
     // Watch for username changes
@@ -332,6 +363,8 @@ export default {
       currentPage,
       totalPages,
       formatDate,
+      searchUserPosts,
+      handleSearchSelect,
       handlePageChange
     }
   }
@@ -342,6 +375,7 @@ export default {
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
