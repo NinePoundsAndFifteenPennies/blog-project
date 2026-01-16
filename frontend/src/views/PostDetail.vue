@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen">
+  <div class="min-h-screen bg-gray-50 dark:bg-dark-950">
     <Header />
 
     <!-- Loading State -->
@@ -25,7 +25,7 @@
         <div class="max-w-4xl mx-auto">
           <!-- Article Header -->
           <header class="mb-10 animate-fade-in">
-            <h1 class="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight text-gray-900">
+            <h1 class="text-4xl md:text-6xl font-bold text-gray-900 dark:text-gray-100 mb-6 leading-tight">
               {{ post.title }}
             </h1>
 
@@ -57,10 +57,10 @@
             </div>
 
             <!-- Author Info Card -->
-            <div class="card p-6 md:p-8 flex items-center justify-between flex-wrap gap-4 backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.1s;">
+            <div class="card p-6 md:p-8 flex items-center justify-between flex-wrap gap-4 backdrop-blur-sm bg-white/90 dark:bg-dark-900/90 animate-slide-up" style="animation-delay: 0.1s;">
               <div class="flex items-center space-x-4">
                 <div 
-                  class="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg ring-4 ring-white overflow-hidden bg-primary-600"
+                  class="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg ring-4 ring-white dark:ring-dark-800 overflow-hidden bg-primary-600"
                 >
                   <img 
                     v-if="authorAvatarUrl && !avatarLoadError" 
@@ -74,8 +74,8 @@
                   <span v-else>{{ authorInitial }}</span>
                 </div>
                 <div>
-                  <p class="font-bold text-lg text-gray-900">{{ post.author?.username || '匿名' }}</p>
-                  <div class="flex items-center space-x-4 text-sm text-gray-500">
+                  <p class="font-bold text-lg text-gray-900 dark:text-gray-100">{{ post.author?.username || '匿名' }}</p>
+                  <div class="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                     <span class="flex items-center" :title="`创建时间: ${formatFullDate(post.createdAt)}`">
                       <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -117,17 +117,17 @@
           </header>
 
           <!-- Article Body -->
-          <div class="card p-8 md:p-12 mb-8 backdrop-blur-sm bg-white/95 animate-slide-up" style="animation-delay: 0.2s;">
+          <div class="card p-8 md:p-12 mb-8 backdrop-blur-sm bg-white/95 dark:bg-dark-900/95 animate-slide-up" style="animation-delay: 0.2s;">
             <div class="markdown-body prose prose-lg max-w-none" v-html="renderedContent"></div>
           </div>
 
           <!-- Article Footer Actions -->
-          <div class="card p-6 flex items-center justify-between backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.3s;">
-            <div class="flex items-center space-x-6 text-gray-400">
+          <div class="card p-6 flex items-center justify-between backdrop-blur-sm bg-white/90 dark:bg-dark-900/90 animate-slide-up" style="animation-delay: 0.3s;">
+            <div class="flex items-center space-x-6 text-gray-400 dark:text-gray-500">
               <!-- Like Button -->
               <button
                   @click="handleLike"
-                  class="flex items-center space-x-2 hover:text-red-500 transition-colors"
+                  class="flex items-center space-x-2 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                   :class="{ 'text-red-500': post.isLiked }"
                   :title="post.isLiked ? '取消点赞' : '点赞'"
               >
@@ -143,7 +143,7 @@
               </button>
 
               <!-- Comment Count -->
-              <div class="flex items-center space-x-2 text-gray-400">
+              <div class="flex items-center space-x-2 text-gray-400 dark:text-gray-500">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                 </svg>
@@ -151,7 +151,7 @@
               </div>
 
               <!-- View Count -->
-              <div class="flex items-center space-x-2 text-gray-400" :title="`${post.viewCount || 0} 次浏览`">
+              <div class="flex items-center space-x-2 text-gray-400 dark:text-gray-500" :title="`${post.viewCount || 0} 次浏览`">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
