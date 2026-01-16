@@ -135,7 +135,7 @@
         <!-- Footer -->
         <div class="bg-gray-50 px-4 py-2 border-t border-gray-100 flex justify-between items-center">
             <span class="text-xs text-gray-500">
-                按 Enter 查看全部结果
+                点击🔍查看全部结果
             </span>
             <span class="text-xs text-gray-400">
                 支持搜索 标题 / 内容 / 标签 / 作者
