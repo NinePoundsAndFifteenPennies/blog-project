@@ -15,7 +15,7 @@
       <input
           v-model="searchQuery"
           type="text"
-          class="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 sm:text-sm transition-all duration-200 shadow-sm hover:shadow-md"
+          class="block w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-dark-700 rounded-lg leading-5 bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 sm:text-sm transition-all duration-200 shadow-sm hover:shadow-md"
           :placeholder="placeholder"
           @input="handleInput"
           @keydown.down.prevent="navigateDown"
@@ -53,39 +53,39 @@
     >
       <div
           v-if="showPreview"
-          class="absolute z-[100] mt-2 w-full bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden ring-1 ring-black ring-opacity-5"
+          class="absolute z-[100] mt-2 w-full bg-white dark:bg-dark-900 rounded-lg shadow-xl border border-gray-100 dark:border-dark-800 overflow-hidden ring-1 ring-black ring-opacity-5"
       >
         <!-- No Results -->
-        <div v-if="!loading && searchResults.length === 0" class="p-4 text-center text-gray-500 text-sm">
+        <div v-if="!loading && searchResults.length === 0" class="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
           暂无搜索结果
         </div>
 
-        <ul v-else class="max-h-[70vh] overflow-y-auto divide-y divide-gray-100">
+        <ul v-else class="max-h-[70vh] overflow-y-auto divide-y divide-gray-100 dark:divide-dark-800">
           <li
               v-for="(result, index) in searchResults"
               :key="result.post.id"
               class="cursor-pointer transition-colors duration-150 relative"
-              :class="{'bg-primary-50': index === selectedIndex, 'hover:bg-gray-50': index !== selectedIndex}"
+              :class="{'bg-primary-50 dark:bg-primary-900/30': index === selectedIndex, 'hover:bg-gray-50 dark:hover:bg-dark-800': index !== selectedIndex}"
               @click="selectResult(result.post)"
               @mouseenter="selectedIndex = index"
           >
             <!-- Highlight bar for selected item -->
             <div 
-              class="absolute left-0 top-0 bottom-0 w-1 bg-primary-500 transition-opacity duration-200" 
+              class="absolute left-0 top-0 bottom-0 w-1 bg-primary-500 dark:bg-primary-400 transition-opacity duration-200" 
               :class="index === selectedIndex ? 'opacity-100' : 'opacity-0'"
             ></div>
             
             <div class="p-4 pl-5">
               <!-- Title -->
               <h4 
-                class="text-sm font-semibold text-gray-900 mb-1"
+                class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1"
                 v-html="result.highlightedTitle"
               ></h4>
               
               <!-- Content Snippet -->
               <p 
                 v-if="result.highlightedContent"
-                class="text-xs text-gray-500 mb-2 line-clamp-2"
+                class="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2"
                 v-html="result.highlightedContent"
               ></p>
               
@@ -95,16 +95,16 @@
                   <span
                     v-for="tag in result.matchedTags"
                     :key="tag.id"
-                    class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+                    class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400"
                     v-html="tag.highlighted"
                   ></span>
-                  <span class="text-gray-300 text-xs">|</span>
+                  <span class="text-gray-300 dark:text-gray-600 text-xs">|</span>
                 </template>
                 
                 <!-- Author -->
                 <span 
                     v-if="result.highlightedAuthor"
-                    class="flex items-center text-xs text-gray-500"
+                    class="flex items-center text-xs text-gray-500 dark:text-gray-400"
                 >
                   <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />

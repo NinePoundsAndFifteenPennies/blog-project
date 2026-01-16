@@ -1,7 +1,7 @@
 <template>
   <div class="card p-6">
-    <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
-      <svg class="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+      <svg class="w-5 h-5 mr-2 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
       </svg>
       热门标签
@@ -9,11 +9,11 @@
 
     <!-- Loading state -->
     <div v-if="loading" class="space-y-2">
-      <div v-for="i in 5" :key="i" class="h-8 bg-gray-200 rounded animate-pulse"></div>
+      <div v-for="i in 5" :key="i" class="h-8 bg-gray-200 dark:bg-dark-800 rounded animate-pulse"></div>
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="!tags.length" class="text-center py-4 text-gray-500 text-sm">
+    <div v-else-if="!tags.length" class="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
       暂无标签
     </div>
 
