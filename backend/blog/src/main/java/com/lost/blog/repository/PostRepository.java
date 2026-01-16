@@ -88,7 +88,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     /**
      * 综合搜索已发布文章（按创建时间降序）
-     * 支持按关键词（标题+内容）、作者、标签进行搜索
+     * 支持按关键词（标题+内容+作者昵称+标签名）、作者、标签进行搜索
      */
     @Query(value = """
         SELECT DISTINCT p.* FROM posts p
@@ -98,7 +98,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         WHERE p.is_draft = false
           AND (:keyword IS NULL OR :keyword = '' 
                OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
-               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
           AND (:author IS NULL OR :author = '' 
                OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
                OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
@@ -116,7 +119,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         WHERE p.is_draft = false
           AND (:keyword IS NULL OR :keyword = '' 
                OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
-               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
           AND (:author IS NULL OR :author = '' 
                OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
                OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
@@ -144,7 +150,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         WHERE p.is_draft = false
           AND (:keyword IS NULL OR :keyword = '' 
                OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
-               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
           AND (:author IS NULL OR :author = '' 
                OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
                OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
@@ -162,7 +171,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         WHERE p.is_draft = false
           AND (:keyword IS NULL OR :keyword = '' 
                OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
-               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
           AND (:author IS NULL OR :author = '' 
                OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
                OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
@@ -195,7 +207,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             WHERE p2.is_draft = false
               AND (:keyword IS NULL OR :keyword = '' 
                    OR LOWER(p2.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                   OR LOWER(p2.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+                   OR LOWER(p2.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                   OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                   OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                   OR LOWER(t.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
               AND (:author IS NULL OR :author = '' 
                    OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
                    OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
@@ -215,7 +230,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         WHERE p.is_draft = false
           AND (:keyword IS NULL OR :keyword = '' 
                OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
-               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
           AND (:author IS NULL OR :author = '' 
                OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
                OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
@@ -248,7 +266,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             WHERE p2.is_draft = false
               AND (:keyword IS NULL OR :keyword = '' 
                    OR LOWER(p2.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                   OR LOWER(p2.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+                   OR LOWER(p2.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                   OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                   OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                   OR LOWER(t.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
               AND (:author IS NULL OR :author = '' 
                    OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
                    OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
@@ -268,7 +289,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         WHERE p.is_draft = false
           AND (:keyword IS NULL OR :keyword = '' 
                OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
-               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
+               OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
           AND (:author IS NULL OR :author = '' 
                OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
                OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))

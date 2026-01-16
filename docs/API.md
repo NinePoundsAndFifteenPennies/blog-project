@@ -566,7 +566,7 @@ GET /api/posts/search?keyword=spring&author=john&title=教程&tag=Java&sortBy=ti
 ```
 
 **查询参数:**
-- `keyword` (可选): 通用关键词，匹配文章标题和内容，长度不超过200字符
+- `keyword` (可选): 通用关键词，匹配文章标题、内容、作者昵称/用户名和标签名称，长度不超过200字符
 - `author` (可选): 作者用户名或昵称（模糊匹配），长度不超过50字符
 - `title` (可选): 标题关键词（模糊匹配），长度不超过100字符
 - `tag` (可选): 标签名称（模糊匹配），长度不超过50字符
@@ -581,16 +581,22 @@ GET /api/posts/search?keyword=spring&author=john&title=教程&tag=Java&sortBy=ti
 
 **示例请求:**
 ```http
-# 按关键词搜索（匹配标题和内容）
+# 按关键词搜索（匹配标题、内容、作者和标签）
 GET /api/posts/search?keyword=Spring Boot
 
-# 按作者搜索
+# 通过关键词搜索特定作者的文章
+GET /api/posts/search?keyword=john
+
+# 通过关键词搜索带特定标签的文章
+GET /api/posts/search?keyword=Java
+
+# 按作者搜索（仅匹配作者字段）
 GET /api/posts/search?author=john
 
 # 按标题搜索
 GET /api/posts/search?title=入门教程
 
-# 按标签搜索
+# 按标签搜索（仅匹配标签字段）
 GET /api/posts/search?tag=Java
 
 # 组合搜索：关键词 + 作者 + 按热度排序
