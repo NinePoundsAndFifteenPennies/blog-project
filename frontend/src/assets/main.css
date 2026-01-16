@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Merriweather:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -295,14 +295,10 @@
   opacity: 0;
 }
 
-/* Dark mode transition */
-* {
+/* Dark mode transition - only for specific properties */
+body,
+body *:not(.animate-spin):not(.animate-pulse):not(.animate-bounce):not([class*="animate-"]) {
   transition-property: background-color, border-color, color;
   transition-duration: 200ms;
   transition-timing-function: ease-in-out;
-}
-
-/* Exclude animations from dark mode transition */
-*:where(.animate-spin, .animate-pulse, .animate-bounce, [class*="animate-"]) {
-  transition-property: none;
 }

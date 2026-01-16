@@ -327,26 +327,56 @@ export default {
 
     // 初始化暗黑模式
     const initDarkMode = () => {
-      // 从 localStorage 读取用户偏好，默认为浅色模式
-      const savedTheme = localStorage.getItem('theme')
-      if (savedTheme === 'dark') {
-        isDark.value = true
-        document.documentElement.classList.add('dark')
-      } else {
-        isDark.value = false
-        document.documentElement.classList.remove('dark')
+      try {
+        // 从 localStorage 读取用户偏好
+        const savedTheme = localStorage.getItem('theme')
+        
+        if (savedTheme === 'dark') {
+          isDark.value = true
+          document.documentElement.classList.add('dark')
+        } else if (savedTheme === 'light') {
+          isDark.value = false
+          document.documentElement.classList.remove('dark')
+        } else {
+          // 如果没有保存的偏好，检查系统偏好
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+          isDark.value = prefersDark
+          if (prefersDark) {
+            document.documentElement.classList.add('dark')
+          } else {
+            document.documentElement.classList.remove('dark')
+          }
+        }
+      } catch (error) {
+        // localStorage 不可用时（如隐私浏览模式），使用系统偏好
+        console.warn('localStorage not available, using system preference')
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        isDark.value = prefersDark
+        if (prefersDark) {
+          document.documentElement.classList.add('dark')
+        }
       }
     }
 
     // 切换暗黑模式
     const toggleDarkMode = () => {
       isDark.value = !isDark.value
-      if (isDark.value) {
-        document.documentElement.classList.add('dark')
-        localStorage.setItem('theme', 'dark')
-      } else {
-        document.documentElement.classList.remove('dark')
-        localStorage.setItem('theme', 'light')
+      try {
+        if (isDark.value) {
+          document.documentElement.classList.add('dark')
+          localStorage.setItem('theme', 'dark')
+        } else {
+          document.documentElement.classList.remove('dark')
+          localStorage.setItem('theme', 'light')
+        }
+      } catch (error) {
+        // localStorage 不可用时，仍然更新 UI
+        console.warn('Could not save theme preference:', error)
+        if (isDark.value) {
+          document.documentElement.classList.add('dark')
+        } else {
+          document.documentElement.classList.remove('dark')
+        }
       }
     }
 
