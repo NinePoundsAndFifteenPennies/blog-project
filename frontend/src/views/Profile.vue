@@ -140,45 +140,58 @@
             </div>
           </div>
 
-          <!-- Tabs -->
-          <div class="card mb-8 backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.1s;">
-            <div class="flex border-b border-gray-200">
-              <button
-                  :class="['px-8 py-4 font-semibold transition-all duration-200 relative', 
-                    activeTab === 'posts' ? 'text-primary-600' : 'text-gray-600 hover:text-gray-900']"
-                  @click="activeTab = 'posts'"
-              >
-                <span>我的文章</span>
-                <span class="ml-2 px-2.5 py-0.5 text-xs font-bold rounded-full" 
-                      :class="activeTab === 'posts' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'">
-                  {{ userStats.posts }}
-                </span>
-                <div v-if="activeTab === 'posts'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
-              </button>
-              <button
-                  :class="['px-8 py-4 font-semibold transition-all duration-200 relative', 
-                    activeTab === 'drafts' ? 'text-primary-600' : 'text-gray-600 hover:text-gray-900']"
-                  @click="activeTab = 'drafts'"
-              >
-                <span>草稿箱</span>
-                <span class="ml-2 px-2.5 py-0.5 text-xs font-bold rounded-full" 
-                      :class="activeTab === 'drafts' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'">
-                  {{ userStats.drafts }}
-                </span>
-                <div v-if="activeTab === 'drafts'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
-              </button>
-              <button
-                  :class="['px-8 py-4 font-semibold transition-all duration-200 relative', 
-                    activeTab === 'comments' ? 'text-primary-600' : 'text-gray-600 hover:text-gray-900']"
-                  @click="activeTab = 'comments'"
-              >
-                <span>我的评论</span>
-                <span class="ml-2 px-2.5 py-0.5 text-xs font-bold rounded-full" 
-                      :class="activeTab === 'comments' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'">
-                  {{ userStats.comments }}
-                </span>
-                <div v-if="activeTab === 'comments'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
-              </button>
+          <!-- Tabs and Search -->
+          <div class="card mb-8 backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.1s; overflow: visible;">
+            <div class="p-4" style="overflow: visible;">
+              <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                <div class="flex border-b border-gray-200 flex-1">
+                  <button
+                      :class="['px-8 py-4 font-semibold transition-all duration-200 relative', 
+                        activeTab === 'posts' ? 'text-primary-600' : 'text-gray-600 hover:text-gray-900']"
+                      @click="activeTab = 'posts'"
+                  >
+                    <span>我的文章</span>
+                    <span class="ml-2 px-2.5 py-0.5 text-xs font-bold rounded-full" 
+                          :class="activeTab === 'posts' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'">
+                      {{ userStats.posts }}
+                    </span>
+                    <div v-if="activeTab === 'posts'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
+                  </button>
+                  <button
+                      :class="['px-8 py-4 font-semibold transition-all duration-200 relative', 
+                        activeTab === 'drafts' ? 'text-primary-600' : 'text-gray-600 hover:text-gray-900']"
+                      @click="activeTab = 'drafts'"
+                  >
+                    <span>草稿箱</span>
+                    <span class="ml-2 px-2.5 py-0.5 text-xs font-bold rounded-full" 
+                          :class="activeTab === 'drafts' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'">
+                      {{ userStats.drafts }}
+                    </span>
+                    <div v-if="activeTab === 'drafts'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
+                  </button>
+                  <button
+                      :class="['px-8 py-4 font-semibold transition-all duration-200 relative', 
+                        activeTab === 'comments' ? 'text-primary-600' : 'text-gray-600 hover:text-gray-900']"
+                      @click="activeTab = 'comments'"
+                  >
+                    <span>我的评论</span>
+                    <span class="ml-2 px-2.5 py-0.5 text-xs font-bold rounded-full" 
+                          :class="activeTab === 'comments' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-600'">
+                      {{ userStats.comments }}
+                    </span>
+                    <div v-if="activeTab === 'comments'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"></div>
+                  </button>
+                </div>
+                
+                <!-- Search Box for Posts -->
+                <div v-if="activeTab === 'posts' && userStats.posts > 0" class="w-full md:w-80 relative">
+                  <SearchPreview
+                    :search-function="searchMyPosts"
+                    placeholder="搜索我的文章..."
+                    @select="handleSearchSelect"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -416,10 +429,12 @@ import { getMyPosts, deletePost } from '@/api/posts'
 import { getMyComments, updateComment, deleteComment } from '@/api/comments'
 import { uploadAvatar, updateAvatar, saveUserAvatar } from '@/api/files'
 import { getFullAvatarUrl } from '@/utils/avatar'
+import SearchPreview from '@/components/SearchPreview.vue'
+import { searchPosts } from '@/api/posts'
 
 export default {
   name: 'Profile',
-  components: { Header, Pagination },
+  components: { Header, Pagination, SearchPreview },
   setup() {
     const store = useStore()
     const route = useRoute()
@@ -753,6 +768,27 @@ export default {
       })
     })
 
+    // Search function for SearchPreview component
+    const searchMyPosts = async (keyword) => {
+      try {
+        const res = await searchPosts({
+          keyword,
+          author: currentUser.value?.username,
+          sortBy: 'hotness',
+          size: 8
+        })
+        return res.content || []
+      } catch (error) {
+        console.error('Search failed:', error)
+        return []
+      }
+    }
+
+    // Handle search result selection
+    const handleSearchSelect = (post) => {
+      router.push(`/post/${post.id}`)
+    }
+
     return { 
       loading, 
       posts,
@@ -781,7 +817,9 @@ export default {
       triggerFileInput,
       handleFileSelect,
       handleAvatarError,
-      handleAvatarLoad
+      handleAvatarLoad,
+      searchMyPosts,
+      handleSearchSelect
     }
   }
 }

@@ -95,8 +95,8 @@
             </div>
 
             <!-- Posts Tab Header -->
-            <div class="card mb-8 backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.1s;">
-              <div class="p-6">
+            <div class="card mb-8 backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.1s; overflow: visible;">
+              <div class="p-6" style="overflow: visible;">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                   <div class="flex items-center">
                     <span class="text-xl font-semibold text-gray-900">TA的文章</span>
@@ -106,7 +106,7 @@
                   </div>
                   
                   <!-- Search Box -->
-                  <div v-if="totalPosts > 0" class="w-full md:w-96">
+                  <div v-if="totalPosts > 0" class="w-full md:w-96 relative">
                     <SearchPreview
                       :search-function="searchUserPosts"
                       :placeholder="`搜索 ${displayName} 的文章...`"
