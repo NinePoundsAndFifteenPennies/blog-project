@@ -36,6 +36,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // 统计使用某个分类的文章数量
     long countByCategory(com.lost.blog.model.Category category);
 
+    // 统计已发布文章总数（用于社区统计）
+    long countByDraftFalse();
+
     // 查找使用某个分类的所有文章
     java.util.List<Post> findByCategory(com.lost.blog.model.Category category);
 

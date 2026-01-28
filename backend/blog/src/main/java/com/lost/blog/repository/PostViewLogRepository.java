@@ -17,4 +17,8 @@ public interface PostViewLogRepository extends JpaRepository<PostViewLog, Long> 
     // 删除指定文章的所有浏览日志（用于删除文章时级联删除）
     @Modifying
     void deleteByPost(Post post);
+
+    // 统计指定时间范围内的访问次数（用于今日访问统计）
+    // 注意：PostViewLog使用的是createTime字段
+    long countByCreateTimeBetween(LocalDateTime startTime, LocalDateTime endTime);
 }

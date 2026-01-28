@@ -63,7 +63,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 
 export default {
@@ -77,40 +77,17 @@ export default {
       todayVisits: 0
     })
 
+    let refreshInterval = null
+
     const loadStats = async () => {
       try {
-        loading.value = true
-        
-        // Try to fetch from API if available
-        try {
-          const response = await axios.get('/api/statistics')
-          if (response.data) {
-            stats.value = response.data
-          }
-        } catch (apiError) {
-          // If API doesn't exist, generate mock data for now
-          console.log('Statistics API not available, using placeholder data')
-          
-          // Simulate loading delay
-          await new Promise(resolve => setTimeout(resolve, 500))
-          
-          // Generate placeholder statistics
-          stats.value = {
-            totalUsers: Math.floor(Math.random() * 1000) + 100,
-            totalPosts: Math.floor(Math.random() * 5000) + 500,
-            onlineUsers: Math.floor(Math.random() * 50) + 5,
-            todayVisits: Math.floor(Math.random() * 500) + 50
-          }
+        const response = await axios.get('/api/statistics')
+        if (response.data) {
+          stats.value = response.data
         }
       } catch (error) {
         console.error('Failed to load statistics:', error)
-        // Use default values on error
-        stats.value = {
-          totalUsers: 0,
-          totalPosts: 0,
-          onlineUsers: 0,
-          todayVisits: 0
-        }
+        // Keep current values on error, don't reset to 0
       } finally {
         loading.value = false
       }
@@ -119,13 +96,16 @@ export default {
     onMounted(() => {
       loadStats()
       
-      // Refresh online users every 30 seconds
-      setInterval(() => {
-        if (!loading.value) {
-          // Only update online users without full reload
-          stats.value.onlineUsers = Math.floor(Math.random() * 50) + 5
-        }
+      // Refresh statistics every 30 seconds
+      refreshInterval = setInterval(() => {
+        loadStats()
       }, 30000)
+    })
+
+    onBeforeUnmount(() => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval)
+      }
     })
 
     return {
