@@ -43,8 +43,8 @@
 
           <!-- 文章摘要 -->
           <p class="text-gray-600 mb-3 line-clamp-2 leading-relaxed text-sm">
-            <span v-if="highlightKeyword" v-html="highlightText(post.summary || '暂无摘要')"></span>
-            <template v-else>{{ post.summary || '暂无摘要' }}</template>
+            <span v-if="highlightKeyword" v-html="highlightText(displaySummary)"></span>
+            <template v-else>{{ displaySummary }}</template>
           </p>
         </div>
 
@@ -171,8 +171,8 @@
 
       <!-- 摘要 -->
       <p class="text-gray-600 mb-4 line-clamp-3 leading-relaxed text-sm">
-        <span v-if="highlightKeyword" v-html="highlightText(post.summary || '暂无摘要')"></span>
-        <template v-else>{{ post.summary || '暂无摘要' }}</template>
+        <span v-if="highlightKeyword" v-html="highlightText(displaySummary)"></span>
+        <template v-else>{{ displaySummary }}</template>
       </p>
 
       <!-- 底部信息栏 -->
@@ -429,6 +429,24 @@ export default {
       return '创建时间'
     })
 
+    // Extract content excerpt if summary is not available
+    const displaySummary = computed(() => {
+      if (props.post.summary) {
+        return props.post.summary
+      }
+      
+      // Extract plain text from content (remove HTML tags)
+      if (props.post.content) {
+        const tempDiv = document.createElement('div')
+        tempDiv.innerHTML = props.post.content
+        const plainText = tempDiv.textContent || tempDiv.innerText || ''
+        // Return first 150 characters
+        return plainText.substring(0, 150) + (plainText.length > 150 ? '...' : '')
+      }
+      
+      return '暂无内容'
+    })
+
     const goToDetail = () => {
       router.push(`/post/${props.post.id}`)
     }
@@ -522,6 +540,7 @@ export default {
       titleAttr,
       latestOperationTime,
       latestOperationTimeTitle,
+      displaySummary,
       goToDetail,
       handleTagClick,
       handleAvatarError,

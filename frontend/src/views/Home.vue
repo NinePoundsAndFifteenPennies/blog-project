@@ -196,16 +196,8 @@
                   <p class="text-sm text-gray-500">功能开发中...</p>
                 </div>
 
-                <!-- Community Stats Placeholder -->
-                <div class="card p-6">
-                  <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    社区统计
-                  </h3>
-                  <p class="text-sm text-gray-500">功能开发中...</p>
-                </div>
+                <!-- Community Stats -->
+                <CommunityStats />
               </div>
             </aside>
           </div>
@@ -224,6 +216,7 @@ import PostCard from '@/components/PostCard.vue'
 import Pagination from '@/components/Pagination.vue'
 import PopularTags from '@/components/PopularTags.vue'
 import SearchPreview from '@/components/SearchPreview.vue'
+import CommunityStats from '@/components/CommunityStats.vue'
 import { getPosts, searchPosts } from '@/api/posts'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
@@ -234,7 +227,8 @@ export default {
     PostCard,
     Pagination,
     PopularTags,
-    SearchPreview
+    SearchPreview,
+    CommunityStats
   },
   setup() {
     const store = useStore()
