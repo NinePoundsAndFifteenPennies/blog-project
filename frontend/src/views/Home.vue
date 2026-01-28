@@ -3,20 +3,13 @@
     <Header />
 
     <!-- Hero Section -->
-    <section class="relative pt-24 pb-20 bg-gradient-to-br from-white via-primary-50/30 to-secondary-50/30 dark:from-dark-950 dark:via-dark-900 dark:to-dark-950 overflow-hidden">
-      <!-- Animated background elements -->
-      <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-200/20 dark:bg-primary-500/10 rounded-full blur-3xl animate-float"></div>
-        <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary-200/20 dark:bg-secondary-500/10 rounded-full blur-3xl animate-float" style="animation-delay: 2s;"></div>
-      </div>
-      
-      <div class="container mx-auto px-4 relative z-10">
+    <section class="relative pt-24 pb-20 bg-gradient-to-b from-white to-gray-50">
+      <div class="container mx-auto px-4">
         <div class="max-w-4xl mx-auto text-center">
           <h1 class="text-5xl md:text-7xl font-bold mb-6 animate-fade-in leading-tight">
-            <span class="text-gray-900 dark:text-gray-100">分享你的</span>
-            <span class="bg-gradient-to-r from-primary-600 via-purple-600 to-secondary-600 dark:from-primary-400 dark:via-purple-400 dark:to-secondary-400 bg-clip-text text-transparent">技术见解</span>
+            <span class="text-gray-900">分享你的</span><span class="text-primary-600">技术见解</span>
           </h1>
-          <p class="text-xl md:text-2xl text-gray-600 dark:text-gray-400 mb-8 animate-slide-up leading-relaxed">
+          <p class="text-xl md:text-2xl text-gray-600 mb-8 animate-slide-up leading-relaxed">
             在这里记录学习、分享经验、交流技术 ✨
           </p>
           <div class="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up" style="animation-delay: 0.2s;">
@@ -56,14 +49,14 @@
     </section>
 
     <!-- Posts Section -->
-    <section class="py-16 relative bg-gray-50 dark:bg-dark-950">
+    <section class="py-16 relative">
       <div class="container mx-auto px-4">
         <div class="max-w-7xl mx-auto">
           <!-- Section Header -->
           <div class="flex items-center justify-between mb-12">
             <div>
-              <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">{{ sortTitle }}</h2>
-              <p class="text-gray-600 dark:text-gray-400">探索社区成员分享的精彩内容</p>
+              <h2 class="text-3xl font-bold text-gray-900 mb-2">{{ sortTitle }}</h2>
+              <p class="text-gray-600">探索社区成员分享的精彩内容</p>
             </div>
             <div class="flex items-center space-x-4">
               <!-- Sorting Dropdown -->
@@ -71,7 +64,7 @@
                 <select 
                   v-model="selectedSort" 
                   @change="handleSortChange"
-                  class="appearance-none bg-white dark:bg-dark-800 border border-gray-300 dark:border-dark-700 rounded-lg px-4 py-2 pr-10 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer"
+                  class="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer"
                 >
                   <option value="time_desc">按时间 (新→旧)</option>
                   <option value="time_asc">按时间 (旧→新)</option>
@@ -95,10 +88,10 @@
 
           <!-- Stats -->
           <div v-if="totalElements > 0" class="mb-8 text-center">
-            <span class="inline-flex items-center px-4 py-2 bg-white dark:bg-dark-800 rounded-full shadow-sm border border-gray-200 dark:border-dark-700">
-              <span class="text-gray-600 dark:text-gray-400">共找到</span>
-              <span class="mx-2 font-semibold text-primary-600 dark:text-primary-400">{{ totalElements }}</span>
-              <span class="text-gray-600 dark:text-gray-400">篇文章</span>
+            <span class="inline-flex items-center px-4 py-2 bg-white rounded-full shadow-sm border border-gray-200">
+              <span class="text-gray-600">共找到</span>
+              <span class="mx-2 font-semibold text-primary-600">{{ totalElements }}</span>
+              <span class="text-gray-600">篇文章</span>
             </span>
           </div>
 
@@ -109,24 +102,24 @@
               <!-- Loading State -->
               <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div v-for="i in 6" :key="i" class="animate-pulse">
-                  <div class="card p-6 bg-white dark:bg-dark-900 border-gray-200 dark:border-dark-800">
-                    <div class="h-48 bg-gray-200 dark:bg-dark-800 rounded-lg mb-4"></div>
-                    <div class="h-6 bg-gray-200 dark:bg-dark-800 rounded w-3/4 mb-3"></div>
-                    <div class="h-4 bg-gray-200 dark:bg-dark-800 rounded w-full mb-2"></div>
-                    <div class="h-4 bg-gray-200 dark:bg-dark-800 rounded w-5/6"></div>
+                  <div class="card p-6">
+                    <div class="h-48 bg-gray-200 rounded-lg mb-4"></div>
+                    <div class="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
+                    <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                    <div class="h-4 bg-gray-200 rounded w-5/6"></div>
                   </div>
                 </div>
               </div>
 
               <!-- Empty State -->
               <div v-else-if="!posts.length" class="text-center py-20">
-                <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary-100 dark:bg-primary-900/30 mb-6">
-                  <svg class="w-12 h-12 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary-100 mb-6">
+                  <svg class="w-12 h-12 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">还没有文章</h3>
-                <p class="text-gray-600 dark:text-gray-400 mb-8">成为第一个分享内容的人吧!</p>
+                <h3 class="text-2xl font-bold text-gray-900 mb-3">还没有文章</h3>
+                <p class="text-gray-600 mb-8">成为第一个分享内容的人吧!</p>
                 <router-link v-if="isLoggedIn" to="/post/create" class="btn-primary">
                   写第一篇文章
                 </router-link>

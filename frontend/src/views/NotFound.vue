@@ -1,12 +1,12 @@
 <template>
   <div
-    class="min-h-screen bg-gray-50 dark:bg-dark-950 flex items-center justify-center p-4"
+    class="min-h-screen bg-gray-50 flex items-center justify-center p-4"
   >
     <div class="text-center">
       <!-- 404 Animation -->
       <div class="mb-8">
         <div
-          class="text-9xl font-bold text-primary-600 dark:text-primary-400 animate-pulse"
+          class="text-9xl font-bold text-primary-600 animate-pulse"
         >
           404
         </div>
@@ -15,7 +15,7 @@
       <!-- Icon -->
       <div class="mb-6">
         <svg
-          class="w-32 h-32 mx-auto text-primary-300 dark:text-primary-600"
+          class="w-32 h-32 mx-auto text-primary-300"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -30,8 +30,8 @@
       </div>
 
       <!-- Message -->
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">页面不存在</h1>
-      <p class="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
+      <h1 class="text-3xl font-bold text-gray-900 mb-4">页面不存在</h1>
+      <p class="text-gray-600 mb-8 max-w-md mx-auto">
         抱歉,您访问的页面不存在或已被删除。请检查网址是否正确,或返回首页浏览其他内容。
       </p>
 

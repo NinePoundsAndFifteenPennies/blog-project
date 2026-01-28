@@ -1,27 +1,27 @@
 <template>
   <div class="card card-hover cursor-pointer group" @click="goToDetail">
     <!-- 头部区域 -->
-    <div class="relative h-52 overflow-hidden bg-gray-100 dark:bg-dark-800">
+    <div class="relative h-52 overflow-hidden">
       <!-- 封面图片 -->
       <img 
         v-if="post.coverImageUrl" 
         :src="getFullImageUrl(post.coverImageUrl)" 
         :alt="post.title"
-        class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
       />
       <!-- 渐变色背景（无封面图时显示） -->
       <div 
         v-else 
-        class="w-full h-full bg-gradient-to-br from-primary-500 via-purple-500 to-secondary-600"
+        class="w-full h-full bg-gradient-to-br from-primary-500 to-purple-600"
       ></div>
       <!-- Subtle overlay -->
-      <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent group-hover:from-black/30 transition-all duration-500"></div>
+      <div class="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-all duration-200"></div>
     </div>
 
     <!-- 内容区域 -->
     <div class="p-6">
       <!-- 标题 -->
-      <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3 line-clamp-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors duration-200 leading-tight">
+      <h3 class="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200 leading-tight">
         <span v-if="highlightKeyword" v-html="highlightText(post.title)"></span>
         <template v-else>{{ post.title }}</template>
       </h3>
@@ -42,13 +42,13 @@
       </div>
 
       <!-- 摘要 -->
-      <p class="text-gray-600 dark:text-gray-400 mb-4 line-clamp-3 leading-relaxed text-sm">
+      <p class="text-gray-600 mb-4 line-clamp-3 leading-relaxed text-sm">
         <span v-if="highlightKeyword" v-html="highlightText(post.summary || '暂无摘要')"></span>
         <template v-else>{{ post.summary || '暂无摘要' }}</template>
       </p>
 
       <!-- 底部信息栏 -->
-      <div class="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-dark-800">
+      <div class="flex items-center justify-between pt-4 border-t border-gray-100">
         <!-- 作者信息 -->
         <div class="flex items-center space-x-3">
           <UserProfileHoverCard 
@@ -78,17 +78,17 @@
             <span>{{ authorInitial }}</span>
           </div>
           <div>
-            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ authorDisplayName }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400" :title="titleAttr">
+            <p class="text-sm font-semibold text-gray-900">{{ authorDisplayName }}</p>
+            <p class="text-xs text-gray-500" :title="titleAttr">
               {{ dateLabel }} {{ displayDate }}
             </p>
           </div>
         </div>
 
         <!-- 统计信息 -->
-        <div class="flex items-center space-x-3 text-sm text-gray-400 dark:text-gray-500">
+        <div class="flex items-center space-x-3 text-sm text-gray-400">
           <!-- 浏览量 -->
-          <div class="flex items-center space-x-1 hover:text-primary-500 dark:hover:text-primary-400 transition-colors" :title="`${post.viewCount || 0} 次浏览`">
+          <div class="flex items-center space-x-1 hover:text-primary-500 transition-colors" :title="`${post.viewCount || 0} 次浏览`">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -99,7 +99,7 @@
           <!-- 点赞数 -->
           <button 
             @click.stop="handleLike"
-            class="flex items-center space-x-1 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+            class="flex items-center space-x-1 hover:text-red-500 transition-colors"
             :class="{ 'text-red-500': post.isLiked }"
             :title="post.isLiked ? '取消点赞' : '点赞'"
           >
@@ -115,7 +115,7 @@
           </button>
 
           <!-- 评论数图标 -->
-          <div class="flex items-center space-x-1 hover:text-primary-500 dark:hover:text-primary-400 transition-colors" :title="`${post.commentCount || 0} 条评论`">
+          <div class="flex items-center space-x-1 hover:text-primary-500 transition-colors" :title="`${post.commentCount || 0} 条评论`">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
             </svg>

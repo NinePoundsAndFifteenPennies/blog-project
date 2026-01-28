@@ -1,45 +1,30 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 transition-colors duration-300;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    @apply bg-gray-50 text-gray-900;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
       "Helvetica Neue", Arial, sans-serif;
     min-height: 100vh;
-  }
-
-  /* Dark mode styles */
-  .dark body {
-    @apply bg-dark-950 text-gray-100;
   }
 
   /* Markdown样式 */
   .markdown-body {
     @apply text-gray-800 leading-relaxed;
-    font-family: 'Merriweather', Georgia, serif;
-  }
-
-  .dark .markdown-body {
-    @apply text-gray-200;
   }
 
   .markdown-body h1 {
     @apply text-3xl font-bold mt-8 mb-4;
-    font-family: 'Inter', sans-serif;
   }
 
   .markdown-body h2 {
     @apply text-2xl font-bold mt-6 mb-3;
-    font-family: 'Inter', sans-serif;
   }
 
   .markdown-body h3 {
     @apply text-xl font-semibold mt-4 mb-2;
-    font-family: 'Inter', sans-serif;
   }
 
   .markdown-body p {
@@ -50,16 +35,8 @@
     @apply bg-gray-100 px-2 py-1 rounded text-sm font-mono text-red-600;
   }
 
-  .dark .markdown-body code {
-    @apply bg-dark-800 text-red-400;
-  }
-
   .markdown-body pre {
     @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mb-4;
-  }
-
-  .dark .markdown-body pre {
-    @apply bg-dark-900 text-gray-200;
   }
 
   .markdown-body pre code {
@@ -68,10 +45,6 @@
 
   .markdown-body blockquote {
     @apply border-l-4 border-primary-500 pl-4 italic text-gray-600 my-4;
-  }
-
-  .dark .markdown-body blockquote {
-    @apply text-gray-400 border-primary-400;
   }
 
   .markdown-body ul {
@@ -93,10 +66,6 @@
     @apply text-primary-600 hover:text-primary-700 underline;
   }
 
-  .dark .markdown-body a {
-    @apply text-primary-400 hover:text-primary-300;
-  }
-
   .markdown-body img {
     @apply rounded-lg shadow-md my-4;
   }
@@ -110,55 +79,21 @@
     @apply bg-gray-100;
   }
 
-  .dark .markdown-body table thead {
-    @apply bg-dark-800;
-  }
-
   .markdown-body table th,
   .markdown-body table td {
     @apply border border-gray-300 px-4 py-2 text-left;
-  }
-
-  .dark .markdown-body table th,
-  .dark .markdown-body table td {
-    @apply border-dark-700;
   }
 
   .markdown-body table th {
     @apply font-semibold text-gray-700;
   }
 
-  .dark .markdown-body table th {
-    @apply text-gray-200;
-  }
-
   .markdown-body table tr:hover {
     @apply bg-gray-50;
-  }
-
-  .dark .markdown-body table tr:hover {
-    @apply bg-dark-800;
   }
 }
 
 @layer components {
-  /* Glassmorphism utilities */
-  .glass-panel {
-    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-glass;
-  }
-
-  .dark .glass-panel {
-    @apply bg-dark-900/80 border-white/10;
-  }
-
-  .glass-card {
-    @apply bg-white/90 backdrop-blur-lg border border-gray-200/50 shadow-glass rounded-xl;
-  }
-
-  .dark .glass-card {
-    @apply bg-dark-900/90 border-dark-700/50;
-  }
-
   /* 自定义按钮样式 */
   .btn-primary {
     @apply bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold
@@ -174,17 +109,9 @@
         shadow-sm hover:shadow-md transition-all duration-200;
   }
 
-  .dark .btn-secondary {
-    @apply bg-dark-800 text-gray-200 border-dark-700 hover:bg-dark-700 hover:border-primary-500;
-  }
-
   .btn-ghost {
     @apply text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100 
         transition-all duration-200;
-  }
-
-  .dark .btn-ghost {
-    @apply text-gray-200 hover:bg-dark-800;
   }
 
   /* 输入框样式 */
@@ -192,10 +119,6 @@
     @apply w-full px-4 py-3 rounded-lg border border-gray-300 bg-white
         focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
         hover:border-gray-400 transition-all duration-200;
-  }
-
-  .dark .input-field {
-    @apply bg-dark-800 border-dark-700 text-gray-200 hover:border-dark-600;
   }
 
   .input-error {
@@ -208,10 +131,6 @@
         border border-gray-200 transition-all duration-200 overflow-hidden;
   }
 
-  .dark .card {
-    @apply bg-dark-900 border-dark-800 hover:shadow-float;
-  }
-
   .card-hover {
     @apply transform hover:-translate-y-1;
   }
@@ -221,10 +140,6 @@
     @apply inline-block bg-primary-50 
         text-primary-700 px-4 py-1.5 rounded-md text-sm font-medium
         hover:bg-primary-100 transition-all duration-200;
-  }
-
-  .dark .tag {
-    @apply bg-primary-900/30 text-primary-400 hover:bg-primary-900/50;
   }
 
   /* 加载动画 */
@@ -243,36 +158,13 @@
   background: #f1f1f1;
 }
 
-.dark ::-webkit-scrollbar-track {
-  background: #1e293b;
-}
-
 ::-webkit-scrollbar-thumb {
   background: #888;
   border-radius: 4px;
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: #475569;
-}
-
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-}
-
-/* 文本选择颜色 */
-::selection {
-  background: #bae6fd;
-  color: #0c4a6e;
-}
-
-.dark ::selection {
-  background: #0369a1;
-  color: #e0f2fe;
 }
 
 /* 页面切换动画 */
@@ -293,12 +185,4 @@
 .slide-up-enter-from {
   transform: translateY(20px);
   opacity: 0;
-}
-
-/* Dark mode transition - only for specific properties */
-body,
-body *:not(.animate-spin):not(.animate-pulse):not(.animate-bounce):not([class*="animate-"]) {
-  transition-property: background-color, border-color, color;
-  transition-duration: 200ms;
-  transition-timing-function: ease-in-out;
 }
