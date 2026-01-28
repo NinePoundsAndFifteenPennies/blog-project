@@ -52,88 +52,110 @@
     <section class="py-16 relative">
       <div class="container mx-auto px-4">
         <div class="max-w-7xl mx-auto">
-          <!-- Section Header -->
-          <div class="flex items-center justify-between mb-12">
-            <div>
-              <h2 class="text-3xl font-bold text-gray-900 mb-2">{{ sortTitle }}</h2>
-              <p class="text-gray-600">探索社区成员分享的精彩内容</p>
-            </div>
-            <div class="flex items-center space-x-4">
-              <!-- Sorting Dropdown -->
-              <div class="relative">
-                <select 
-                  v-model="selectedSort" 
-                  @change="handleSortChange"
-                  class="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer"
-                >
-                  <option value="time_desc">按时间 (新→旧)</option>
-                  <option value="time_asc">按时间 (旧→新)</option>
-                  <option value="hotness_desc">按热度 (高→低)</option>
-                  <option value="hotness_asc">按热度 (低→高)</option>
-                </select>
-                <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-              <router-link v-if="isLoggedIn" to="/post/create" class="btn-secondary hidden md:inline-flex items-center space-x-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                <span>写文章</span>
-              </router-link>
-            </div>
-          </div>
-
-          <!-- Stats -->
-          <div v-if="totalElements > 0" class="mb-8 text-center">
-            <span class="inline-flex items-center px-4 py-2 bg-white rounded-full shadow-sm border border-gray-200">
-              <span class="text-gray-600">共找到</span>
-              <span class="mx-2 font-semibold text-primary-600">{{ totalElements }}</span>
-              <span class="text-gray-600">篇文章</span>
-            </span>
-          </div>
-
           <!-- Main Content Layout -->
           <div class="flex flex-col lg:flex-row gap-8">
             <!-- Main Content Area (Left - 2/3 width) -->
-            <div class="flex-1 lg:w-2/3 order-1 lg:order-1">
-              <!-- Loading State -->
-              <div v-if="loading" class="space-y-4">
-                <div v-for="i in 6" :key="i" class="animate-pulse">
-                  <div class="card p-6">
-                    <div class="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
-                    <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                    <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+            <div class="flex-1 lg:w-2/3 order-1 lg:order-1 space-y-12">
+              
+              <!-- Module 1: Hot Articles (Top 12 by hotness) -->
+              <div>
+                <div class="flex items-center justify-between mb-6">
+                  <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+                    <svg class="w-6 h-6 mr-2 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                    热门文章
+                  </h2>
+                </div>
+                
+                <!-- Hot Articles Loading State -->
+                <div v-if="loadingHot" class="space-y-4">
+                  <div v-for="i in 3" :key="'hot-loading-' + i" class="animate-pulse">
+                    <div class="card p-4 flex gap-4">
+                      <div class="w-32 h-24 bg-gray-200 rounded-lg flex-shrink-0"></div>
+                      <div class="flex-1">
+                        <div class="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                        <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <!-- Empty State -->
-              <div v-else-if="!posts.length" class="text-center py-20">
-                <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary-100 mb-6">
-                  <svg class="w-12 h-12 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+                <!-- Hot Articles List (Scrollable container) -->
+                <div v-else-if="hotPosts.length > 0" class="space-y-4 max-h-[800px] overflow-y-auto pr-2">
+                  <PostCard
+                      v-for="post in hotPosts"
+                      :key="'hot-' + post.id"
+                      :post="post"
+                      :list-view="true"
+                      class="animate-scale-in"
+                      @like-changed="handleLikeChanged"
+                  />
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 mb-3">还没有文章</h3>
-                <p class="text-gray-600 mb-8">成为第一个分享内容的人吧!</p>
-                <router-link v-if="isLoggedIn" to="/post/create" class="btn-primary">
-                  写第一篇文章
-                </router-link>
+
+                <!-- No Hot Articles -->
+                <div v-else class="text-center py-10 card">
+                  <p class="text-gray-500">暂无热门文章</p>
+                </div>
               </div>
 
-              <!-- Posts List -->
-              <div v-else class="space-y-4">
-                <PostCard
-                    v-for="post in posts"
-                    :key="post.id"
-                    :post="post"
-                    :list-view="true"
-                    class="animate-scale-in"
-                    @like-changed="handleLikeChanged"
-                />
+              <!-- Module 2: Latest Articles (with pagination) -->
+              <div>
+                <div class="flex items-center justify-between mb-6">
+                  <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+                    <svg class="w-6 h-6 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    最新文章
+                  </h2>
+                  <router-link v-if="isLoggedIn" to="/post/create" class="btn-secondary hidden md:inline-flex items-center space-x-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>写文章</span>
+                  </router-link>
+                </div>
+
+                <!-- Latest Articles Loading State -->
+                <div v-if="loading" class="space-y-4">
+                  <div v-for="i in 6" :key="'latest-loading-' + i" class="animate-pulse">
+                    <div class="card p-4 flex gap-4">
+                      <div class="w-32 h-24 bg-gray-200 rounded-lg flex-shrink-0"></div>
+                      <div class="flex-1">
+                        <div class="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div class="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                        <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Empty State -->
+                <div v-else-if="!posts.length" class="text-center py-20 card">
+                  <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary-100 mb-6">
+                    <svg class="w-12 h-12 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <h3 class="text-2xl font-bold text-gray-900 mb-3">还没有文章</h3>
+                  <p class="text-gray-600 mb-8">成为第一个分享内容的人吧!</p>
+                  <router-link v-if="isLoggedIn" to="/post/create" class="btn-primary">
+                    写第一篇文章
+                  </router-link>
+                </div>
+
+                <!-- Latest Articles List -->
+                <div v-else class="space-y-4">
+                  <PostCard
+                      v-for="post in posts"
+                      :key="'latest-' + post.id"
+                      :post="post"
+                      :list-view="true"
+                      class="animate-scale-in"
+                      @like-changed="handleLikeChanged"
+                  />
+                </div>
               </div>
 
               <!-- Pagination -->
@@ -220,47 +242,64 @@ export default {
     const router = useRouter()
 
     const loading = ref(false)
+    const loadingHot = ref(false)
     const posts = ref([])
+    const hotPosts = ref([])
     // Initialize page from URL query parameter
     const currentPage = ref(parseInt(route.query.page) || 1)
     const totalPages = ref(1)
     const totalElements = ref(0)
-    const pageSize = 9 // 每页显示9篇文章 (3x3 grid)
-    
-    // 排序相关
-    const selectedSort = ref(route.query.sort || 'time_desc')
+    const pageSize = 9 // 每页显示9篇文章
 
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
-    
-    // 动态标题
-    const sortTitle = computed(() => {
-      if (selectedSort.value.startsWith('hotness')) {
-        return '热门文章'
-      }
-      return '最新文章'
-    })
 
-    // 解析排序参数
-    const parseSortParams = () => {
-      const parts = selectedSort.value.split('_')
-      return {
-        sortBy: parts[0], // 'time' or 'hotness'
-        order: parts[1]   // 'asc' or 'desc'
+    // 加载热门文章（热度最高的12篇）
+    const loadHotPosts = async () => {
+      loadingHot.value = true
+      try {
+        const response = await getPosts({
+          page: 0,
+          size: 12,
+          sortBy: 'hotness',
+          order: 'desc'
+        })
+
+        hotPosts.value = response.content.map(post => ({
+          ...post,
+          id: post.id,
+          title: post.title,
+          summary: post.summary,
+          author: post.author || {},
+          authorUsername: post.authorUsername,
+          coverImageUrl: post.coverImageUrl,
+          createdAt: post.createdAt,
+          updatedAt: post.updatedAt,
+          publishedAt: post.publishedAt,
+          likeCount: post.likeCount || 0,
+          commentCount: post.commentCount || 0,
+          viewCount: post.viewCount || 0,
+          isLiked: post.isLiked || false,
+          tags: post.tags || [],
+          views: 0
+        }))
+      } catch (error) {
+        console.error('加载热门文章失败:', error)
+        hotPosts.value = []
+      } finally {
+        loadingHot.value = false
       }
     }
 
-    // 加载文章列表
+    // 加载最新文章列表（按时间排序）
     const loadPosts = async () => {
       loading.value = true
       try {
-        const { sortBy, order } = parseSortParams()
-        
-        // 调用API获取文章列表 (page从0开始)
+        // 调用API获取文章列表 (page从0开始) - 按时间倒序
         const response = await getPosts({
           page: currentPage.value - 1,
           size: pageSize,
-          sortBy: sortBy,
-          order: order
+          sortBy: 'time',
+          order: 'desc'
         })
 
         // 处理后端返回的Spring Data格式
@@ -293,14 +332,6 @@ export default {
       }
     }
 
-    // 排序切换
-    const handleSortChange = () => {
-      currentPage.value = 1
-      // Update URL with sort and page parameters, preserving other query params
-      router.push({ query: { ...route.query, sort: selectedSort.value, page: 1 } })
-      loadPosts()
-    }
-
     // 分页切换
     const handlePageChange = (page) => {
       currentPage.value = page
@@ -315,15 +346,6 @@ export default {
       const page = parseInt(newPage) || 1
       if (page !== currentPage.value) {
         currentPage.value = page
-        loadPosts()
-      }
-    })
-    
-    // Watch for sort query changes (e.g., browser back/forward)
-    watch(() => route.query.sort, (newSort) => {
-      const sort = newSort || 'time_desc'
-      if (sort !== selectedSort.value) {
-        selectedSort.value = sort
         loadPosts()
       }
     })
@@ -372,20 +394,20 @@ export default {
     }
 
     onMounted(() => {
+      loadHotPosts()
       loadPosts()
     })
 
     return {
       loading,
+      loadingHot,
       posts,
+      hotPosts,
       currentPage,
       totalPages,
       totalElements,
       isLoggedIn,
-      selectedSort,
-      sortTitle,
       handlePageChange,
-      handleSortChange,
       handleLikeChanged,
       searchGlobal,
       handleSearchSelect,

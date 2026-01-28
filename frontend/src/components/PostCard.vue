@@ -1,41 +1,64 @@
 <template>
   <!-- List View Layout -->
   <div v-if="listView" class="card cursor-pointer group hover:shadow-lg transition-all duration-200" @click="goToDetail">
-    <div class="p-6 flex gap-6">
-      <!-- 封面图片 (左侧，较小) -->
-      <div v-if="post.coverImageUrl" class="relative w-48 h-32 overflow-hidden rounded-lg flex-shrink-0">
+    <div class="flex">
+      <!-- 封面图片 (左侧，1/3 宽度) -->
+      <div class="w-1/3 h-48 md:h-auto overflow-hidden rounded-l-lg flex-shrink-0">
         <img 
+          v-if="post.coverImageUrl" 
           :src="getFullImageUrl(post.coverImageUrl)" 
           :alt="post.title"
           class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
         />
+        <!-- 渐变色背景（无封面图时显示） -->
+        <div 
+          v-else 
+          class="w-full h-full bg-gradient-to-br from-primary-500 via-purple-500 to-secondary-600"
+        ></div>
       </div>
 
-      <!-- 内容区域 (右侧，占据剩余空间) -->
-      <div class="flex-1 min-w-0">
-        <!-- 标题 -->
-        <h3 class="text-2xl font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200">
-          <span v-if="highlightKeyword" v-html="highlightText(post.title)"></span>
-          <template v-else>{{ post.title }}</template>
-        </h3>
+      <!-- 内容区域 (右侧，2/3 宽度) -->
+      <div class="w-2/3 p-6 flex flex-col justify-between">
+        <div>
+          <!-- 标签徽章 -->
+          <div v-if="post.tags && post.tags.length > 0" class="flex flex-wrap gap-2 mb-3">
+            <TagBadge
+              v-for="tag in post.tags.slice(0, 3)"
+              :key="tag.id"
+              :tag="tag"
+              :show-icon="false"
+              :clickable="true"
+              @click="handleTagClick(tag)"
+            />
+            <span v-if="post.tags.length > 3" class="text-xs text-gray-400">
+              +{{ post.tags.length - 3 }}
+            </span>
+          </div>
 
-        <!-- 摘要 -->
-        <p class="text-gray-600 mb-3 line-clamp-2 leading-relaxed">
-          <span v-if="highlightKeyword" v-html="highlightText(post.summary || '暂无摘要')"></span>
-          <template v-else>{{ post.summary || '暂无摘要' }}</template>
-        </p>
+          <!-- 文章标题 -->
+          <h3 class="text-xl font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200 leading-tight">
+            <span v-if="highlightKeyword" v-html="highlightText(post.title)"></span>
+            <template v-else>{{ post.title }}</template>
+          </h3>
 
-        <!-- 底部信息栏 -->
-        <div class="flex items-center justify-between flex-wrap gap-4">
+          <!-- 文章摘要 -->
+          <p class="text-gray-600 mb-3 line-clamp-2 leading-relaxed text-sm">
+            <span v-if="highlightKeyword" v-html="highlightText(post.summary || '暂无摘要')"></span>
+            <template v-else>{{ post.summary || '暂无摘要' }}</template>
+          </p>
+        </div>
+
+        <!-- 元信息栏 (时间信息显示最近一次对文章进行操作的具体时间) -->
+        <div class="flex items-center justify-between pt-3 border-t border-gray-100">
           <!-- 左侧：作者和时间 -->
-          <div class="flex items-center space-x-3">
+          <div class="flex items-center space-x-2 text-sm text-gray-500">
             <UserProfileHoverCard 
               v-if="post.authorUsername"
               :username="post.authorUsername"
               :user-data="authorData"
             >
               <div 
-                class="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold shadow-sm overflow-hidden bg-primary-600"
+                class="w-6 h-6 rounded-full flex items-center justify-center text-white font-semibold shadow-sm overflow-hidden bg-primary-600"
               >
                 <img 
                   v-if="displayAvatarUrl && !avatarLoadError" 
@@ -51,72 +74,57 @@
             </UserProfileHoverCard>
             <div 
               v-else
-              class="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold shadow-sm overflow-hidden bg-primary-600"
+              class="w-6 h-6 rounded-full flex items-center justify-center text-white font-semibold shadow-sm overflow-hidden bg-primary-600"
             >
               <span class="text-xs">{{ authorInitial }}</span>
             </div>
-            <div class="text-sm">
-              <span class="font-semibold text-gray-900">{{ authorDisplayName }}</span>
-              <span class="text-gray-500 mx-2">·</span>
-              <span class="text-gray-500">{{ dateLabel }} {{ displayDate }}</span>
-            </div>
+            <span class="font-medium text-gray-700">{{ authorDisplayName }}</span>
+            <span class="mx-1">·</span>
+            <span :title="latestOperationTimeTitle">{{ latestOperationTime }}</span>
           </div>
 
-          <!-- 右侧：标签和统计 -->
-          <div class="flex items-center gap-4">
-            <!-- 标签 -->
-            <div v-if="post.tags && post.tags.length > 0" class="flex flex-wrap gap-2">
-              <TagBadge
-                v-for="tag in post.tags.slice(0, 2)"
-                :key="tag.id"
-                :tag="tag"
-                :show-icon="false"
-                :clickable="true"
-                @click="handleTagClick(tag)"
-              />
+          <!-- 右侧：统计信息 -->
+          <div class="flex items-center space-x-3 text-sm text-gray-400">
+            <!-- 浏览量 -->
+            <div class="flex items-center space-x-1 hover:text-primary-500 transition-colors" :title="`${post.viewCount || 0} 次浏览`">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <span>{{ post.viewCount || 0 }}</span>
             </div>
 
-            <!-- 统计信息 -->
-            <div class="flex items-center space-x-4 text-sm text-gray-400">
-              <!-- 浏览量 -->
-              <div class="flex items-center space-x-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                <span>{{ post.viewCount || 0 }}</span>
-              </div>
-
-              <!-- 点赞数 -->
-              <button 
-                @click.stop="handleLike"
-                class="flex items-center space-x-1 hover:text-red-500 transition-colors"
-                :class="{ 'text-red-500': post.isLiked }"
+            <!-- 点赞数 -->
+            <button 
+              @click.stop="handleLike"
+              class="flex items-center space-x-1 hover:text-red-500 transition-colors"
+              :class="{ 'text-red-500': post.isLiked }"
+              :title="post.isLiked ? '取消点赞' : '点赞'"
+            >
+              <svg 
+                class="w-4 h-4" 
+                :fill="post.isLiked ? 'currentColor' : 'none'" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
               >
-                <svg 
-                  class="w-4 h-4" 
-                  :fill="post.isLiked ? 'currentColor' : 'none'" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-                <span>{{ post.likeCount || 0 }}</span>
-              </button>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              <span>{{ post.likeCount || 0 }}</span>
+            </button>
 
-              <!-- 评论数 -->
-              <div class="flex items-center space-x-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                </svg>
-                <span>{{ post.commentCount || 0 }}</span>
-              </div>
+            <!-- 评论数图标 -->
+            <div class="flex items-center space-x-1 hover:text-primary-500 transition-colors" :title="`${post.commentCount || 0} 条评论`">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+              </svg>
+              <span>{{ post.commentCount || 0 }}</span>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
+
 
   <!-- Grid View Layout (Original) -->
   <div v-else class="card card-hover cursor-pointer group" @click="goToDetail">
@@ -399,6 +407,28 @@ export default {
       return tooltip
     })
 
+    // 最近一次对文章进行操作的具体时间
+    const latestOperationTime = computed(() => {
+      const updated = props.post?.updatedAt
+      const published = props.post?.publishedAt
+      const created = props.post?.createdAt
+      
+      // 优先使用 updatedAt，其次 publishedAt，最后 createdAt
+      const latestDate = updated || published || created
+      if (!latestDate) return ''
+      
+      return formatFullDate(latestDate)
+    })
+
+    const latestOperationTimeTitle = computed(() => {
+      const updated = props.post?.updatedAt
+      const published = props.post?.publishedAt
+      
+      if (updated) return '最后更新时间'
+      if (published) return '发布时间'
+      return '创建时间'
+    })
+
     const goToDetail = () => {
       router.push(`/post/${props.post.id}`)
     }
@@ -490,6 +520,8 @@ export default {
       displayDate,
       dateLabel,
       titleAttr,
+      latestOperationTime,
+      latestOperationTimeTitle,
       goToDetail,
       handleTagClick,
       handleAvatarError,
