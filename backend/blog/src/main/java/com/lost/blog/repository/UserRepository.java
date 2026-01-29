@@ -26,4 +26,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // 统计最近活跃的用户数（用于在线用户统计）
     Long countByUpdatedAtAfter(LocalDateTime threshold);
+    
+    // 统计在线用户数（考虑updatedAt为null的情况）
+    Long countByUpdatedAtAfterOrUpdatedAtIsNullAndCreatedAtAfter(LocalDateTime updatedThreshold, LocalDateTime createdThreshold);
 }

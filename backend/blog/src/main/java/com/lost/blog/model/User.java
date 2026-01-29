@@ -59,10 +59,11 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // 在持久化之前自动设置创建时间
+    // 在持久化之前自动设置创建时间和更新时间
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now(); // 创建时也设置更新时间
     }
 
     // 在更新之前自动设置更新时间

@@ -48,9 +48,11 @@ public class StatisticsServiceImpl implements StatisticsService {
         // 2. 获取文章总数（仅已发布的文章）
         Long totalPosts = postRepository.countByDraftFalse();
 
-        // 3. 获取在线用户数（基于最后更新时间）
+        // 3. 获取在线用户数（基于最后更新时间或创建时间）
         LocalDateTime onlineThreshold = LocalDateTime.now().minusMinutes(ONLINE_THRESHOLD_MINUTES);
-        Long onlineUsers = userRepository.countByUpdatedAtAfter(onlineThreshold);
+        // 查询updatedAt在阈值之后的用户，如果updatedAt为null则使用createdAt
+        Long onlineUsers = userRepository.countByUpdatedAtAfterOrUpdatedAtIsNullAndCreatedAtAfter(
+            onlineThreshold, onlineThreshold);
 
         // 4. 获取今日访问数（基于PostViewLog表）
         LocalDateTime todayStart = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
