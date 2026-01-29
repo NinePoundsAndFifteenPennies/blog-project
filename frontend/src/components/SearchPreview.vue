@@ -53,14 +53,14 @@
     >
       <div
           v-if="showPreview"
-          class="absolute z-[100] mt-2 w-full bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden ring-1 ring-black ring-opacity-5"
+          class="absolute z-[100] mt-2 w-full bg-white rounded-lg shadow-xl border border-gray-100 ring-1 ring-black ring-opacity-5"
       >
         <!-- No Results -->
         <div v-if="!loading && searchResults.length === 0" class="p-4 text-center text-gray-500 text-sm">
           暂无搜索结果
         </div>
 
-        <ul v-else class="max-h-[70vh] overflow-y-auto divide-y divide-gray-100">
+        <ul v-else class="max-h-[70vh] overflow-y-auto divide-y divide-gray-100 rounded-t-lg">
           <li
               v-for="(result, index) in searchResults"
               :key="result.post.id"

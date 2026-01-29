@@ -36,13 +36,13 @@
         <span class="text-sm font-semibold text-gray-900">{{ stats.totalPosts || 0 }}</span>
       </div>
       
-      <!-- Online Users -->
+      <!-- Active Users -->
       <div class="flex items-center justify-between">
         <span class="text-sm text-gray-600 flex items-center">
           <svg class="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
             <circle cx="10" cy="10" r="3" />
           </svg>
-          在线用户
+          活跃用户
         </span>
         <span class="text-sm font-semibold text-green-600">{{ stats.onlineUsers || 0 }}</span>
       </div>
