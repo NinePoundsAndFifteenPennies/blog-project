@@ -55,7 +55,7 @@
    ```bash
    cd frontend
    npm install
-   npm run dev
+   npm run serve
    ```
 3. 前端服务运行在 `http://localhost:3000`
 
