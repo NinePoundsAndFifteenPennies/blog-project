@@ -18,6 +18,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 /**
  * 关注服务实现类
  * 
@@ -25,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
  * - 使用事务确保数据一致性
  * - 自动检测并标记朋友关系（双向关注）
  * - 防止自己关注自己
+ * - 使用批量查询优化N+1问题
  * - 提供丰富的日志记录便于排查问题
  */
 @Service
@@ -178,9 +183,17 @@ public class FollowServiceImpl implements FollowService {
 
         Page<Follow> follows = followRepository.findByFollower(user, pageable);
 
+        // 批量查询朋友关系，避免N+1问题
+        Set<Long> followedIds = follows.getContent().stream()
+                .map(f -> f.getFollowed().getId())
+                .collect(Collectors.toSet());
+        
+        Set<Long> friendIds = followedIds.isEmpty() 
+                ? Collections.emptySet()
+                : followRepository.findFollowerIdsByFollowedAndFollowerIds(user, followedIds);
+
         return follows.map(follow -> {
-            // 检查是否为朋友关系
-            boolean isFriend = followRepository.existsByFollowerAndFollowed(follow.getFollowed(), user);
+            boolean isFriend = friendIds.contains(follow.getFollowed().getId());
             return FollowMapper.toFollowingUserResponse(follow, isFriend);
         });
     }
@@ -193,9 +206,17 @@ public class FollowServiceImpl implements FollowService {
 
         Page<Follow> follows = followRepository.findByFollowed(user, pageable);
 
+        // 批量查询朋友关系，避免N+1问题
+        Set<Long> followerIds = follows.getContent().stream()
+                .map(f -> f.getFollower().getId())
+                .collect(Collectors.toSet());
+        
+        Set<Long> friendIds = followerIds.isEmpty()
+                ? Collections.emptySet()
+                : followRepository.findFollowedIdsByFollowerAndFollowedIds(user, followerIds);
+
         return follows.map(follow -> {
-            // 检查是否为朋友关系
-            boolean isFriend = followRepository.existsByFollowerAndFollowed(user, follow.getFollower());
+            boolean isFriend = friendIds.contains(follow.getFollower().getId());
             return FollowMapper.toFollowerUserResponse(follow, isFriend);
         });
     }

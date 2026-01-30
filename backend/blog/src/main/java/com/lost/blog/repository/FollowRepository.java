@@ -5,12 +5,14 @@ import com.lost.blog.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * 关注关系数据访问接口
@@ -40,11 +42,13 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
     Optional<Follow> findByFollowerAndFollowed(User follower, User followed);
 
     /**
-     * 删除关注关系
+     * 删除关注关系（优化：直接执行DELETE语句）
      * @param follower 关注者
      * @param followed 被关注者
      */
-    void deleteByFollowerAndFollowed(User follower, User followed);
+    @Modifying
+    @Query("DELETE FROM Follow f WHERE f.follower = :follower AND f.followed = :followed")
+    void deleteByFollowerAndFollowed(@Param("follower") User follower, @Param("followed") User followed);
 
     /**
      * 统计用户的关注数（该用户关注了多少人）
@@ -89,6 +93,24 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
      * @return 所有粉丝关系
      */
     List<Follow> findByFollowed(User followed);
+
+    /**
+     * 批量检查用户是否关注了指定的用户集合（用于优化N+1查询问题）
+     * @param follower 关注者
+     * @param followedIds 被关注者ID集合
+     * @return 已关注的用户ID集合
+     */
+    @Query("SELECT f.followed.id FROM Follow f WHERE f.follower = :follower AND f.followed.id IN :followedIds")
+    Set<Long> findFollowedIdsByFollowerAndFollowedIds(@Param("follower") User follower, @Param("followedIds") Set<Long> followedIds);
+
+    /**
+     * 批量检查哪些用户关注了指定用户（用于优化N+1查询问题）
+     * @param followed 被关注者
+     * @param followerIds 关注者ID集合
+     * @return 已关注该用户的关注者ID集合
+     */
+    @Query("SELECT f.follower.id FROM Follow f WHERE f.followed = :followed AND f.follower.id IN :followerIds")
+    Set<Long> findFollowerIdsByFollowedAndFollowerIds(@Param("followed") User followed, @Param("followerIds") Set<Long> followerIds);
 
     /**
      * 查找互相关注的用户（朋友关系）

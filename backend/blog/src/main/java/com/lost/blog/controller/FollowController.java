@@ -4,6 +4,8 @@ import com.lost.blog.dto.FollowResponse;
 import com.lost.blog.dto.FollowStatsResponse;
 import com.lost.blog.dto.FollowUserResponse;
 import com.lost.blog.service.FollowService;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -12,6 +14,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -27,7 +30,10 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/users/{userId}")
+@Validated
 public class FollowController {
+
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final FollowService followService;
 
@@ -44,7 +50,7 @@ public class FollowController {
      */
     @PostMapping("/follow")
     public ResponseEntity<FollowResponse> followUser(
-            @PathVariable Long userId,
+            @PathVariable @Min(1) Long userId,
             @AuthenticationPrincipal UserDetails currentUser) {
         FollowResponse response = followService.followUser(userId, currentUser);
         return ResponseEntity.ok(response);
@@ -58,7 +64,7 @@ public class FollowController {
      */
     @DeleteMapping("/follow")
     public ResponseEntity<FollowResponse> unfollowUser(
-            @PathVariable Long userId,
+            @PathVariable @Min(1) Long userId,
             @AuthenticationPrincipal UserDetails currentUser) {
         FollowResponse response = followService.unfollowUser(userId, currentUser);
         return ResponseEntity.ok(response);
@@ -72,7 +78,7 @@ public class FollowController {
      */
     @GetMapping("/follow/stats")
     public ResponseEntity<FollowStatsResponse> getFollowStats(
-            @PathVariable Long userId,
+            @PathVariable @Min(1) Long userId,
             @AuthenticationPrincipal UserDetails currentUser) {
         FollowStatsResponse stats = followService.getFollowStats(userId, currentUser);
         return ResponseEntity.ok(stats);
@@ -82,15 +88,15 @@ public class FollowController {
      * 获取用户的关注列表（该用户关注了谁）
      * @param userId 用户ID
      * @param page 页码（从0开始）
-     * @param size 每页数量
+     * @param size 每页数量（1-100）
      * @param currentUser 当前登录用户（可选，用于判断朋友关系）
      * @return 关注列表
      */
     @GetMapping("/following")
     public ResponseEntity<Page<FollowUserResponse>> getFollowingList(
-            @PathVariable Long userId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @PathVariable @Min(1) Long userId,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(MAX_PAGE_SIZE) int size,
             @AuthenticationPrincipal UserDetails currentUser) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<FollowUserResponse> followingList = followService.getFollowingList(userId, pageable, currentUser);
@@ -101,15 +107,15 @@ public class FollowController {
      * 获取用户的粉丝列表（谁关注了该用户）
      * @param userId 用户ID
      * @param page 页码（从0开始）
-     * @param size 每页数量
+     * @param size 每页数量（1-100）
      * @param currentUser 当前登录用户（可选，用于判断朋友关系）
      * @return 粉丝列表
      */
     @GetMapping("/followers")
     public ResponseEntity<Page<FollowUserResponse>> getFollowerList(
-            @PathVariable Long userId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @PathVariable @Min(1) Long userId,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(MAX_PAGE_SIZE) int size,
             @AuthenticationPrincipal UserDetails currentUser) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<FollowUserResponse> followerList = followService.getFollowerList(userId, pageable, currentUser);
@@ -120,14 +126,14 @@ public class FollowController {
      * 获取用户的朋友列表（互相关注的用户）
      * @param userId 用户ID
      * @param page 页码（从0开始）
-     * @param size 每页数量
+     * @param size 每页数量（1-100）
      * @return 朋友列表
      */
     @GetMapping("/friends")
     public ResponseEntity<Page<FollowUserResponse>> getFriendList(
-            @PathVariable Long userId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @PathVariable @Min(1) Long userId,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(MAX_PAGE_SIZE) int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<FollowUserResponse> friendList = followService.getFriendList(userId, pageable);
         return ResponseEntity.ok(friendList);
