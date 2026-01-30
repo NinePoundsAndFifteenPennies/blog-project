@@ -79,4 +79,32 @@ public class JwtTokenProvider {
         }
         return false;
     }
+
+    /**
+     * 从Token中获取用户ID（如果存在）
+     * 注意：当前JWT token中不包含userId，此方法返回null
+     * 如需使用，请在生成token时添加claim("userId", userId)
+     * 
+     * @param token JWT token
+     * @return 用户ID，如果不存在返回null
+     */
+    public Long getUserIdFromJWT(String token) {
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(jwtSecretKey)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            
+            // 获取userId claim，如果不存在返回null
+            Object userIdObj = claims.get("userId");
+            if (userIdObj != null) {
+                return Long.valueOf(userIdObj.toString());
+            }
+            return null;
+        } catch (Exception e) {
+            logger.error("Failed to extract userId from JWT", e);
+            return null;
+        }
+    }
 }

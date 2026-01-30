@@ -295,15 +295,75 @@ public class StatisticsServiceImpl implements StatisticsService {
 }
 ```
 
-### 第6步：创建用户活跃追踪拦截器
+### 第6步：增强JwtTokenProvider支持用户ID
+
+首先，需要修改 `backend/blog/src/main/java/com/lost/blog/security/JwtTokenProvider.java`，添加支持在JWT中存储和提取用户ID的功能：
+
+在现有的 `JwtTokenProvider` 类中**添加**以下方法：
+
+```java
+// 添加到 JwtTokenProvider 类中
+
+/**
+ * 生成包含用户ID的Token
+ * @param username 用户名
+ * @param userId 用户ID
+ * @param rememberMe 是否记住我
+ * @return JWT token
+ */
+public String generateTokenWithUserId(String username, Long userId, boolean rememberMe) {
+    Date now = new Date();
+    long expirationTime = rememberMe ? jwtRememberMeExpirationInMs : jwtExpirationInMs;
+    Date expiryDate = new Date(now.getTime() + expirationTime);
+
+    return Jwts.builder()
+            .setSubject(username)
+            .claim("userId", userId)  // 添加用户ID到claims中
+            .setIssuedAt(new Date())
+            .setExpiration(expiryDate)
+            .signWith(jwtSecretKey, SignatureAlgorithm.HS512)
+            .compact();
+}
+
+/**
+ * 从Token中获取用户ID
+ * @param token JWT token
+ * @return 用户ID，如果不存在返回null
+ */
+public Long getUserIdFromJWT(String token) {
+    try {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(jwtSecretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        
+        // 获取userId claim，如果不存在返回null
+        Object userIdObj = claims.get("userId");
+        if (userIdObj != null) {
+            return Long.valueOf(userIdObj.toString());
+        }
+        return null;
+    } catch (Exception e) {
+        logger.error("Failed to extract userId from JWT", e);
+        return null;
+    }
+}
+```
+
+**注意**：之后在登录时需要使用 `generateTokenWithUserId` 方法而不是 `generateToken` 方法，以便JWT中包含用户ID。如果你不想修改登录逻辑，可以在拦截器中通过username查询数据库获取userId（见下面的备选方案）。
+
+### 第7步：创建用户活跃追踪拦截器
 
 创建 `backend/blog/src/main/java/com/lost/blog/interceptor/UserActivityInterceptor.java`：
 
 ```java
 package com.lost.blog.interceptor;
 
+import com.lost.blog.model.User;
+import com.lost.blog.repository.UserRepository;
+import com.lost.blog.security.JwtTokenProvider;
 import com.lost.blog.service.ActiveUserService;
-import com.lost.blog.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
@@ -311,17 +371,21 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
  * 用户活跃追踪拦截器
- * 拦截所有已认证用户的请求，记录其活跃状态
+ * 拦截所有已认证用户的请求，记录其活跃状态到Redis
  */
 @Component
 public class UserActivityInterceptor implements HandlerInterceptor {
     
     private final ActiveUserService activeUserService;
-    private final JwtUtil jwtUtil;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
     
-    public UserActivityInterceptor(ActiveUserService activeUserService, JwtUtil jwtUtil) {
+    public UserActivityInterceptor(ActiveUserService activeUserService, 
+                                   JwtTokenProvider jwtTokenProvider,
+                                   UserRepository userRepository) {
         this.activeUserService = activeUserService;
-        this.jwtUtil = jwtUtil;
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.userRepository = userRepository;
     }
     
     @Override
@@ -333,15 +397,27 @@ public class UserActivityInterceptor implements HandlerInterceptor {
             token = token.substring(7);
             
             try {
-                // 解析token获取用户ID
-                Long userId = jwtUtil.getUserIdFromToken(token);
-                
-                if (userId != null) {
-                    // 记录用户活跃
-                    activeUserService.recordUserActivity(userId);
+                // 验证token
+                if (jwtTokenProvider.validateToken(token)) {
+                    Long userId = jwtTokenProvider.getUserIdFromJWT(token);
+                    
+                    // 如果token中没有userId（旧版本token），则通过username查询
+                    if (userId == null) {
+                        String username = jwtTokenProvider.getUsernameFromJWT(token);
+                        User user = userRepository.findByUsername(username).orElse(null);
+                        if (user != null) {
+                            userId = user.getId();
+                        }
+                    }
+                    
+                    if (userId != null) {
+                        // 记录用户活跃到Redis
+                        activeUserService.recordUserActivity(userId);
+                    }
                 }
             } catch (Exception e) {
                 // Token解析失败，忽略（用户未登录或token无效）
+                // 不影响正常请求流程
             }
         }
         
@@ -350,7 +426,13 @@ public class UserActivityInterceptor implements HandlerInterceptor {
 }
 ```
 
-### 第7步：注册拦截器
+**说明**：
+- 拦截器复用了现有的 `JwtTokenProvider` 来解析JWT token
+- 如果JWT中包含userId（新版token），直接使用
+- 如果JWT中没有userId（旧版token），通过username查询数据库获取userId
+- 这样既支持新token，也兼容旧token
+
+### 第8步：注册拦截器
 
 修改 `backend/blog/src/main/java/com/lost/blog/config/WebMvcConfig.java`（如果不存在则创建）：
 
@@ -594,9 +676,9 @@ Unable to connect to Redis; nested exception is io.lettuce.core.RedisConnectionE
 ### 平滑迁移
 
 1. **部署Redis但保留现有逻辑**（第1-4步）
-2. **添加拦截器开始追踪**（第5-7步），但不修改StatisticsServiceImpl
+2. **添加拦截器开始追踪**（第5-8步），但不修改StatisticsServiceImpl
 3. **观察Redis数据**（运行1-2天）
-4. **切换到Redis统计**（第8步）
+4. **切换到Redis统计**（修改StatisticsServiceImpl使用ActiveUserService）
 
 这样可以确保Redis正常工作后再切换，避免影响用户体验。
 
