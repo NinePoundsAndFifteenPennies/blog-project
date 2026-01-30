@@ -39,7 +39,7 @@ public class Category {
     @Column(name = "sort_order")
     private Integer sortOrder;  // 排序顺序，数字越小越靠前
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;  // 创建该分类的用户
 

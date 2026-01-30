@@ -2164,3 +2164,46 @@ Authorization: Bearer {token}
   "path": "/api/posts"
 }
 ```
+
+---
+
+## 社区统计接口 (可选)
+
+### 获取社区统计
+
+获取社区的各项统计数据。
+
+```http
+GET /api/statistics
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "totalUsers": 1250,
+  "totalPosts": 4823,
+  "onlineUsers": 42,
+  "todayVisits": 356
+}
+```
+
+**字段说明:**
+- `totalUsers`: 用户总数
+- `totalPosts`: 文章总数
+- `onlineUsers`: 当前在线用户数
+- `todayVisits`: 今日访问数
+
+**注意:**
+- 此接口为可选功能
+- 前端已实现该接口的调用和降级处理
+- 如果后端未实现，前端会使用占位数据
+- 建议后端实现该接口以提供真实数据
+
+**错误响应:**
+- `500 Internal Server Error` - 服务器内部错误
+
+**实现建议:**
+- 可使用缓存减少数据库查询
+- 在线用户数可基于活跃session或最近活动时间计算
+- 今日访问数建议使用Redis或数据库日志统计
+

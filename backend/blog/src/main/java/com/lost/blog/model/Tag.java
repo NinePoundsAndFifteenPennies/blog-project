@@ -1,5 +1,6 @@
 package com.lost.blog.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
@@ -41,7 +42,7 @@ public class Tag {
     @Column(name = "sort_order")
     private Integer sortOrder;  // 排序顺序，数字越小越靠前
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;  // 创建该标签的用户
 
@@ -52,6 +53,7 @@ public class Tag {
     private LocalDateTime updatedAt;
 
     // 多对多关系：一个标签可以被多篇文章使用
+    @JsonIgnore
     @ManyToMany(mappedBy = "tags")
     private Set<Post> posts = new HashSet<>();
 
