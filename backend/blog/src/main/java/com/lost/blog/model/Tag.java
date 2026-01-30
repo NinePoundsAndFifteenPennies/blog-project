@@ -1,5 +1,6 @@
 package com.lost.blog.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
@@ -52,6 +53,7 @@ public class Tag {
     private LocalDateTime updatedAt;
 
     // 多对多关系：一个标签可以被多篇文章使用
+    @JsonIgnore
     @ManyToMany(mappedBy = "tags")
     private Set<Post> posts = new HashSet<>();
 
