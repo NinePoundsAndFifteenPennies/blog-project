@@ -669,6 +669,62 @@ Unable to connect to Redis; nested exception is io.lettuce.core.RedisConnectionE
 
 ---
 
+## 常见问题解决
+
+### 问题：Spring Boot启动时出现Repository警告
+
+**问题现象**：
+启动日志中出现类似以下的警告信息：
+```
+WARN: Could not create bean with name 'xxxRepository'
+或
+WARN: Multiple @EnableJpaRepositories detected
+```
+
+**原因分析**：
+当项目同时引入JPA和Redis依赖时，Spring Boot无法自动区分哪些Repository接口属于JPA，哪些属于Redis。
+
+**解决方案**：
+为所有JPA Repository接口添加 `@Repository` 注解：
+
+```java
+package com.lost.blog.repository;
+
+import com.lost.blog.model.Post;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository  // ⭐ 添加此注解
+public interface PostRepository extends JpaRepository<Post, Long> {
+    // ...
+}
+```
+
+**需要添加注解的Repository列表**：
+- ✅ `PostRepository`
+- ✅ `UserRepository`
+- ✅ `TagRepository`
+- ✅ `CategoryRepository`
+- ✅ `CommentRepository`
+- ✅ `LikeRepository`
+- ✅ `PostViewLogRepository`
+
+**验证方法**：
+```bash
+# 重新编译后端
+cd backend/blog
+mvn clean compile
+
+# 如果没有警告信息，说明配置正确
+```
+
+**注意**：
+- 本项目的所有JPA Repository已经添加了 `@Repository` 注解
+- 如果你是按照本文档新建项目，请确保所有JPA Repository都有此注解
+- Redis相关的Repository（如果使用Spring Data Redis Repository）不需要此注解
+
+---
+
 ## 迁移方案
 
 如果你已经有现有用户在使用系统，迁移到Redis活跃追踪：
