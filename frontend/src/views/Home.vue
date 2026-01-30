@@ -172,7 +172,7 @@
             <aside class="lg:w-1/3 flex-shrink-0 order-2 lg:order-2">
               <div class="lg:sticky lg:top-24 space-y-6">
                 <!-- Search Box -->
-                <div class="card p-6">
+                <div class="card p-6 overflow-visible">
                   <h3 class="text-lg font-bold text-gray-900 mb-4">搜索文章</h3>
                   <SearchPreview
                     :search-function="searchGlobal"
