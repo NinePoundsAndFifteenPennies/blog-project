@@ -53,6 +53,14 @@ public interface PrivateMessageService {
      * @return 未读消息数
      */
     long getUnreadCount(UserDetails currentUser);
+    
+    /**
+     * 获取来自特定用户的未读消息数
+     * @param senderId 发送者ID
+     * @param currentUser 当前登录用户
+     * @return 未读消息数
+     */
+    long getUnreadCountFromUser(Long senderId, UserDetails currentUser);
 
     /**
      * 检查是否可以给用户发送消息

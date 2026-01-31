@@ -274,7 +274,7 @@ import { getFullAvatarUrl } from '@/utils/avatar'
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import SearchPreview from '@/components/SearchPreview.vue'
 import { searchPosts } from '@/api/posts'
-import { getUnreadCount } from '@/api/messages'
+import { getUnreadCount, getUnreadCountFromUser } from '@/api/messages'
 
 export default {
   name: 'Header',
@@ -289,6 +289,10 @@ export default {
     const showMobileMenu = ref(false)
     const avatarLoadError = ref(false)
     const unreadMessageCount = ref(0)
+    
+    // Track which user's messages have been marked as read to prevent duplicate deductions
+    // Using an object for Vue reactivity instead of Set
+    const readUserIds = ref({})
     
     // Polling interval for unread messages
     let messagePollingInterval = null
@@ -407,6 +411,44 @@ export default {
       }
     }
     
+    // Deduct unread count when user enters a specific conversation
+    const deductUnreadFromUser = async (userId) => {
+      if (!isLoggedIn.value || !userId) return
+      
+      // Skip if already processed for this user in this session
+      const userIdNum = parseInt(userId)
+      if (readUserIds.value[userIdNum]) return
+      
+      try {
+        const res = await getUnreadCountFromUser(userIdNum)
+        const userUnread = res.count || 0
+        if (userUnread > 0) {
+          // Mark as processed to prevent duplicate deductions
+          readUserIds.value[userIdNum] = true
+          // Deduct from total (but don't go below 0)
+          unreadMessageCount.value = Math.max(0, unreadMessageCount.value - userUnread)
+        }
+      } catch (error) {
+        console.error('Failed to get unread count from user:', error)
+      }
+    }
+    
+    // Watch for route changes to messages page with userId
+    watch(() => route.query.userId, (newUserId) => {
+      if (route.path === '/messages' && newUserId) {
+        deductUnreadFromUser(newUserId)
+      }
+    }, { immediate: true })
+    
+    // Reset read user tracking when total count is refreshed from server
+    watch(unreadMessageCount, (newValue, oldValue) => {
+      // If count increased (new messages), or full refresh happened
+      if (newValue > oldValue) {
+        // Clear the tracking object to allow fresh deductions
+        readUserIds.value = {}
+      }
+    })
+    
     // Watch for login state changes
     watch(isLoggedIn, (newValue) => {
       if (newValue) {
@@ -414,6 +456,7 @@ export default {
       } else {
         stopMessagePolling()
         unreadMessageCount.value = 0
+        readUserIds.value = {}
       }
     })
 

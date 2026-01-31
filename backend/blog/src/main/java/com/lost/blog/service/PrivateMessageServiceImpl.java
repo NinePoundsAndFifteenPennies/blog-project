@@ -153,6 +153,18 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
 
         return messageRepository.countUnreadMessages(user);
     }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public long getUnreadCountFromUser(Long senderId, UserDetails currentUser) {
+        User user = userRepository.findByUsername(currentUser.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("未找到用户: " + currentUser.getUsername()));
+        
+        User sender = userRepository.findById(senderId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + senderId + " 的用户"));
+
+        return messageRepository.countUnreadFromUser(user, sender);
+    }
 
     @Override
     @Transactional(readOnly = true)

@@ -66,6 +66,7 @@ Controller ──► Service ──► Repository ──► Database
 | 控制器 | └── CategoryController.java | 提供分类 CRUD API |
 | 控制器 | └── StatisticsController.java | 提供社区统计 API（用户总数、文章总数、活跃用户、今日访问） |
 | 控制器 | └── FollowController.java | 提供关注功能 API（关注/取消关注、列表查询、可见性设置） |
+| 控制器 | └── PrivateMessageController.java | 提供私信功能 API（发送消息、获取对话、未读数统计） |
 | 数据传输对象 | **dto/** | 定义请求和响应的数据模型 |
 | DTO | └── UserRegistrationRequest.java | 用户注册请求体 |
 | DTO | └── LoginRequest.java | 用户登录请求体 |
@@ -91,6 +92,9 @@ Controller ──► Service ──► Repository ──► Database
 | DTO | └── FollowVisibilityRequest.java | 可见性设置请求体 |
 | DTO | └── FollowVisibilityResponse.java | 可见性设置响应体 |
 | DTO | └── VisibilitySettingDto.java | 单项可见性设置DTO |
+| DTO | └── PrivateMessageRequest.java | 私信发送请求体 |
+| DTO | └── PrivateMessageResponse.java | 私信响应体 |
+| DTO | └── ConversationResponse.java | 会话列表响应体 |
 | 拦截器层 | **interceptor/** | HTTP 请求拦截器 |
 | 拦截器 | └── UserActivityInterceptor.java | 用户活跃追踪拦截器（可选，配合Redis使用） |
 | 异常层 | **exception/** | 自定义异常类与全局异常处理 |
@@ -115,6 +119,7 @@ Controller ──► Service ──► Repository ──► Database
 | 实体 | └── Follow.java | 关注关系实体（follower→followed）|
 | 实体 | └── FollowVisibility.java | 关注信息可见性设置实体 |
 | 实体 | └── VisibilitySetting.java | 可嵌入的可见性设置类 |
+| 实体 | └── PrivateMessage.java | 私信消息实体 |
 | 枚举 | └── ContentType.java | 内容类型枚举 |
 | 枚举 | └── FollowInfoType.java | 关注信息类型枚举（FOLLOWING/FOLLOWERS/FRIENDS/STATS） |
 | 数据访问层 | **repository/** | 提供数据库操作接口 |
@@ -127,6 +132,7 @@ Controller ──► Service ──► Repository ──► Database
 | Repository | └── CommentRepository.java | 评论数据访问接口 |
 | Repository | └── FollowRepository.java | 关注关系数据访问接口 |
 | Repository | └── FollowVisibilityRepository.java | 关注可见性设置数据访问接口 |
+| Repository | └── PrivateMessageRepository.java | 私信消息数据访问接口 |
 | 安全层 | **security/** | 与认证和授权相关的工具类 |
 | 工具类 | └── JwtTokenProvider.java | JWT 生成与验证 |
 | 过滤器 | └── JwtAuthenticationFilter.java | 拦截并校验 JWT 请求 |
@@ -154,6 +160,8 @@ Controller ──► Service ──► Repository ──► Database
 | 实现类 | └── FollowServiceImpl.java | 关注服务实现（关注/取消关注、朋友检测、列表查询） |
 | 接口 | └── FollowVisibilityService.java | 关注可见性服务接口 |
 | 实现类 | └── FollowVisibilityServiceImpl.java | 关注可见性服务实现（按类型检查可见性） |
+| 接口 | └── PrivateMessageService.java | 私信服务接口 |
+| 实现类 | └── PrivateMessageServiceImpl.java | 私信服务实现（发送消息、防骚扰机制、已读状态） |
 | 配置文件 | **resources/** | 存放应用的资源文件 |
 | 配置文件 | └── application.properties | 应用配置（数据库、JWT密钥等） |
 

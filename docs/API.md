@@ -2530,3 +2530,180 @@ Content-Type: application/json
 
 **错误响应:**
 - `401 Unauthorized` - 未登录
+
+---
+
+## 私信相关接口
+
+### 发送私信
+
+发送一条私信给指定用户。
+
+```http
+POST /api/messages/send/{receiverId}
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体:**
+```json
+{
+  "content": "你好，很高兴认识你！"
+}
+```
+
+**成功响应:** `201 Created`
+```json
+{
+  "id": 1,
+  "senderId": 2,
+  "senderUsername": "alice",
+  "senderNickname": "Alice",
+  "senderAvatarUrl": "/uploads/avatars/2/avatar.jpg",
+  "receiverId": 3,
+  "receiverUsername": "bob",
+  "receiverNickname": "Bob",
+  "receiverAvatarUrl": null,
+  "content": "你好，很高兴认识你！",
+  "createdAt": "2025-01-31T10:30:00Z",
+  "readAt": null,
+  "read": false,
+  "sentByMe": true
+}
+```
+
+**错误响应:**
+- `400 Bad Request` - 不能给自己发送私信
+- `400 Bad Request` - 在对方回复前，您无法发送第二条消息（防骚扰机制）
+- `404 Not Found` - 用户不存在
+
+---
+
+### 获取对话消息
+
+获取与指定用户的对话消息列表（分页）。
+
+```http
+GET /api/messages/conversation/{partnerId}?page=0&size=20
+Authorization: Bearer {token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 5,
+      "senderId": 3,
+      "senderUsername": "bob",
+      "content": "我也是！",
+      "createdAt": "2025-01-31T10:35:00Z",
+      "read": true,
+      "sentByMe": false
+    }
+  ],
+  "totalPages": 1,
+  "totalElements": 5,
+  "size": 20,
+  "number": 0
+}
+```
+
+---
+
+### 获取会话列表
+
+获取当前用户的所有会话列表。
+
+```http
+GET /api/messages/conversations
+Authorization: Bearer {token}
+```
+
+**成功响应:** `200 OK`
+```json
+[
+  {
+    "partnerId": 3,
+    "partnerUsername": "bob",
+    "partnerNickname": "Bob",
+    "partnerAvatarUrl": null,
+    "lastMessageContent": "我也是！",
+    "lastMessageTime": "2025-01-31T10:35:00Z",
+    "lastMessageSentByMe": false,
+    "unreadCount": 2,
+    "friend": true
+  }
+]
+```
+
+---
+
+### 标记消息为已读
+
+标记与指定用户的所有消息为已读。
+
+```http
+PUT /api/messages/read/{partnerId}
+Authorization: Bearer {token}
+```
+
+**成功响应:** `200 OK`
+
+---
+
+### 获取未读消息总数
+
+获取当前用户的未读消息总数。
+
+```http
+GET /api/messages/unread/count
+Authorization: Bearer {token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "count": 5
+}
+```
+
+---
+
+### 获取来自特定用户的未读消息数
+
+获取来自指定用户的未读消息数量。
+
+```http
+GET /api/messages/unread/count/{userId}
+Authorization: Bearer {token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "count": 2
+}
+```
+
+---
+
+### 检查是否可以发送消息
+
+检查当前用户是否可以给指定用户发送消息（防骚扰机制）。
+
+```http
+GET /api/messages/can-send/{receiverId}
+Authorization: Bearer {token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "canSend": true
+}
+```
+
+**防骚扰机制说明:**
+- 如果两人是朋友（互相关注），可以无限制发送消息
+- 如果不是朋友，发送一条消息后，在对方回复前无法发送第二条消息

@@ -91,6 +91,18 @@ public class PrivateMessageController {
         long count = messageService.getUnreadCount(currentUser);
         return ResponseEntity.ok(Map.of("count", count));
     }
+    
+    /**
+     * 获取来自特定用户的未读消息数
+     * GET /api/messages/unread/count/{userId}
+     */
+    @GetMapping("/unread/count/{userId}")
+    public ResponseEntity<Map<String, Long>> getUnreadCountFromUser(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        long count = messageService.getUnreadCountFromUser(userId, currentUser);
+        return ResponseEntity.ok(Map.of("count", count));
+    }
 
     /**
      * 检查是否可以给用户发送消息

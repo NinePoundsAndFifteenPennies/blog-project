@@ -63,6 +63,18 @@ export function getUnreadCount() {
 }
 
 /**
+ * 获取来自特定用户的未读消息数
+ * @param {Number} userId - 发送者用户ID
+ * @returns {Promise<Object>} - { count: number }
+ */
+export function getUnreadCountFromUser(userId) {
+    return request({
+        url: `/messages/unread/count/${userId}`,
+        method: 'get'
+    })
+}
+
+/**
  * 检查是否可以给用户发送消息
  * @param {Number} receiverId - 接收者用户ID
  * @returns {Promise<Object>} - { canSend: boolean }
