@@ -7,13 +7,8 @@
         <div class="max-w-4xl mx-auto">
           <!-- Page Header -->
           <div class="card p-6 mb-6 backdrop-blur-sm bg-white/90">
-            <div class="flex items-center justify-between">
-              <h1 class="text-2xl font-bold text-gray-900">私信</h1>
-              <div class="flex items-center space-x-2 text-sm text-gray-500">
-                <span v-if="unreadCount > 0" class="px-2 py-1 bg-red-100 text-red-600 rounded-full font-medium">
-                  {{ unreadCount }} 条未读
-                </span>
-              </div>
+            <div class="flex items-center justify-center">
+              <h1 class="text-2xl font-bold text-gray-900">我的私信</h1>
             </div>
           </div>
 
