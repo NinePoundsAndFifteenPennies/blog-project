@@ -90,6 +90,10 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
               </svg>
             </button>
+
+            <div class="w-px h-6 bg-gray-300 mx-1"></div>
+
+            <EmojiPicker @select="insertEmoji" title="表情" />
           </div>
 
           <textarea
@@ -190,13 +194,15 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
 import { marked } from 'marked'
 import CommentItem from './CommentItem.vue'
+import EmojiPicker from './EmojiPicker.vue'
 import { createComment, getPostComments } from '@/api/comments'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'CommentList',
   components: {
-    CommentItem
+    CommentItem,
+    EmojiPicker
   },
   props: {
     postId: {
@@ -484,6 +490,26 @@ export default {
       }, 0)
     }
 
+    // 插入表情
+    const insertEmoji = (emoji) => {
+      const textarea = commentTextarea.value
+      if (!textarea) return
+
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const beforeText = newComment.value.substring(0, start)
+      const afterText = newComment.value.substring(end)
+
+      newComment.value = beforeText + emoji + afterText
+
+      // 等待下一个tick后设置光标位置
+      setTimeout(() => {
+        textarea.focus()
+        const newPosition = start + emoji.length
+        textarea.setSelectionRange(newPosition, newPosition)
+      }, 0)
+    }
+
     onMounted(() => {
       loadComments()
       window.addEventListener('scroll', handleScroll)
@@ -519,7 +545,8 @@ export default {
       selectedSort,
       sortTitle,
       handleSortChange,
-      insertMarkdown
+      insertMarkdown,
+      insertEmoji
     }
   }
 }
