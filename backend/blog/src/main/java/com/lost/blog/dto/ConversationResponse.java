@@ -15,7 +15,7 @@ public class ConversationResponse {
     private LocalDateTime lastMessageTime;
     private boolean lastMessageSentByMe;
     private long unreadCount;
-    private boolean isFriend;
+    private boolean friend;
 
     // --- Getters and Setters ---
 
@@ -84,10 +84,10 @@ public class ConversationResponse {
     }
 
     public boolean isFriend() {
-        return isFriend;
+        return friend;
     }
 
     public void setFriend(boolean friend) {
-        isFriend = friend;
+        this.friend = friend;
     }
 }

@@ -18,8 +18,8 @@ public class PrivateMessageResponse {
     private String content;
     private LocalDateTime createdAt;
     private LocalDateTime readAt;
-    private boolean isRead;
-    private boolean isSentByMe;
+    private boolean read;
+    private boolean sentByMe;
 
     // --- Getters and Setters ---
 
@@ -120,18 +120,18 @@ public class PrivateMessageResponse {
     }
 
     public boolean isRead() {
-        return isRead;
+        return read;
     }
 
     public void setRead(boolean read) {
-        isRead = read;
+        this.read = read;
     }
 
     public boolean isSentByMe() {
-        return isSentByMe;
+        return sentByMe;
     }
 
     public void setSentByMe(boolean sentByMe) {
-        isSentByMe = sentByMe;
+        this.sentByMe = sentByMe;
     }
 }
