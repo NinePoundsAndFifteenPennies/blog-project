@@ -29,7 +29,7 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useStore } from 'vuex'
 import { followUser, unfollowUser } from '@/api/follow'
 
@@ -125,11 +125,14 @@ export default {
       }
     }
 
-    // 监听props变化更新内部状态
-    const updateFromProps = () => {
-      isFollowing.value = props.initialFollowing
-      isFriend.value = props.initialFriend
-    }
+    // 使用 Composition API watch 监听 props 变化
+    watch(() => props.initialFollowing, (newVal) => {
+      isFollowing.value = newVal
+    })
+
+    watch(() => props.initialFriend, (newVal) => {
+      isFriend.value = newVal
+    })
 
     return {
       loading,
@@ -138,16 +141,7 @@ export default {
       isOwnProfile,
       buttonText,
       buttonClass,
-      toggleFollow,
-      updateFromProps
-    }
-  },
-  watch: {
-    initialFollowing(newVal) {
-      this.isFollowing = newVal
-    },
-    initialFriend(newVal) {
-      this.isFriend = newVal
+      toggleFollow
     }
   }
 }

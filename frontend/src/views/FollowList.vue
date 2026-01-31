@@ -114,8 +114,8 @@
                   <FollowButton
                     v-if="!isCurrentUser(user.id)"
                     :userId="user.id"
-                    :initialFollowing="user.isFollowing !== false"
-                    :initialFriend="user.friend"
+                    :initialFollowing="user.isFollowing === true"
+                    :initialFriend="user.friend === true"
                     @follow-change="handleFollowChange(user, $event)"
                   />
                 </div>
