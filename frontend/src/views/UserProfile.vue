@@ -97,6 +97,7 @@
                       ref="followStatsRef"
                       :userId="userProfile.id" 
                       @click="handleStatsClick"
+                      @stats-loaded="handleStatsLoaded"
                     />
                   </div>
 
@@ -392,6 +393,12 @@ export default {
       }
     }
 
+    // Handle stats loaded from FollowStats component
+    const handleStatsLoaded = (data) => {
+      followStatus.value.isFollowing = data.isFollowing === true
+      followStatus.value.isFriend = data.isFriend === true
+    }
+
     // Watch for username changes
     watch(username, () => {
       if (username.value) {
@@ -428,7 +435,8 @@ export default {
       followStatsRef,
       followStatus,
       handleStatsClick,
-      handleFollowChange
+      handleFollowChange,
+      handleStatsLoaded
     }
   }
 }

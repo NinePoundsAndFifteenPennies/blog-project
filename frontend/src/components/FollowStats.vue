@@ -51,7 +51,7 @@ export default {
       required: true
     }
   },
-  emits: ['click'],
+  emits: ['click', 'stats-loaded'],
   setup(props, { emit }) {
     const stats = reactive({
       followingCount: 0,
@@ -75,6 +75,11 @@ export default {
         stats.friendCount = data.friendCount
         stats.isFollowing = data.isFollowing
         stats.isFriend = data.isFriend
+        // 通知父组件关注状态已加载
+        emit('stats-loaded', {
+          isFollowing: data.isFollowing,
+          isFriend: data.isFriend
+        })
       } catch (error) {
         console.error('加载关注统计失败:', error)
       }

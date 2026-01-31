@@ -114,7 +114,7 @@
                   <FollowButton
                     v-if="!isCurrentUser(user.id)"
                     :userId="user.id"
-                    :initialFollowing="user.isFollowing === true"
+                    :initialFollowing="getInitialFollowingState(user)"
                     :initialFriend="user.friend === true"
                     @follow-change="handleFollowChange(user, $event)"
                   />
@@ -210,6 +210,28 @@ export default {
       return currentUser.value && currentUser.value.id === id
     }
 
+    // 判断是否是自己的列表
+    const isOwnList = computed(() => {
+      return currentUser.value && currentUser.value.id === userId.value
+    })
+
+    // 获取用户的初始关注状态
+    // 如果是自己的关注列表或朋友列表，则所有用户都是自己关注的
+    // 如果是自己的粉丝列表，需要看 user.isFollowing 或 user.friend
+    // 如果是别人的列表，需要看 API 返回的 isFollowing 字段
+    const getInitialFollowingState = (user) => {
+      // 如果用户已经是朋友，说明已关注
+      if (user.friend === true) {
+        return true
+      }
+      // 如果是查看自己的关注列表或朋友列表，则列表中的用户都是已关注的
+      if (isOwnList.value && (activeTab.value === 'following' || activeTab.value === 'friends')) {
+        return true
+      }
+      // 其他情况看 API 返回的字段
+      return user.isFollowing === true
+    }
+
     const loadUsers = async () => {
       loading.value = true
       try {
@@ -286,6 +308,7 @@ export default {
       getUserInitial,
       getFullAvatarUrl,
       isCurrentUser,
+      getInitialFollowingState,
       switchTab,
       handlePageChange,
       handleFollowChange,

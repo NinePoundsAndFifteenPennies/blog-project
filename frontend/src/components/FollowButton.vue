@@ -4,6 +4,7 @@
     @click="toggleFollow" 
     :disabled="loading"
     :class="buttonClass"
+    :title="hoverText"
     class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
   >
     <span v-if="loading" class="flex items-center">
@@ -67,6 +68,11 @@ export default {
       if (isFriend.value) return '互相关注'
       if (isFollowing.value) return '已关注'
       return '关注'
+    })
+
+    const hoverText = computed(() => {
+      if (isFriend.value || isFollowing.value) return '点击取消关注'
+      return '点击关注'
     })
 
     const buttonClass = computed(() => {
@@ -140,6 +146,7 @@ export default {
       isFriend,
       isOwnProfile,
       buttonText,
+      hoverText,
       buttonClass,
       toggleFollow
     }
