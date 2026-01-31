@@ -1,88 +1,78 @@
 package com.lost.blog.dto;
 
-import java.util.Set;
-
 /**
  * 关注可见性设置响应DTO
+ * 
+ * 返回四种类型的可见性设置：
+ * - following: 关注列表
+ * - followers: 粉丝列表
+ * - friends: 朋友列表
+ * - stats: 统计数据
  */
 public class FollowVisibilityResponse {
 
     /**
-     * 是否公开可见（所有人都可以看）
+     * 关注列表可见性设置
      */
-    private boolean isPublic;
+    private VisibilitySettingDto following;
 
     /**
-     * 是否对朋友可见（互相关注的用户可以看）
+     * 粉丝列表可见性设置
      */
-    private boolean visibleToFriends;
+    private VisibilitySettingDto followers;
 
     /**
-     * 是否对我关注的人可见（我关注的用户可以看）
+     * 朋友列表可见性设置
      */
-    private boolean visibleToFollowing;
+    private VisibilitySettingDto friends;
 
     /**
-     * 允许查看的用户昵称列表
+     * 统计数据可见性设置
      */
-    private Set<String> allowedNicknames;
-
-    /**
-     * 禁止查看的用户昵称列表
-     */
-    private Set<String> blockedNicknames;
+    private VisibilitySettingDto stats;
 
     public FollowVisibilityResponse() {
     }
 
-    public FollowVisibilityResponse(boolean isPublic, boolean visibleToFriends, boolean visibleToFollowing,
-                                    Set<String> allowedNicknames, Set<String> blockedNicknames) {
-        this.isPublic = isPublic;
-        this.visibleToFriends = visibleToFriends;
-        this.visibleToFollowing = visibleToFollowing;
-        this.allowedNicknames = allowedNicknames;
-        this.blockedNicknames = blockedNicknames;
+    public FollowVisibilityResponse(VisibilitySettingDto following, VisibilitySettingDto followers,
+                                    VisibilitySettingDto friends, VisibilitySettingDto stats) {
+        this.following = following;
+        this.followers = followers;
+        this.friends = friends;
+        this.stats = stats;
     }
 
     // --- Getters and Setters ---
 
-    public boolean isPublic() {
-        return isPublic;
+    public VisibilitySettingDto getFollowing() {
+        return following;
     }
 
-    public void setPublic(boolean isPublic) {
-        this.isPublic = isPublic;
+    public void setFollowing(VisibilitySettingDto following) {
+        this.following = following;
     }
 
-    public boolean isVisibleToFriends() {
-        return visibleToFriends;
+    public VisibilitySettingDto getFollowers() {
+        return followers;
     }
 
-    public void setVisibleToFriends(boolean visibleToFriends) {
-        this.visibleToFriends = visibleToFriends;
+    public void setFollowers(VisibilitySettingDto followers) {
+        this.followers = followers;
     }
 
-    public boolean isVisibleToFollowing() {
-        return visibleToFollowing;
+    public VisibilitySettingDto getFriends() {
+        return friends;
     }
 
-    public void setVisibleToFollowing(boolean visibleToFollowing) {
-        this.visibleToFollowing = visibleToFollowing;
+    public void setFriends(VisibilitySettingDto friends) {
+        this.friends = friends;
     }
 
-    public Set<String> getAllowedNicknames() {
-        return allowedNicknames;
+    public VisibilitySettingDto getStats() {
+        return stats;
     }
 
-    public void setAllowedNicknames(Set<String> allowedNicknames) {
-        this.allowedNicknames = allowedNicknames;
-    }
-
-    public Set<String> getBlockedNicknames() {
-        return blockedNicknames;
-    }
-
-    public void setBlockedNicknames(Set<String> blockedNicknames) {
-        this.blockedNicknames = blockedNicknames;
+    public void setStats(VisibilitySettingDto stats) {
+        this.stats = stats;
     }
 }

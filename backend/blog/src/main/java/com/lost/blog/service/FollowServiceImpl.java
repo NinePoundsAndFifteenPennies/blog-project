@@ -6,6 +6,7 @@ import com.lost.blog.dto.FollowUserResponse;
 import com.lost.blog.exception.ResourceNotFoundException;
 import com.lost.blog.mapper.FollowMapper;
 import com.lost.blog.model.Follow;
+import com.lost.blog.model.FollowInfoType;
 import com.lost.blog.model.User;
 import com.lost.blog.repository.FollowRepository;
 import com.lost.blog.repository.UserRepository;
@@ -31,7 +32,7 @@ import java.util.stream.Collectors;
  * - 自动检测并标记朋友关系（双向关注）
  * - 防止自己关注自己
  * - 使用批量查询优化N+1问题
- * - 集成可见性检查，保护用户隐私
+ * - 集成可见性检查，保护用户隐私（支持分别控制四种类型的可见性）
  * - 提供丰富的日志记录便于排查问题
  */
 @Service
@@ -162,8 +163,8 @@ public class FollowServiceImpl implements FollowService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + userId + " 的用户"));
 
-        // 检查可见性权限
-        boolean canView = visibilityService.canViewFollowInfo(userId, currentUser);
+        // 检查统计数据的可见性权限
+        boolean canView = visibilityService.canViewFollowInfo(userId, currentUser, FollowInfoType.STATS);
         
         // 如果当前用户已登录，检查与目标用户的关系
         Boolean isFollowing = null;
@@ -196,8 +197,8 @@ public class FollowServiceImpl implements FollowService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + userId + " 的用户"));
 
-        // 检查可见性权限
-        if (!visibilityService.canViewFollowInfo(userId, currentUser)) {
+        // 检查关注列表的可见性权限
+        if (!visibilityService.canViewFollowInfo(userId, currentUser, FollowInfoType.FOLLOWING)) {
             logger.debug("用户无权查看用户 {} 的关注列表", userId);
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }
@@ -225,8 +226,8 @@ public class FollowServiceImpl implements FollowService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + userId + " 的用户"));
 
-        // 检查可见性权限
-        if (!visibilityService.canViewFollowInfo(userId, currentUser)) {
+        // 检查粉丝列表的可见性权限
+        if (!visibilityService.canViewFollowInfo(userId, currentUser, FollowInfoType.FOLLOWERS)) {
             logger.debug("用户无权查看用户 {} 的粉丝列表", userId);
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }
@@ -254,8 +255,8 @@ public class FollowServiceImpl implements FollowService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + userId + " 的用户"));
 
-        // 检查可见性权限
-        if (!visibilityService.canViewFollowInfo(userId, currentUser)) {
+        // 检查朋友列表的可见性权限
+        if (!visibilityService.canViewFollowInfo(userId, currentUser, FollowInfoType.FRIENDS)) {
             logger.debug("用户无权查看用户 {} 的朋友列表", userId);
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }

@@ -2,25 +2,25 @@ package com.lost.blog.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * 关注信息可见性设置实体
  * 
- * 用户可以控制自己的关注列表、粉丝列表、朋友列表和关注统计对谁可见。
+ * 用户可以分别控制关注列表、粉丝列表、朋友列表和关注统计对谁可见。
+ * 每种类型都有独立的可见性设置。
  * 
  * 可见性规则（按优先级）：
- * 1. 如果viewerNickname在blockedNicknames中 -> 拒绝访问（最高优先级）
- * 2. 如果isPublic为true -> 允许访问
- * 3. 如果viewerNickname在allowedNicknames中 -> 允许访问
- * 4. 如果visibleToFriends为true且viewer是朋友 -> 允许访问
- * 5. 如果visibleToFollowing为true且profileOwner关注了viewer -> 允许访问
- * 6. 如果viewer是profileOwner本人 -> 允许访问
+ * 1. 如果viewer是profileOwner本人 -> 允许访问
+ * 2. 如果viewerNickname在blockedNicknames中 -> 拒绝访问（最高优先级）
+ * 3. 如果isPublic为true -> 允许访问
+ * 4. 如果viewerNickname在allowedNicknames中 -> 允许访问
+ * 5. 如果visibleToFriends为true且viewer是朋友 -> 允许访问
+ * 6. 如果visibleToFollowing为true且profileOwner关注了viewer -> 允许访问
  * 7. 否则 -> 拒绝访问
  * 
  * 设计说明：
  * - 每个用户有一个可见性设置记录
+ * - 四种类型（following/followers/friends/stats）分别有独立的设置
  * - allowedNicknames和blockedNicknames使用nickname而不是username
  * - 多个条件可以组合使用（只要不矛盾）
  */
@@ -40,38 +40,56 @@ public class FollowVisibility {
     private User user;
 
     /**
-     * 是否公开可见（所有人都可以看）
-     * 默认为true
+     * 关注列表可见性设置
      */
-    @Column(name = "is_public", nullable = false)
-    private boolean isPublic = true;
+    @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "isPublic", column = @Column(name = "following_is_public")),
+        @AttributeOverride(name = "visibleToFriends", column = @Column(name = "following_visible_to_friends")),
+        @AttributeOverride(name = "visibleToFollowing", column = @Column(name = "following_visible_to_following")),
+        @AttributeOverride(name = "allowedNicknames", column = @Column(name = "following_allowed_nicknames", length = 2000)),
+        @AttributeOverride(name = "blockedNicknames", column = @Column(name = "following_blocked_nicknames", length = 2000))
+    })
+    private VisibilitySetting followingSetting = VisibilitySetting.createDefault();
 
     /**
-     * 是否对朋友可见（互相关注的用户可以看）
+     * 粉丝列表可见性设置
      */
-    @Column(name = "visible_to_friends", nullable = false)
-    private boolean visibleToFriends = false;
+    @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "isPublic", column = @Column(name = "followers_is_public")),
+        @AttributeOverride(name = "visibleToFriends", column = @Column(name = "followers_visible_to_friends")),
+        @AttributeOverride(name = "visibleToFollowing", column = @Column(name = "followers_visible_to_following")),
+        @AttributeOverride(name = "allowedNicknames", column = @Column(name = "followers_allowed_nicknames", length = 2000)),
+        @AttributeOverride(name = "blockedNicknames", column = @Column(name = "followers_blocked_nicknames", length = 2000))
+    })
+    private VisibilitySetting followersSetting = VisibilitySetting.createDefault();
 
     /**
-     * 是否对我关注的人可见（我关注的用户可以看）
+     * 朋友列表可见性设置
      */
-    @Column(name = "visible_to_following", nullable = false)
-    private boolean visibleToFollowing = false;
+    @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "isPublic", column = @Column(name = "friends_is_public")),
+        @AttributeOverride(name = "visibleToFriends", column = @Column(name = "friends_visible_to_friends")),
+        @AttributeOverride(name = "visibleToFollowing", column = @Column(name = "friends_visible_to_following")),
+        @AttributeOverride(name = "allowedNicknames", column = @Column(name = "friends_allowed_nicknames", length = 2000)),
+        @AttributeOverride(name = "blockedNicknames", column = @Column(name = "friends_blocked_nicknames", length = 2000))
+    })
+    private VisibilitySetting friendsSetting = VisibilitySetting.createDefault();
 
     /**
-     * 允许查看的用户昵称列表（用逗号分隔存储）
-     * 使用nickname而不是username
+     * 统计数据可见性设置
      */
-    @Column(name = "allowed_nicknames", length = 2000)
-    private String allowedNicknames;
-
-    /**
-     * 禁止查看的用户昵称列表（用逗号分隔存储）
-     * 使用nickname而不是username
-     * 此列表优先级最高，即使满足其他条件也会被拒绝
-     */
-    @Column(name = "blocked_nicknames", length = 2000)
-    private String blockedNicknames;
+    @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "isPublic", column = @Column(name = "stats_is_public")),
+        @AttributeOverride(name = "visibleToFriends", column = @Column(name = "stats_visible_to_friends")),
+        @AttributeOverride(name = "visibleToFollowing", column = @Column(name = "stats_visible_to_following")),
+        @AttributeOverride(name = "allowedNicknames", column = @Column(name = "stats_allowed_nicknames", length = 2000)),
+        @AttributeOverride(name = "blockedNicknames", column = @Column(name = "stats_blocked_nicknames", length = 2000))
+    })
+    private VisibilitySetting statsSetting = VisibilitySetting.createDefault();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -83,69 +101,16 @@ public class FollowVisibility {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        // 确保嵌入对象不为null
+        if (followingSetting == null) followingSetting = VisibilitySetting.createDefault();
+        if (followersSetting == null) followersSetting = VisibilitySetting.createDefault();
+        if (friendsSetting == null) friendsSetting = VisibilitySetting.createDefault();
+        if (statsSetting == null) statsSetting = VisibilitySetting.createDefault();
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
-    }
-
-    // --- Helper Methods ---
-
-    /**
-     * 获取允许的昵称集合
-     */
-    public Set<String> getAllowedNicknameSet() {
-        if (allowedNicknames == null || allowedNicknames.trim().isEmpty()) {
-            return new HashSet<>();
-        }
-        Set<String> result = new HashSet<>();
-        for (String nickname : allowedNicknames.split(",")) {
-            String trimmed = nickname.trim();
-            if (!trimmed.isEmpty()) {
-                result.add(trimmed);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * 设置允许的昵称集合
-     */
-    public void setAllowedNicknameSet(Set<String> nicknames) {
-        if (nicknames == null || nicknames.isEmpty()) {
-            this.allowedNicknames = null;
-        } else {
-            this.allowedNicknames = String.join(",", nicknames);
-        }
-    }
-
-    /**
-     * 获取禁止的昵称集合
-     */
-    public Set<String> getBlockedNicknameSet() {
-        if (blockedNicknames == null || blockedNicknames.trim().isEmpty()) {
-            return new HashSet<>();
-        }
-        Set<String> result = new HashSet<>();
-        for (String nickname : blockedNicknames.split(",")) {
-            String trimmed = nickname.trim();
-            if (!trimmed.isEmpty()) {
-                result.add(trimmed);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * 设置禁止的昵称集合
-     */
-    public void setBlockedNicknameSet(Set<String> nicknames) {
-        if (nicknames == null || nicknames.isEmpty()) {
-            this.blockedNicknames = null;
-        } else {
-            this.blockedNicknames = String.join(",", nicknames);
-        }
     }
 
     // --- Getters and Setters ---
@@ -166,44 +131,48 @@ public class FollowVisibility {
         this.user = user;
     }
 
-    public boolean isPublic() {
-        return isPublic;
+    public VisibilitySetting getFollowingSetting() {
+        if (followingSetting == null) {
+            followingSetting = VisibilitySetting.createDefault();
+        }
+        return followingSetting;
     }
 
-    public void setPublic(boolean isPublic) {
-        this.isPublic = isPublic;
+    public void setFollowingSetting(VisibilitySetting followingSetting) {
+        this.followingSetting = followingSetting;
     }
 
-    public boolean isVisibleToFriends() {
-        return visibleToFriends;
+    public VisibilitySetting getFollowersSetting() {
+        if (followersSetting == null) {
+            followersSetting = VisibilitySetting.createDefault();
+        }
+        return followersSetting;
     }
 
-    public void setVisibleToFriends(boolean visibleToFriends) {
-        this.visibleToFriends = visibleToFriends;
+    public void setFollowersSetting(VisibilitySetting followersSetting) {
+        this.followersSetting = followersSetting;
     }
 
-    public boolean isVisibleToFollowing() {
-        return visibleToFollowing;
+    public VisibilitySetting getFriendsSetting() {
+        if (friendsSetting == null) {
+            friendsSetting = VisibilitySetting.createDefault();
+        }
+        return friendsSetting;
     }
 
-    public void setVisibleToFollowing(boolean visibleToFollowing) {
-        this.visibleToFollowing = visibleToFollowing;
+    public void setFriendsSetting(VisibilitySetting friendsSetting) {
+        this.friendsSetting = friendsSetting;
     }
 
-    public String getAllowedNicknames() {
-        return allowedNicknames;
+    public VisibilitySetting getStatsSetting() {
+        if (statsSetting == null) {
+            statsSetting = VisibilitySetting.createDefault();
+        }
+        return statsSetting;
     }
 
-    public void setAllowedNicknames(String allowedNicknames) {
-        this.allowedNicknames = allowedNicknames;
-    }
-
-    public String getBlockedNicknames() {
-        return blockedNicknames;
-    }
-
-    public void setBlockedNicknames(String blockedNicknames) {
-        this.blockedNicknames = blockedNicknames;
+    public void setStatsSetting(VisibilitySetting statsSetting) {
+        this.statsSetting = statsSetting;
     }
 
     public LocalDateTime getCreatedAt() {
