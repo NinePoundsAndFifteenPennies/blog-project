@@ -94,56 +94,20 @@
                   </div>
                 </router-link>
                 
-                <!-- Settings Submenu -->
-                <div class="relative group/settings">
-                  <button
-                      @click="showSettingsMenu = !showSettingsMenu"
-                      class="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                  >
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center space-x-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span>设置</span>
-                      </div>
-                      <svg class="w-4 h-4 text-gray-400 transition-transform duration-200" :class="{ 'rotate-90': showSettingsMenu }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </button>
-                  
-                  <!-- Settings Submenu Items -->
-                  <transition name="fade">
-                    <div v-if="showSettingsMenu" class="pl-4 border-l-2 border-gray-100 ml-4 mt-1 mb-1">
-                      <router-link
-                          to="/profile/edit"
-                          class="block px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200 text-sm"
-                          @click="closeAllMenus"
-                      >
-                        <div class="flex items-center space-x-2">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          <span>编辑资料</span>
-                        </div>
-                      </router-link>
-                      <router-link
-                          to="/settings/visibility"
-                          class="block px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200 text-sm"
-                          @click="closeAllMenus"
-                      >
-                        <div class="flex items-center space-x-2">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                          </svg>
-                          <span>隐私设置</span>
-                        </div>
-                      </router-link>
-                    </div>
-                  </transition>
-                </div>
+                <!-- Settings Link -->
+                <router-link
+                    to="/settings"
+                    class="block px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+                    @click="showUserMenu = false"
+                >
+                  <div class="flex items-center space-x-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>设置</span>
+                  </div>
+                </router-link>
                 
                 <button
                     @click="handleSwitchAccount"
@@ -222,31 +186,17 @@
               >
                 个人中心
               </router-link>
-              
-              <!-- Settings Section -->
-              <div class="px-4 py-2 text-sm font-medium text-gray-500">设置</div>
               <router-link
-                  to="/profile/edit"
-                  class="block px-6 py-2 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-gray-600"
+                  to="/settings"
+                  class="block px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                   @click="showMobileMenu = false"
               >
                 <div class="flex items-center space-x-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <span>编辑资料</span>
-                </div>
-              </router-link>
-              <router-link
-                  to="/settings/visibility"
-                  class="block px-6 py-2 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-gray-600"
-                  @click="showMobileMenu = false"
-              >
-                <div class="flex items-center space-x-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  <span>隐私设置</span>
+                  <span>设置</span>
                 </div>
               </router-link>
               
@@ -298,7 +248,6 @@ export default {
 
     const scrolled = ref(false)
     const showUserMenu = ref(false)
-    const showSettingsMenu = ref(false)
     const showMobileMenu = ref(false)
     const avatarLoadError = ref(false)
 
@@ -365,7 +314,6 @@ export default {
     const handleLogout = () => {
       store.dispatch('logout')
       showUserMenu.value = false
-      showSettingsMenu.value = false
       showMobileMenu.value = false
       router.push('/login')
     }
@@ -373,13 +321,6 @@ export default {
     // 处理切换账号（与登出相同，重定向到登录页面）
     const handleSwitchAccount = () => {
       handleLogout()
-    }
-
-    // 关闭所有菜单
-    const closeAllMenus = () => {
-      showUserMenu.value = false
-      showSettingsMenu.value = false
-      showMobileMenu.value = false
     }
 
     // 监听滚动
@@ -391,7 +332,6 @@ export default {
     const handleClickOutside = (e) => {
       if (!e.target.closest('.relative')) {
         showUserMenu.value = false
-        showSettingsMenu.value = false
       }
     }
 
@@ -408,7 +348,6 @@ export default {
     return {
       scrolled,
       showUserMenu,
-      showSettingsMenu,
       showMobileMenu,
       isLoggedIn,
       currentUser,
@@ -422,8 +361,7 @@ export default {
       handleLogout,
       handleSwitchAccount,
       handleAvatarError,
-      handleAvatarLoad,
-      closeAllMenus
+      handleAvatarLoad
     }
   }
 }
