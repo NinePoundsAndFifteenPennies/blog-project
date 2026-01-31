@@ -46,36 +46,37 @@ public interface FollowService {
     boolean isFriend(Long userId, UserDetails currentUser);
 
     /**
-     * 获取用户的关注统计信息
+     * 获取用户的关注统计信息（带可见性检查）
      * @param userId 用户ID
-     * @param currentUser 当前登录用户（可为null，用于判断关注关系）
-     * @return 关注统计信息
+     * @param currentUser 当前登录用户（可为null，用于判断关注关系和可见性）
+     * @return 关注统计信息，如果无权查看则返回隐藏的统计信息
      */
     FollowStatsResponse getFollowStats(Long userId, UserDetails currentUser);
 
     /**
-     * 获取用户的关注列表（该用户关注了谁）
+     * 获取用户的关注列表（带可见性检查）
      * @param userId 用户ID
      * @param pageable 分页参数
-     * @param currentUser 当前登录用户（可为null，用于判断朋友关系）
-     * @return 关注列表
+     * @param currentUser 当前登录用户（可为null，用于判断朋友关系和可见性）
+     * @return 关注列表，如果无权查看则返回空列表
      */
     Page<FollowUserResponse> getFollowingList(Long userId, Pageable pageable, UserDetails currentUser);
 
     /**
-     * 获取用户的粉丝列表（谁关注了该用户）
+     * 获取用户的粉丝列表（带可见性检查）
      * @param userId 用户ID
      * @param pageable 分页参数
-     * @param currentUser 当前登录用户（可为null，用于判断朋友关系）
-     * @return 粉丝列表
+     * @param currentUser 当前登录用户（可为null，用于判断朋友关系和可见性）
+     * @return 粉丝列表，如果无权查看则返回空列表
      */
     Page<FollowUserResponse> getFollowerList(Long userId, Pageable pageable, UserDetails currentUser);
 
     /**
-     * 获取用户的朋友列表（互相关注的用户）
+     * 获取用户的朋友列表（带可见性检查）
      * @param userId 用户ID
      * @param pageable 分页参数
-     * @return 朋友列表
+     * @param currentUser 当前登录用户（可为null，用于可见性检查）
+     * @return 朋友列表，如果无权查看则返回空列表
      */
-    Page<FollowUserResponse> getFriendList(Long userId, Pageable pageable);
+    Page<FollowUserResponse> getFriendList(Long userId, Pageable pageable, UserDetails currentUser);
 }

@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
  * - 自动检测并标记朋友关系（双向关注）
  * - 防止自己关注自己
  * - 使用批量查询优化N+1问题
+ * - 集成可见性检查，保护用户隐私
  * - 提供丰富的日志记录便于排查问题
  */
 @Service
@@ -39,11 +41,15 @@ public class FollowServiceImpl implements FollowService {
 
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
+    private final FollowVisibilityService visibilityService;
 
     @Autowired
-    public FollowServiceImpl(FollowRepository followRepository, UserRepository userRepository) {
+    public FollowServiceImpl(FollowRepository followRepository, 
+                             UserRepository userRepository,
+                             FollowVisibilityService visibilityService) {
         this.followRepository = followRepository;
         this.userRepository = userRepository;
+        this.visibilityService = visibilityService;
     }
 
     @Override
@@ -156,10 +162,9 @@ public class FollowServiceImpl implements FollowService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + userId + " 的用户"));
 
-        long followingCount = followRepository.countByFollower(user);
-        long followerCount = followRepository.countByFollowed(user);
-        long friendCount = followRepository.countMutualFollows(user);
-
+        // 检查可见性权限
+        boolean canView = visibilityService.canViewFollowInfo(userId, currentUser);
+        
         // 如果当前用户已登录，检查与目标用户的关系
         Boolean isFollowing = null;
         Boolean isFriend = null;
@@ -172,6 +177,16 @@ public class FollowServiceImpl implements FollowService {
             }
         }
 
+        // 如果无权查看，返回隐藏的统计信息（关系信息仍然返回）
+        if (!canView) {
+            logger.debug("用户无权查看用户 {} 的关注统计信息", userId);
+            return FollowStatsResponse.hidden(isFollowing, isFriend);
+        }
+
+        long followingCount = followRepository.countByFollower(user);
+        long followerCount = followRepository.countByFollowed(user);
+        long friendCount = followRepository.countMutualFollows(user);
+
         return new FollowStatsResponse(followingCount, followerCount, friendCount, isFollowing, isFriend);
     }
 
@@ -180,6 +195,12 @@ public class FollowServiceImpl implements FollowService {
     public Page<FollowUserResponse> getFollowingList(Long userId, Pageable pageable, UserDetails currentUser) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + userId + " 的用户"));
+
+        // 检查可见性权限
+        if (!visibilityService.canViewFollowInfo(userId, currentUser)) {
+            logger.debug("用户无权查看用户 {} 的关注列表", userId);
+            return new PageImpl<>(Collections.emptyList(), pageable, 0);
+        }
 
         Page<Follow> follows = followRepository.findByFollower(user, pageable);
 
@@ -204,6 +225,12 @@ public class FollowServiceImpl implements FollowService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + userId + " 的用户"));
 
+        // 检查可见性权限
+        if (!visibilityService.canViewFollowInfo(userId, currentUser)) {
+            logger.debug("用户无权查看用户 {} 的粉丝列表", userId);
+            return new PageImpl<>(Collections.emptyList(), pageable, 0);
+        }
+
         Page<Follow> follows = followRepository.findByFollowed(user, pageable);
 
         // 批量查询朋友关系，避免N+1问题
@@ -223,9 +250,15 @@ public class FollowServiceImpl implements FollowService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<FollowUserResponse> getFriendList(Long userId, Pageable pageable) {
+    public Page<FollowUserResponse> getFriendList(Long userId, Pageable pageable, UserDetails currentUser) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + userId + " 的用户"));
+
+        // 检查可见性权限
+        if (!visibilityService.canViewFollowInfo(userId, currentUser)) {
+            logger.debug("用户无权查看用户 {} 的朋友列表", userId);
+            return new PageImpl<>(Collections.emptyList(), pageable, 0);
+        }
 
         Page<Follow> mutualFollows = followRepository.findMutualFollows(user, pageable);
 
