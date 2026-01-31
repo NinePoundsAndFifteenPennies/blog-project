@@ -344,14 +344,15 @@ export default {
           size: PAGE_SIZE 
         })
         
-        const newMessages = res.content || []
+        // Messages come in DESC order (newest first), reverse for display (oldest at top)
+        const fetchedMessages = (res.content || []).slice().reverse()
         totalPages.value = res.totalPages || 1
         
         if (append) {
-          // Prepend older messages at the beginning
-          messages.value = [...newMessages, ...messages.value]
+          // Prepend older messages at the beginning (they're already reversed)
+          messages.value = [...fetchedMessages, ...messages.value]
         } else {
-          messages.value = newMessages
+          messages.value = fetchedMessages
         }
         
         // Mark as read
@@ -383,35 +384,41 @@ export default {
     }
     
     // Poll for new messages (simple real-time simulation)
-    const POLL_SIZE = 10 // Smaller size for polling efficiency
+    const POLL_SIZE = 50 // Larger size to ensure we don't miss messages
     
     const pollMessages = async () => {
       if (!selectedPartnerId.value) return
       
       try {
         const res = await getConversation(selectedPartnerId.value, { page: 0, size: POLL_SIZE })
-        const newMessages = res.content || []
+        // Messages come in DESC order (newest first)
+        const polledMessages = (res.content || []).slice().reverse()
         
-        // Check if there are new messages
-        if (newMessages.length > 0 && messages.value.length > 0) {
-          const latestExistingId = messages.value[messages.value.length - 1]?.id
-          if (latestExistingId !== undefined) {
-            const newMsgs = newMessages.filter(m => m.id > latestExistingId)
-            
-            if (newMsgs.length > 0) {
-              messages.value = [...messages.value, ...newMsgs]
-              await nextTick()
-              scrollToBottom()
-              
-              // Mark as read
-              await markAsRead(selectedPartnerId.value)
-            }
-          }
+        if (polledMessages.length === 0) return
+        
+        // Build a set of existing message IDs for quick lookup
+        const existingIds = new Set(messages.value.map(m => m.id))
+        
+        // Find new messages that we don't have yet
+        const newMsgs = polledMessages.filter(m => !existingIds.has(m.id))
+        
+        if (newMsgs.length > 0) {
+          // Merge and sort by ID to guarantee correct ordering
+          const merged = [...messages.value, ...newMsgs]
+          merged.sort((a, b) => a.id - b.id)
+          messages.value = merged
+          
+          await nextTick()
+          scrollToBottom()
+          
+          // Mark as read
+          await markAsRead(selectedPartnerId.value)
         }
         
         // Update read status of existing messages
+        const polledMessagesMap = new Map(polledMessages.map(m => [m.id, m]))
         messages.value = messages.value.map(msg => {
-          const updated = newMessages.find(m => m.id === msg.id)
+          const updated = polledMessagesMap.get(msg.id)
           if (updated) {
             return { ...msg, read: updated.read }
           }

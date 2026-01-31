@@ -19,7 +19,7 @@ import java.util.List;
 public interface PrivateMessageRepository extends JpaRepository<PrivateMessage, Long> {
 
     /**
-     * 获取两个用户之间的所有消息（按时间升序）
+     * 获取两个用户之间的所有消息（按时间降序，最新消息在前）
      * @param user1 用户1
      * @param user2 用户2
      * @param pageable 分页参数
@@ -28,7 +28,7 @@ public interface PrivateMessageRepository extends JpaRepository<PrivateMessage, 
     @Query("SELECT m FROM PrivateMessage m " +
            "WHERE (m.sender = :user1 AND m.receiver = :user2) " +
            "   OR (m.sender = :user2 AND m.receiver = :user1) " +
-           "ORDER BY m.createdAt ASC")
+           "ORDER BY m.createdAt DESC")
     Page<PrivateMessage> findConversation(@Param("user1") User user1, @Param("user2") User user2, Pageable pageable);
 
     /**
