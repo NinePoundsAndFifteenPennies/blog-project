@@ -43,14 +43,17 @@ public class FollowServiceImpl implements FollowService {
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
     private final FollowVisibilityService visibilityService;
+    private final NotificationService notificationService;
 
     @Autowired
     public FollowServiceImpl(FollowRepository followRepository, 
                              UserRepository userRepository,
-                             FollowVisibilityService visibilityService) {
+                             FollowVisibilityService visibilityService,
+                             NotificationService notificationService) {
         this.followRepository = followRepository;
         this.userRepository = userRepository;
         this.visibilityService = visibilityService;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -80,6 +83,9 @@ public class FollowServiceImpl implements FollowService {
         follow.setFollower(follower);
         follow.setFollowed(followed);
         followRepository.save(follow);
+
+        // 创建关注通知
+        notificationService.createFollowedNotification(follower, followed);
 
         // 检查是否形成朋友关系（对方是否也关注了当前用户）
         boolean isFriend = followRepository.existsByFollowerAndFollowed(followed, follower);

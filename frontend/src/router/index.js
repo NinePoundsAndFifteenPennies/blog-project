@@ -142,6 +142,12 @@ const routes = [
         meta: { title: "私信", requiresAuth: true },
     },
     {
+        path: "/notifications",
+        name: "Notifications",
+        component: () => import("@/views/Notifications.vue"),
+        meta: { title: "通知", requiresAuth: true },
+    },
+    {
         path: "/:pathMatch(.*)*",
         name: "NotFound",
         component: () => import("@/views/NotFound.vue"),
