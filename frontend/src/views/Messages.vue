@@ -394,19 +394,18 @@ export default {
         // Messages come in DESC order (newest first)
         const polledMessages = (res.content || []).slice().reverse()
         
-        if (polledMessages.length === 0) return
+        if (polledMessages.length === 0 || messages.value.length === 0) return
         
-        // Build a set of existing message IDs for quick lookup
-        const existingIds = new Set(messages.value.map(m => m.id))
+        // Get the ID of our newest message (messages are sorted by ID ascending, so last one is newest)
+        const newestExistingId = messages.value[messages.value.length - 1].id
         
-        // Find new messages that we don't have yet
-        const newMsgs = polledMessages.filter(m => !existingIds.has(m.id))
+        // Only add messages that are NEWER than our newest message (higher ID)
+        // This prevents polling from adding older messages that should come from "load more"
+        const newMsgs = polledMessages.filter(m => m.id > newestExistingId)
         
         if (newMsgs.length > 0) {
-          // Merge and sort by ID to guarantee correct ordering
-          const merged = [...messages.value, ...newMsgs]
-          merged.sort((a, b) => a.id - b.id)
-          messages.value = merged
+          // Append new messages at the end (they're newer)
+          messages.value = [...messages.value, ...newMsgs]
           
           await nextTick()
           scrollToBottom()
