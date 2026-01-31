@@ -102,13 +102,22 @@
                   </div>
 
                   <!-- Follow Button -->
-                  <div v-if="userProfile.id && !isOwnProfile">
+                  <div v-if="userProfile.id && !isOwnProfile" class="flex items-center space-x-3">
                     <FollowButton
                       :userId="userProfile.id"
                       :initialFollowing="followStatus.isFollowing"
                       :initialFriend="followStatus.isFriend"
                       @follow-change="handleFollowChange"
                     />
+                    <button
+                      @click="startMessage"
+                      class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                    >
+                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      私信
+                    </button>
                   </div>
                 </div>
               </div>
@@ -399,6 +408,24 @@ export default {
       followStatus.value.isFriend = data.isFriend === true
     }
 
+    // Start a message conversation with this user
+    const startMessage = () => {
+      if (!userProfile.value) return
+      
+      router.push({
+        path: '/messages',
+        query: {
+          userId: userProfile.value.id,
+          username: userProfile.value.username,
+          nickname: userProfile.value.nickname,
+          avatar: userProfile.value.avatarUrl,
+          friend: followStatus.value.isFriend ? 'true' : 'false',
+          following: followStatus.value.isFollowing ? 'true' : 'false',
+          followedBy: userProfile.value.isFollowingMe ? 'true' : 'false'
+        }
+      })
+    }
+
     // Watch for username changes
     watch(username, () => {
       if (username.value) {
@@ -436,7 +463,8 @@ export default {
       followStatus,
       handleStatsClick,
       handleFollowChange,
-      handleStatsLoaded
+      handleStatsLoaded,
+      startMessage
     }
   }
 }

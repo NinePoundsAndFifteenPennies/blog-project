@@ -103,7 +103,7 @@
                   </p>
                 </div>
 
-                <!-- Friend Badge & Follow Button -->
+                <!-- Friend Badge & Message & Follow Button -->
                 <div class="flex items-center space-x-3 shrink-0">
                   <span 
                     v-if="user.friend" 
@@ -111,6 +111,26 @@
                   >
                     互相关注
                   </span>
+                  
+                  <!-- Message Button -->
+                  <button
+                    v-if="!isCurrentUser(user.id) && isLoggedIn"
+                    @click="openMessageWithUser(user)"
+                    class="relative p-2 rounded-lg text-gray-500 hover:text-primary-600 hover:bg-gray-100 transition-colors"
+                    title="发送私信"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <!-- Unread Badge -->
+                    <span 
+                      v-if="getUnreadFromUser(user.id) > 0" 
+                      class="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full min-w-[18px] text-center"
+                    >
+                      {{ getUnreadFromUser(user.id) > 99 ? '99+' : getUnreadFromUser(user.id) }}
+                    </span>
+                  </button>
+                  
                   <FollowButton
                     v-if="!isCurrentUser(user.id)"
                     :userId="user.id"
@@ -138,7 +158,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import Header from '@/components/Header.vue'
@@ -146,6 +166,7 @@ import Pagination from '@/components/Pagination.vue'
 import FollowButton from '@/components/FollowButton.vue'
 import { getFollowingList, getFollowersList, getFriendsList } from '@/api/follow'
 import { getFullAvatarUrl } from '@/utils/avatar'
+import { getUnreadCountFromUser } from '@/api/messages'
 
 export default {
   name: 'FollowList',
@@ -160,8 +181,14 @@ export default {
     const currentPage = ref(1)
     const totalPages = ref(1)
     const pageSize = 20
+    
+    // Per-user unread message counts
+    const userUnreadCounts = ref({})
+    let unreadPollingInterval = null
+    const UNREAD_POLLING_INTERVAL = 15000 // 15 seconds
 
     const currentUser = computed(() => store.getters.currentUser)
+    const isLoggedIn = computed(() => store.getters.isLoggedIn)
     const userId = computed(() => Number(route.params.userId))
     const username = computed(() => route.query.username || '用户')
     const activeTab = computed(() => route.params.type || 'following')
@@ -283,14 +310,105 @@ export default {
     const goBack = () => {
       router.back()
     }
+    
+    // Load unread counts for all users in the list
+    const loadUnreadCounts = async () => {
+      if (!isLoggedIn.value) return
+      
+      // Use Promise.all to fetch unread counts concurrently for better performance
+      const userIds = users.value
+        .filter(user => !isCurrentUser(user.id))
+        .map(user => user.id)
+      
+      const promises = userIds.map(async (userId) => {
+        try {
+          const res = await getUnreadCountFromUser(userId)
+          return { userId, count: res.count || 0 }
+        } catch (error) {
+          return { userId, count: 0 }
+        }
+      })
+      
+      const results = await Promise.all(promises)
+      results.forEach(({ userId, count }) => {
+        userUnreadCounts.value[userId] = count
+      })
+    }
+    
+    // Get unread count for a specific user
+    const getUnreadFromUser = (userId) => {
+      return userUnreadCounts.value[userId] || 0
+    }
+    
+    // Open message page with a specific user
+    const openMessageWithUser = (user) => {
+      // Determine follow relationship based on list type and user data
+      let following = false
+      let followedBy = false
+      
+      if (user.friend === true) {
+        following = true
+        followedBy = true
+      } else if (isOwnList.value) {
+        if (activeTab.value === 'following') {
+          following = true  // 在自己的关注列表，意味着我关注了他们
+        } else if (activeTab.value === 'followers') {
+          followedBy = true  // 在自己的粉丝列表，意味着他们关注了我
+        } else if (activeTab.value === 'friends') {
+          following = true
+          followedBy = true
+        }
+      }
+      
+      router.push({
+        path: '/messages',
+        query: {
+          userId: user.id,
+          username: user.username,
+          nickname: user.nickname,
+          avatar: user.avatarUrl,
+          friend: user.friend === true ? 'true' : 'false',
+          following: following ? 'true' : 'false',
+          followedBy: followedBy ? 'true' : 'false'
+        }
+      })
+    }
+    
+    // Start polling for unread counts
+    const startUnreadPolling = () => {
+      stopUnreadPolling()
+      loadUnreadCounts()
+      unreadPollingInterval = setInterval(loadUnreadCounts, UNREAD_POLLING_INTERVAL)
+    }
+    
+    const stopUnreadPolling = () => {
+      if (unreadPollingInterval) {
+        clearInterval(unreadPollingInterval)
+        unreadPollingInterval = null
+      }
+    }
 
     onMounted(() => {
       loadUsers()
+      if (isLoggedIn.value) {
+        startUnreadPolling()
+      }
+    })
+    
+    onUnmounted(() => {
+      stopUnreadPolling()
     })
 
     watch([userId, activeTab], () => {
       currentPage.value = 1
       loadUsers()
+    })
+    
+    // Reload unread counts when users list changes
+    watch(users, () => {
+      if (isLoggedIn.value && users.value.length > 0) {
+        loadUnreadCounts()
+      }
     })
 
     return {
@@ -305,10 +423,13 @@ export default {
       pageTitle,
       emptyMessage,
       emptyDescription,
+      isLoggedIn,
       getUserInitial,
       getFullAvatarUrl,
       isCurrentUser,
       getInitialFollowingState,
+      getUnreadFromUser,
+      openMessageWithUser,
       switchTab,
       handlePageChange,
       handleFollowChange,

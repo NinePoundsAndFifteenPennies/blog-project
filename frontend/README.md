@@ -7,11 +7,12 @@
 - 🎨 **现代化UI设计** - 响应式布局,毛玻璃效果,流畅动画
 - 🔐 **完整认证系统** - JWT认证,"记住我",Token自动刷新
 - ✍️ **Markdown编辑器** - 实时预览,代码高亮
-- 💬 **社交功能** - 评论系统,点赞功能,子评论/回复,**用户关注**
+- 💬 **社交功能** - 评论系统,点赞功能,子评论/回复,**用户关注**,**私信功能**
 - 🏷️ **内容组织** - 标签系统,分类功能,文章搜索
 - 👤 **用户系统** - 个人主页,资料编辑,头像上传,悬浮卡片,**关注/粉丝列表**
 - 📊 **社区统计** - 用户总数,文章总数,在线用户,今日访问
 - 🔒 **隐私控制** - 关注信息可见性设置
+- 💌 **私信系统** - 实时聊天,防骚扰机制,已读状态,未读提醒
 
 ## 🛠️ 技术栈
 
@@ -33,10 +34,11 @@ frontend/
 │   │   ├── auth.js         # 认证相关API
 │   │   ├── posts.js        # 文章相关API
 │   │   ├── comments.js     # 评论相关API
-│   │   └── follow.js       # 关注功能API
+│   │   ├── follow.js       # 关注功能API
+│   │   └── messages.js     # 私信功能API
 │   ├── assets/             # 全局样式
 │   ├── components/         # 可复用组件
-│   │   ├── Header.vue      # 导航栏
+│   │   ├── Header.vue      # 导航栏(含未读私信提醒)
 │   │   ├── PostCard.vue    # 文章卡片(支持列表/网格视图)
 │   │   ├── CommentList.vue # 评论列表
 │   │   ├── TagBadge.vue    # 标签徽章
@@ -55,7 +57,8 @@ frontend/
 │   │   ├── Profile.vue     # 个人中心
 │   │   ├── UserProfile.vue # 用户主页
 │   │   ├── Settings.vue    # 设置页面(入口)
-│   │   ├── FollowList.vue  # 关注/粉丝/朋友列表
+│   │   ├── FollowList.vue  # 关注/粉丝/朋友列表(含私信入口)
+│   │   ├── Messages.vue    # 私信页面(会话列表+聊天界面)
 │   │   └── VisibilitySettings.vue # 隐私设置
 │   ├── App.vue             # 根组件
 │   └── main.js             # 入口文件
@@ -65,107 +68,34 @@ frontend/
 
 ## 🚀 快速开始
 
-### 环境要求
-
-- Node.js >= 14.x
-- npm >= 6.x
-
-### 开发运行
-
 ```bash
 # 安装依赖
 npm install
 
-# 启动开发服务器
+# 启动开发服务器 (http://localhost:3000)
 npm run serve
 
-# 访问 http://localhost:3000
-```
-
-### 生产构建
-
-```bash
+# 生产构建
 npm run build
 ```
 
-## ⚙️ 配置
+## 📖 主要API接口
 
-### API代理 (vue.config.js)
+### 私信接口
 
-```javascript
-devServer: {
-  proxy: {
-    '/api': {
-      target: 'http://localhost:8080',  // 后端地址
-      changeOrigin: true
-    }
-  }
-}
-```
-
-### 主题色 (tailwind.config.js)
-
-```javascript
-colors: {
-  primary: {
-    600: '#667eea',  // 主色调
-  }
-}
-```
-
-## 🎯 核心功能实现
-
-### JWT认证与Token刷新
-
-- 请求拦截器自动添加JWT token
-- Token过期前5分钟自动刷新
-- 使用队列防止并发刷新
-
-### 首页布局
-
-**双模块设计**:
-- **模块1 - 热门文章**: 显示热度最高的12篇文章(可滚动)
-- **模块2 - 最新文章**: 分页显示最新文章
-
-**侧边栏**:
-- 搜索框
-- 热门标签
-- 热门作者(占位)
-- 社区统计(实时更新)
-
-### 文章卡片
-
-支持两种视图:
-- **列表视图**: 横向布局,封面图(1/3) + 内容(2/3)
-- **网格视图**: 垂直布局,封面图在上
-
-自动提取摘要: 如果文章没有摘要,自动从内容中提取前150字符
-
-## 📖 API对接
-
-### 认证接口
-
-- `POST /api/users/register` - 注册
-- `POST /api/users/login` - 登录(支持"记住我")
-- `GET /api/users/me` - 获取当前用户
-- `POST /api/users/refresh-token` - 刷新Token
-
-### 文章接口
-
-- `GET /api/posts` - 文章列表(分页+排序)
-- `GET /api/posts/:id` - 文章详情
-- `POST /api/posts` - 创建文章
-- `PUT /api/posts/:id` - 更新文章
-- `DELETE /api/posts/:id` - 删除文章
+- `POST /api/messages/send/{receiverId}` - 发送私信
+- `GET /api/messages/conversations` - 获取会话列表
+- `GET /api/messages/conversation/{partnerId}` - 获取对话消息
+- `PUT /api/messages/read/{partnerId}` - 标记消息已读
+- `GET /api/messages/unread/count` - 获取未读消息总数
+- `GET /api/messages/unread/count/{userId}` - 获取来自特定用户的未读数
 
 ### 关注接口
 
 - `POST /api/users/:userId/follow` - 关注用户
 - `DELETE /api/users/:userId/follow` - 取消关注
-- `GET /api/users/:userId/follow/stats` - 获取关注统计(关注数/粉丝数/朋友数)
+- `GET /api/users/:userId/follow/stats` - 获取关注统计
 - `GET /api/users/:userId/following` - 获取关注列表
 - `GET /api/users/:userId/followers` - 获取粉丝列表
-- `GET /api/users/:userId/friends` - 获取朋友列表(互相关注)
-- `GET /api/follow/visibility` - 获取可见性设置
-- `PUT /api/follow/visibility` - 更新可见性设置
+- `GET /api/users/:userId/friends` - 获取朋友列表
 
