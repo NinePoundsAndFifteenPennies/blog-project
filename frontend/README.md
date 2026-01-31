@@ -7,10 +7,11 @@
 - 🎨 **现代化UI设计** - 响应式布局,毛玻璃效果,流畅动画
 - 🔐 **完整认证系统** - JWT认证,"记住我",Token自动刷新
 - ✍️ **Markdown编辑器** - 实时预览,代码高亮
-- 💬 **社交功能** - 评论系统,点赞功能,子评论/回复
+- 💬 **社交功能** - 评论系统,点赞功能,子评论/回复,**用户关注**
 - 🏷️ **内容组织** - 标签系统,分类功能,文章搜索
-- 👤 **用户系统** - 个人主页,资料编辑,头像上传,悬浮卡片
+- 👤 **用户系统** - 个人主页,资料编辑,头像上传,悬浮卡片,**关注/粉丝列表**
 - 📊 **社区统计** - 用户总数,文章总数,在线用户,今日访问
+- 🔒 **隐私控制** - 关注信息可见性设置
 
 ## 🛠️ 技术栈
 
@@ -29,6 +30,10 @@ frontend/
 ├── public/                 # 静态资源
 ├── src/
 │   ├── api/                # API接口封装
+│   │   ├── auth.js         # 认证相关API
+│   │   ├── posts.js        # 文章相关API
+│   │   ├── comments.js     # 评论相关API
+│   │   └── follow.js       # 关注功能API
 │   ├── assets/             # 全局样式
 │   ├── components/         # 可复用组件
 │   │   ├── Header.vue      # 导航栏
@@ -37,7 +42,9 @@ frontend/
 │   │   ├── TagBadge.vue    # 标签徽章
 │   │   ├── PopularTags.vue # 热门标签
 │   │   ├── CommunityStats.vue # 社区统计
-│   │   └── UserProfileHoverCard.vue # 用户悬浮卡片
+│   │   ├── UserProfileHoverCard.vue # 用户悬浮卡片
+│   │   ├── FollowButton.vue # 关注/取消关注按钮
+│   │   └── FollowStats.vue  # 关注统计(关注数/粉丝数/朋友数)
 │   ├── router/             # 路由配置+导航守卫
 │   ├── store/              # Vuex状态(认证、用户)
 │   ├── utils/              # 工具函数(Axios封装等)
@@ -46,7 +53,10 @@ frontend/
 │   │   ├── PostDetail.vue  # 文章详情
 │   │   ├── PostEdit.vue    # 文章编辑
 │   │   ├── Profile.vue     # 个人中心
-│   │   └── UserProfile.vue # 用户主页
+│   │   ├── UserProfile.vue # 用户主页
+│   │   ├── Settings.vue    # 设置页面(入口)
+│   │   ├── FollowList.vue  # 关注/粉丝/朋友列表
+│   │   └── VisibilitySettings.vue # 隐私设置
 │   ├── App.vue             # 根组件
 │   └── main.js             # 入口文件
 ├── tailwind.config.js      # Tailwind配置
@@ -147,4 +157,15 @@ colors: {
 - `POST /api/posts` - 创建文章
 - `PUT /api/posts/:id` - 更新文章
 - `DELETE /api/posts/:id` - 删除文章
+
+### 关注接口
+
+- `POST /api/users/:userId/follow` - 关注用户
+- `DELETE /api/users/:userId/follow` - 取消关注
+- `GET /api/users/:userId/follow/stats` - 获取关注统计(关注数/粉丝数/朋友数)
+- `GET /api/users/:userId/following` - 获取关注列表
+- `GET /api/users/:userId/followers` - 获取粉丝列表
+- `GET /api/users/:userId/friends` - 获取朋友列表(互相关注)
+- `GET /api/follow/visibility` - 获取可见性设置
+- `PUT /api/follow/visibility` - 更新可见性设置
 

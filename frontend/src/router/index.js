@@ -118,6 +118,24 @@ const routes = [
         meta: { title: "搜索结果" },
     },
     {
+        path: "/user/:userId/follow/:type",
+        name: "FollowList",
+        component: () => import("@/views/FollowList.vue"),
+        meta: { title: "关注列表" },
+    },
+    {
+        path: "/settings",
+        name: "Settings",
+        component: () => import("@/views/Settings.vue"),
+        meta: { title: "设置", requiresAuth: true },
+    },
+    {
+        path: "/settings/visibility",
+        name: "VisibilitySettings",
+        component: () => import("@/views/VisibilitySettings.vue"),
+        meta: { title: "隐私设置", requiresAuth: true },
+    },
+    {
         path: "/:pathMatch(.*)*",
         name: "NotFound",
         component: () => import("@/views/NotFound.vue"),

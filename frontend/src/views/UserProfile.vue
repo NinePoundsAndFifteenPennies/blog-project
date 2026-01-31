@@ -84,11 +84,31 @@
                   </div>
 
                   <!-- Stats -->
-                  <div class="flex items-center justify-center md:justify-start space-x-8">
+                  <div class="flex items-center justify-center md:justify-start space-x-8 mb-6">
                     <div class="text-center">
                       <div class="text-3xl font-bold text-primary-600 mb-1">{{ totalPosts }}</div>
                       <div class="text-sm text-gray-600 font-medium">文章</div>
                     </div>
+                  </div>
+
+                  <!-- Follow Stats -->
+                  <div v-if="userProfile.id" class="mb-6">
+                    <FollowStats 
+                      ref="followStatsRef"
+                      :userId="userProfile.id" 
+                      @click="handleStatsClick"
+                      @stats-loaded="handleStatsLoaded"
+                    />
+                  </div>
+
+                  <!-- Follow Button -->
+                  <div v-if="userProfile.id && !isOwnProfile">
+                    <FollowButton
+                      :userId="userProfile.id"
+                      :initialFollowing="followStatus.isFollowing"
+                      :initialFriend="followStatus.isFriend"
+                      @follow-change="handleFollowChange"
+                    />
                   </div>
                 </div>
               </div>
@@ -205,13 +225,15 @@ import { useStore } from 'vuex'
 import Header from '@/components/Header.vue'
 import Pagination from '@/components/Pagination.vue'
 import SearchPreview from '@/components/SearchPreview.vue'
+import FollowButton from '@/components/FollowButton.vue'
+import FollowStats from '@/components/FollowStats.vue'
 import { getPublicUserProfile } from '@/api/auth'
 import { getPostsByUsername, searchPosts } from '@/api/posts'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'UserProfile',
-  components: { Header, Pagination, SearchPreview },
+  components: { Header, Pagination, SearchPreview, FollowButton, FollowStats },
   setup() {
     const route = useRoute()
     const router = useRouter()
@@ -226,9 +248,19 @@ export default {
     const totalPages = ref(1)
     const totalPosts = ref(0)
     const pageSize = 10
+    const followStatsRef = ref(null)
+    const followStatus = ref({
+      isFollowing: false,
+      isFriend: false
+    })
 
     const currentUser = computed(() => store.getters.currentUser)
     const username = computed(() => route.params.username)
+
+    const isOwnProfile = computed(() => {
+      return currentUser.value && userProfile.value && 
+             currentUser.value.id === userProfile.value.id
+    })
 
     const displayName = computed(() => 
       userProfile.value?.nickname || userProfile.value?.username || '用户'
@@ -335,11 +367,44 @@ export default {
       router.push(`/post/${post.id}`)
     }
 
+    // Handle click on follow stats
+    const handleStatsClick = (type) => {
+      if (userProfile.value) {
+        router.push({
+          name: 'FollowList',
+          params: { 
+            userId: userProfile.value.id, 
+            type: type 
+          },
+          query: { 
+            username: userProfile.value.username 
+          }
+        })
+      }
+    }
+
+    // Handle follow/unfollow action
+    const handleFollowChange = (event) => {
+      followStatus.value.isFollowing = event.following
+      followStatus.value.isFriend = event.friend
+      // Refresh follow stats
+      if (followStatsRef.value) {
+        followStatsRef.value.refresh()
+      }
+    }
+
+    // Handle stats loaded from FollowStats component
+    const handleStatsLoaded = (data) => {
+      followStatus.value.isFollowing = data.isFollowing === true
+      followStatus.value.isFriend = data.isFriend === true
+    }
+
     // Watch for username changes
     watch(username, () => {
       if (username.value) {
         avatarLoadError.value = false
         currentPage.value = 1
+        followStatus.value = { isFollowing: false, isFriend: false }
         loadProfile()
       }
     })
@@ -365,7 +430,13 @@ export default {
       formatDate,
       searchUserPosts,
       handleSearchSelect,
-      handlePageChange
+      handlePageChange,
+      isOwnProfile,
+      followStatsRef,
+      followStatus,
+      handleStatsClick,
+      handleFollowChange,
+      handleStatsLoaded
     }
   }
 }
