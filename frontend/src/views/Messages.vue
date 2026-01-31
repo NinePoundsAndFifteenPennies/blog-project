@@ -60,32 +60,55 @@
               </div>
 
               <template v-else>
+                <!-- Load More Button -->
+                <div v-if="hasMoreMessages" class="text-center mb-4">
+                  <button
+                    @click="loadMoreMessages"
+                    :disabled="loadingMore"
+                    class="px-4 py-2 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors disabled:text-gray-400"
+                  >
+                    {{ loadingMore ? '加载中...' : '加载更多消息' }}
+                  </button>
+                </div>
+
                 <div
                   v-for="message in messages"
                   :key="message.id"
                   :class="[
-                    'flex',
-                    message.sentByMe ? 'justify-end' : 'justify-start'
+                    'flex flex-col',
+                    message.sentByMe ? 'items-end' : 'items-start'
                   ]"
                 >
+                  <!-- Time above message -->
+                  <div class="text-xs mb-1 text-gray-400">
+                    {{ formatTime(message.createdAt) }}
+                  </div>
+                  
+                  <!-- Message bubble -->
                   <div
                     :class="[
                       'max-w-[70%] rounded-lg px-4 py-2',
                       message.sentByMe 
-                        ? 'bg-primary-600 text-white' 
-                        : 'bg-gray-100 text-gray-900'
+                        ? 'bg-primary-600' 
+                        : 'bg-gray-100'
                     ]"
                   >
-                    <div class="markdown-body text-sm" v-html="renderMarkdown(message.content)"></div>
                     <div 
                       :class="[
-                        'flex items-center justify-end space-x-2 mt-1 text-xs',
-                        message.sentByMe ? 'text-primary-200' : 'text-gray-400'
-                      ]"
-                    >
-                      <span>{{ formatTime(message.createdAt) }}</span>
-                      <span v-if="message.sentByMe && message.read" class="text-green-300">已读</span>
-                    </div>
+                        'markdown-body text-sm',
+                        message.sentByMe ? 'text-white' : 'text-gray-900'
+                      ]" 
+                      v-html="renderMarkdown(message.content)"
+                    ></div>
+                  </div>
+                  
+                  <!-- Read status below message -->
+                  <div 
+                    v-if="message.sentByMe"
+                    class="text-xs mt-1 text-gray-400"
+                  >
+                    <span v-if="message.read" class="text-green-500">已读</span>
+                    <span v-else>未读</span>
                   </div>
                 </div>
               </template>
@@ -96,8 +119,31 @@
               <div v-if="!canSend && !isFriend" class="text-center text-amber-600 text-sm mb-4 p-3 bg-amber-50 rounded-lg">
                 在对方回复前，您无法发送第二条消息
               </div>
+              
+              <!-- Toolbar -->
+              <div class="mb-2 flex flex-wrap gap-1 pb-2 border-b border-gray-100">
+                <EmojiPicker @select="insertEmoji" title="表情" />
+                
+                <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                
+                <!-- Image button (placeholder) -->
+                <button type="button" class="toolbar-btn" title="图片 (即将推出)" disabled>
+                  <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </button>
+                
+                <!-- Attachment button (placeholder) -->
+                <button type="button" class="toolbar-btn" title="附件 (即将推出)" disabled>
+                  <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                </button>
+              </div>
+              
               <div class="flex space-x-3">
                 <textarea
+                  ref="messageTextarea"
                   v-model="newMessage"
                   :disabled="!canSend && !isFriend"
                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none disabled:bg-gray-100"
@@ -187,11 +233,12 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick, watch, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { marked } from 'marked'
 import Header from '@/components/Header.vue'
+import EmojiPicker from '@/components/EmojiPicker.vue'
 import { 
   getConversations, 
   getConversation, 
@@ -204,7 +251,7 @@ import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'Messages',
-  components: { Header },
+  components: { Header, EmojiPicker },
   setup() {
     const route = useRoute()
     const router = useRouter()
@@ -212,12 +259,20 @@ export default {
 
     const loading = ref(true)
     const loadingMessages = ref(false)
+    const loadingMore = ref(false)
     const sending = ref(false)
     const conversations = ref([])
     const messages = ref([])
     const newMessage = ref('')
     const unreadCount = ref(0)
     const messagesContainer = ref(null)
+    const messageTextarea = ref(null)
+    
+    // Pagination for messages
+    const currentPage = ref(0)
+    const totalPages = ref(1)
+    const PAGE_SIZE = 20
+    const hasMoreMessages = computed(() => currentPage.value < totalPages.value - 1)
     
     // Selected partner info
     const selectedPartnerId = ref(null)
@@ -227,6 +282,10 @@ export default {
     const partnerAvatarError = ref(false)
     const isFriend = ref(false)
     const canSend = ref(true)
+    
+    // Polling for real-time updates
+    let pollingInterval = null
+    const POLLING_INTERVAL = 5000 // 5 seconds
 
     const currentUser = computed(() => store.getters.currentUser)
 
@@ -274,13 +333,31 @@ export default {
       }
     }
 
-    const loadMessages = async () => {
+    const loadMessages = async (append = false) => {
       if (!selectedPartnerId.value) return
       
-      loadingMessages.value = true
+      if (append) {
+        loadingMore.value = true
+      } else {
+        loadingMessages.value = true
+        currentPage.value = 0
+      }
+      
       try {
-        const res = await getConversation(selectedPartnerId.value, { page: 0, size: 50 })
-        messages.value = res.content || []
+        const res = await getConversation(selectedPartnerId.value, { 
+          page: currentPage.value, 
+          size: PAGE_SIZE 
+        })
+        
+        const newMessages = res.content || []
+        totalPages.value = res.totalPages || 1
+        
+        if (append) {
+          // Prepend older messages at the beginning
+          messages.value = [...newMessages, ...messages.value]
+        } else {
+          messages.value = newMessages
+        }
         
         // Mark as read
         await markAsRead(selectedPartnerId.value)
@@ -289,13 +366,76 @@ export default {
         const canSendRes = await checkCanSend(selectedPartnerId.value)
         canSend.value = canSendRes.canSend
 
-        // Scroll to bottom
-        await nextTick()
-        scrollToBottom()
+        // Scroll to bottom only for initial load
+        if (!append) {
+          await nextTick()
+          scrollToBottom()
+          // Start polling only on initial load, not on load more
+          startPolling()
+        }
       } catch (error) {
         console.error('加载消息失败:', error)
       } finally {
         loadingMessages.value = false
+        loadingMore.value = false
+      }
+    }
+    
+    const loadMoreMessages = async () => {
+      if (loadingMore.value || !hasMoreMessages.value) return
+      currentPage.value++
+      await loadMessages(true)
+    }
+    
+    // Poll for new messages (simple real-time simulation)
+    const POLL_SIZE = 10 // Smaller size for polling efficiency
+    
+    const pollMessages = async () => {
+      if (!selectedPartnerId.value) return
+      
+      try {
+        const res = await getConversation(selectedPartnerId.value, { page: 0, size: POLL_SIZE })
+        const newMessages = res.content || []
+        
+        // Check if there are new messages
+        if (newMessages.length > 0 && messages.value.length > 0) {
+          const latestExistingId = messages.value[messages.value.length - 1]?.id
+          if (latestExistingId !== undefined) {
+            const newMsgs = newMessages.filter(m => m.id > latestExistingId)
+            
+            if (newMsgs.length > 0) {
+              messages.value = [...messages.value, ...newMsgs]
+              await nextTick()
+              scrollToBottom()
+              
+              // Mark as read
+              await markAsRead(selectedPartnerId.value)
+            }
+          }
+        }
+        
+        // Update read status of existing messages
+        messages.value = messages.value.map(msg => {
+          const updated = newMessages.find(m => m.id === msg.id)
+          if (updated) {
+            return { ...msg, read: updated.read }
+          }
+          return msg
+        })
+      } catch (error) {
+        console.error('轮询消息失败:', error)
+      }
+    }
+    
+    const startPolling = () => {
+      stopPolling()
+      pollingInterval = setInterval(pollMessages, POLLING_INTERVAL)
+    }
+    
+    const stopPolling = () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval)
+        pollingInterval = null
       }
     }
 
@@ -313,19 +453,88 @@ export default {
       partnerAvatarError.value = false
       isFriend.value = conv.friend
       
+      // Save to sessionStorage for persistence
+      saveConversationState()
+      
       loadMessages()
     }
 
     const closeConversation = () => {
+      stopPolling()
       selectedPartnerId.value = null
       partnerUsername.value = ''
       partnerName.value = ''
       partnerAvatarUrl.value = ''
       messages.value = []
       newMessage.value = ''
+      currentPage.value = 0
+      
+      // Clear saved state
+      clearConversationState()
       
       // Refresh conversations list
       loadConversations()
+    }
+    
+    // Session storage for conversation persistence
+    const STORAGE_KEY = 'messages_conversation_state'
+    
+    const saveConversationState = () => {
+      const state = {
+        partnerId: selectedPartnerId.value,
+        username: partnerUsername.value,
+        name: partnerName.value,
+        avatarUrl: partnerAvatarUrl.value,
+        friend: isFriend.value
+      }
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    }
+    
+    const clearConversationState = () => {
+      sessionStorage.removeItem(STORAGE_KEY)
+    }
+    
+    const restoreConversationState = () => {
+      try {
+        const saved = sessionStorage.getItem(STORAGE_KEY)
+        if (saved) {
+          const state = JSON.parse(saved)
+          if (state.partnerId) {
+            selectedPartnerId.value = state.partnerId
+            partnerUsername.value = state.username || ''
+            partnerName.value = state.name || ''
+            partnerAvatarUrl.value = state.avatarUrl || ''
+            isFriend.value = state.friend || false
+            return true
+          }
+        }
+      } catch (e) {
+        console.error('Failed to restore conversation state:', e)
+      }
+      return false
+    }
+    
+    // Emoji insertion
+    const insertEmoji = (emoji) => {
+      const textarea = messageTextarea.value
+      if (!textarea) {
+        newMessage.value += emoji
+        return
+      }
+
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const beforeText = newMessage.value.substring(0, start)
+      const afterText = newMessage.value.substring(end)
+
+      newMessage.value = beforeText + emoji + afterText
+
+      // Set cursor position after emoji
+      nextTick(() => {
+        textarea.focus()
+        const newPosition = start + emoji.length
+        textarea.setSelectionRange(newPosition, newPosition)
+      })
     }
 
     const sendNewMessage = async () => {
@@ -367,26 +576,50 @@ export default {
         partnerAvatarError.value = false
         isFriend.value = route.query.friend === 'true'
         
+        // Save state
+        saveConversationState()
+        
         await loadMessages()
         
-        // Clear query params
+        // Clear query params but keep the page
         router.replace({ path: '/messages' })
       }
     }, { immediate: true })
 
-    onMounted(() => {
-      loadConversations()
+    onMounted(async () => {
+      await loadConversations()
+      
+      // Restore conversation state on page refresh
+      if (!route.query.userId && restoreConversationState()) {
+        try {
+          await loadMessages()
+        } catch (error) {
+          console.error('Failed to restore conversation:', error)
+          // Clear invalid state and show conversation list
+          clearConversationState()
+          selectedPartnerId.value = null
+          partnerUsername.value = ''
+          partnerName.value = ''
+          partnerAvatarUrl.value = ''
+        }
+      }
+    })
+    
+    onBeforeUnmount(() => {
+      stopPolling()
     })
 
     return {
       loading,
       loadingMessages,
+      loadingMore,
       sending,
       conversations,
       messages,
       newMessage,
       unreadCount,
       messagesContainer,
+      messageTextarea,
       selectedPartnerId,
       partnerUsername,
       partnerName,
@@ -395,13 +628,16 @@ export default {
       partnerInitial,
       isFriend,
       canSend,
+      hasMoreMessages,
       currentUser,
       getAvatarUrl,
       formatTime,
       renderMarkdown,
       openConversation,
       closeConversation,
-      sendNewMessage
+      sendNewMessage,
+      loadMoreMessages,
+      insertEmoji
     }
   }
 }
@@ -422,5 +658,23 @@ export default {
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
   font-size: 0.8em;
+}
+
+/* Ensure code in sent messages (white text) has proper styling */
+.bg-primary-600 .markdown-body :deep(code) {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.toolbar-btn {
+  @apply px-2 py-1.5 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100
+  transition-colors duration-150 flex items-center justify-center min-w-[28px];
+}
+
+.toolbar-btn:disabled {
+  @apply text-gray-400 cursor-not-allowed hover:bg-transparent hover:text-gray-400;
+}
+
+.toolbar-btn:active:not(:disabled) {
+  @apply bg-gray-200;
 }
 </style>
