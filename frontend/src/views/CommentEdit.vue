@@ -82,6 +82,10 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                     </svg>
                   </button>
+
+                  <div class="w-px h-6 bg-gray-300 mx-1"></div>
+
+                  <EmojiPicker @select="insertEmoji" title="表情" />
                 </div>
 
                 <!-- Textarea -->
@@ -154,12 +158,14 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
 import Header from '@/components/Header.vue'
+import EmojiPicker from '@/components/EmojiPicker.vue'
 import { updateComment } from '@/api/comments'
 
 export default {
   name: 'CommentEdit',
   components: {
-    Header
+    Header,
+    EmojiPicker
   },
   setup() {
     const route = useRoute()
@@ -303,6 +309,26 @@ export default {
       }, 0)
     }
 
+    // 插入表情
+    const insertEmoji = (emoji) => {
+      const textarea = contentTextarea.value
+      if (!textarea) return
+
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const beforeText = content.value.substring(0, start)
+      const afterText = content.value.substring(end)
+
+      content.value = beforeText + emoji + afterText
+
+      // 等待下一个tick后设置光标位置
+      setTimeout(() => {
+        textarea.focus()
+        const newPosition = start + emoji.length
+        textarea.setSelectionRange(newPosition, newPosition)
+      }, 0)
+    }
+
     onMounted(() => {
       loadComment()
     })
@@ -315,7 +341,8 @@ export default {
       previewContent,
       handleSave,
       handleCancel,
-      insertMarkdown
+      insertMarkdown,
+      insertEmoji
     }
   }
 }

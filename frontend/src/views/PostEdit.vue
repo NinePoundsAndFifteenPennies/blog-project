@@ -260,6 +260,10 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14" />
                     </svg>
                   </button>
+
+                  <div class="w-px h-6 bg-gray-300 mx-1"></div>
+
+                  <EmojiPicker @select="insertEmoji" title="表情" />
                 </div>
 
                 <div v-if="formData.contentType === 'HTML'" class="mb-3 flex flex-wrap gap-1 pb-3 border-b border-gray-100">
@@ -342,6 +346,10 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14" />
                     </svg>
                   </button>
+
+                  <div class="w-px h-6 bg-gray-300 mx-1"></div>
+
+                  <EmojiPicker @select="insertEmoji" title="表情" />
                 </div>
 
                 <textarea
@@ -466,6 +474,7 @@ import 'highlight.js/styles/atom-one-dark.css'
 
 import Header from '@/components/Header.vue'
 import TableEditorModal from '@/components/TableEditorModal.vue'
+import EmojiPicker from '@/components/EmojiPicker.vue'
 import { getPostById, createPost, updatePost } from '@/api/posts'
 import { uploadCoverImage, deleteImage } from '@/api/files'
 
@@ -511,7 +520,8 @@ export default {
   name: 'PostEdit',
   components: {
     Header,
-    TableEditorModal
+    TableEditorModal,
+    EmojiPicker
   },
   setup() {
     const route = useRoute()
@@ -1174,6 +1184,26 @@ export default {
       }, 0)
     }
 
+    // 插入表情
+    const insertEmoji = (emoji) => {
+      const textarea = contentTextarea.value
+      if (!textarea) return
+
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const beforeText = formData.content.substring(0, start)
+      const afterText = formData.content.substring(end)
+
+      formData.content = beforeText + emoji + afterText
+
+      // 等待下一个tick后设置光标位置
+      setTimeout(() => {
+        textarea.focus()
+        const newPosition = start + emoji.length
+        textarea.setSelectionRange(newPosition, newPosition)
+      }, 0)
+    }
+
     // 插入代码块（带语言）
     const insertCodeBlock = () => {
       const textarea = contentTextarea.value
@@ -1530,6 +1560,7 @@ export default {
       contentTextarea,
       insertMarkdown,
       insertHTML,
+      insertEmoji,
       handleKeydown,
       showLanguageModal,
       codeLanguage,
