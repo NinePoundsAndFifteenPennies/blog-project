@@ -53,6 +53,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/register", "/api/users/login").permitAll()
                         // 允许对公开用户资料的匿名访问
                         .requestMatchers(HttpMethod.GET, "/api/users/*").permitAll()
+                        // 允许对关注相关的GET请求的匿名访问（查看关注统计、关注/粉丝/朋友列表）
+                        .requestMatchers(HttpMethod.GET, "/api/users/*/follow/stats").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/*/following").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/*/followers").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/*/friends").permitAll()
                         // 允许对所有文章相关的GET请求的匿名访问（列表和详情）
                         .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/**").permitAll()
                         // 允许对点赞信息的GET请求的匿名访问（查看点赞数量和状态）

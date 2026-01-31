@@ -2202,3 +2202,331 @@ GET /api/statistics
 - 在线用户数可基于活跃session或最近活动时间计算
 - 今日访问数建议使用Redis或数据库日志统计
 
+
+---
+
+## 关注相关接口
+
+### 关注用户
+
+关注指定用户。如果双方互相关注，自动标记为朋友。
+
+```http
+POST /api/users/{userId}/follow
+Authorization: Bearer {token}
+```
+
+**路径参数:**
+- `userId`: 要关注的用户ID
+
+**成功响应:** `200 OK`
+```json
+{
+  "following": true,
+  "friend": false,
+  "message": "关注成功"
+}
+```
+
+如果对方也关注了当前用户，会自动成为朋友：
+```json
+{
+  "following": true,
+  "friend": true,
+  "message": "关注成功，你们已成为朋友"
+}
+```
+
+**错误响应:**
+- `400 Bad Request` - 不能关注自己
+- `401 Unauthorized` - 未登录
+- `404 Not Found` - 用户不存在
+
+---
+
+### 取消关注
+
+取消关注指定用户。
+
+```http
+DELETE /api/users/{userId}/follow
+Authorization: Bearer {token}
+```
+
+**路径参数:**
+- `userId`: 要取消关注的用户ID
+
+**成功响应:** `200 OK`
+```json
+{
+  "following": false,
+  "friend": false,
+  "message": "取消关注成功"
+}
+```
+
+**错误响应:**
+- `401 Unauthorized` - 未登录
+- `404 Not Found` - 用户不存在
+
+---
+
+### 获取关注统计
+
+获取指定用户的关注统计信息。
+
+```http
+GET /api/users/{userId}/follow/stats
+Authorization: Bearer {token}  (可选)
+```
+
+**路径参数:**
+- `userId`: 用户ID
+
+**成功响应:** `200 OK`
+```json
+{
+  "followingCount": 42,
+  "followerCount": 128,
+  "friendCount": 15,
+  "isFollowing": true,
+  "isFriend": false
+}
+```
+
+**字段说明:**
+- `followingCount`: 关注数（该用户关注了多少人），如果被隐藏则返回 -1
+- `followerCount`: 粉丝数（有多少人关注该用户），如果被隐藏则返回 -1
+- `friendCount`: 朋友数（互相关注的用户数量），如果被隐藏则返回 -1
+- `isFollowing`: 当前登录用户是否已关注该用户（未登录时为null）
+- `isFriend`: 是否为朋友关系（未登录时为null）
+
+**注意:** 如果用户设置了可见性限制且当前查看者无权查看，计数字段会返回 -1。
+
+---
+
+### 获取关注列表
+
+获取指定用户的关注列表（该用户关注了谁）。
+
+```http
+GET /api/users/{userId}/following?page=0&size=20
+Authorization: Bearer {token}  (可选)
+```
+
+**路径参数:**
+- `userId`: 用户ID
+
+**查询参数:**
+- `page`: 页码，从0开始，默认0
+- `size`: 每页数量，1-100，默认20
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 2,
+      "username": "alice",
+      "nickname": "Alice",
+      "avatarUrl": "/uploads/2/avatars/xxx.jpg",
+      "bio": "Hello world",
+      "followedAt": "2026-01-30T10:30:00",
+      "friend": true
+    }
+  ],
+  "totalElements": 42,
+  "totalPages": 3,
+  "size": 20,
+  "number": 0,
+  "first": true,
+  "last": false
+}
+```
+
+**注意:** 如果用户设置了可见性限制且当前查看者无权查看，返回空列表。
+
+---
+
+### 获取粉丝列表
+
+获取指定用户的粉丝列表（谁关注了该用户）。
+
+```http
+GET /api/users/{userId}/followers?page=0&size=20
+Authorization: Bearer {token}  (可选)
+```
+
+**路径参数:**
+- `userId`: 用户ID
+
+**查询参数:**
+- `page`: 页码，从0开始，默认0
+- `size`: 每页数量，1-100，默认20
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 3,
+      "username": "bob",
+      "nickname": "Bob",
+      "avatarUrl": "/uploads/3/avatars/xxx.jpg",
+      "bio": "Nice to meet you",
+      "followedAt": "2026-01-29T15:45:00",
+      "friend": false
+    }
+  ],
+  "totalElements": 128,
+  "totalPages": 7,
+  "size": 20,
+  "number": 0,
+  "first": true,
+  "last": false
+}
+```
+
+---
+
+### 获取朋友列表
+
+获取指定用户的朋友列表（互相关注的用户）。
+
+```http
+GET /api/users/{userId}/friends?page=0&size=20
+Authorization: Bearer {token}  (可选)
+```
+
+**路径参数:**
+- `userId`: 用户ID
+
+**查询参数:**
+- `page`: 页码，从0开始，默认0
+- `size`: 每页数量，1-100，默认20
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 2,
+      "username": "alice",
+      "nickname": "Alice",
+      "avatarUrl": "/uploads/2/avatars/xxx.jpg",
+      "bio": "Hello world",
+      "followedAt": "2026-01-30T10:30:00",
+      "friend": true
+    }
+  ],
+  "totalElements": 15,
+  "totalPages": 1,
+  "size": 20,
+  "number": 0,
+  "first": true,
+  "last": true
+}
+```
+
+---
+
+### 获取可见性设置
+
+获取当前用户的关注信息可见性设置。
+
+```http
+GET /api/follow/visibility
+Authorization: Bearer {token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "following": {
+    "isPublic": true,
+    "visibleToFriends": false,
+    "visibleToFollowing": false,
+    "allowedNicknames": [],
+    "blockedNicknames": []
+  },
+  "followers": {
+    "isPublic": true,
+    "visibleToFriends": false,
+    "visibleToFollowing": false,
+    "allowedNicknames": [],
+    "blockedNicknames": []
+  },
+  "friends": {
+    "isPublic": true,
+    "visibleToFriends": false,
+    "visibleToFollowing": false,
+    "allowedNicknames": [],
+    "blockedNicknames": []
+  },
+  "stats": {
+    "isPublic": true,
+    "visibleToFriends": false,
+    "visibleToFollowing": false,
+    "allowedNicknames": [],
+    "blockedNicknames": []
+  }
+}
+```
+
+**字段说明:**
+
+每种类型（following/followers/friends/stats）都有独立的设置：
+- `isPublic`: 是否公开可见（所有人都可以看）
+- `visibleToFriends`: 是否对朋友可见（互相关注的用户可以看）
+- `visibleToFollowing`: 是否对我关注的人可见（我关注的用户可以看）
+- `allowedNicknames`: 允许查看的用户昵称列表
+- `blockedNicknames`: 禁止查看的用户昵称列表（最高优先级）
+
+**错误响应:**
+- `401 Unauthorized` - 未登录
+
+---
+
+### 更新可见性设置
+
+更新当前用户的关注信息可见性设置。可以只更新需要修改的类型。
+
+```http
+PUT /api/follow/visibility
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体:**
+```json
+{
+  "following": {
+    "isPublic": false,
+    "visibleToFriends": true,
+    "visibleToFollowing": false,
+    "allowedNicknames": ["alice", "bob"],
+    "blockedNicknames": ["spammer"]
+  },
+  "stats": {
+    "isPublic": true
+  }
+}
+```
+
+**注意:** 可以只传入需要修改的类型，未传入的类型保持原有设置。每个类型内也可以只传入需要修改的字段。
+
+**成功响应:** `200 OK`
+
+返回更新后的完整可见性设置（格式同获取可见性设置）。
+
+**可见性规则优先级:**
+1. 如果是本人查看 → 允许
+2. 如果在 `blockedNicknames` 中 → 拒绝（最高优先级）
+3. 如果 `isPublic` = true → 允许
+4. 如果在 `allowedNicknames` 中 → 允许
+5. 如果 `visibleToFriends` = true 且是朋友 → 允许
+6. 如果 `visibleToFollowing` = true 且被关注 → 允许
+7. 否则 → 拒绝
+
+**错误响应:**
+- `401 Unauthorized` - 未登录

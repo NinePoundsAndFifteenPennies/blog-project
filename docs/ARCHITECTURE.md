@@ -65,6 +65,7 @@ Controller ──► Service ──► Repository ──► Database
 | 控制器 | └── TagController.java | 提供标签 CRUD API |
 | 控制器 | └── CategoryController.java | 提供分类 CRUD API |
 | 控制器 | └── StatisticsController.java | 提供社区统计 API（用户总数、文章总数、活跃用户、今日访问） |
+| 控制器 | └── FollowController.java | 提供关注功能 API（关注/取消关注、列表查询、可见性设置） |
 | 数据传输对象 | **dto/** | 定义请求和响应的数据模型 |
 | DTO | └── UserRegistrationRequest.java | 用户注册请求体 |
 | DTO | └── LoginRequest.java | 用户登录请求体 |
@@ -84,6 +85,12 @@ Controller ──► Service ──► Repository ──► Database
 | DTO | └── CategoryRequest.java | 分类创建/更新请求体 |
 | DTO | └── CategoryResponse.java | 分类响应体 |
 | DTO | └── StatisticsResponse.java | 社区统计响应体 |
+| DTO | └── FollowResponse.java | 关注操作响应体 |
+| DTO | └── FollowStatsResponse.java | 关注统计响应体 |
+| DTO | └── FollowUserResponse.java | 关注用户信息响应体 |
+| DTO | └── FollowVisibilityRequest.java | 可见性设置请求体 |
+| DTO | └── FollowVisibilityResponse.java | 可见性设置响应体 |
+| DTO | └── VisibilitySettingDto.java | 单项可见性设置DTO |
 | 拦截器层 | **interceptor/** | HTTP 请求拦截器 |
 | 拦截器 | └── UserActivityInterceptor.java | 用户活跃追踪拦截器（可选，配合Redis使用） |
 | 异常层 | **exception/** | 自定义异常类与全局异常处理 |
@@ -96,6 +103,7 @@ Controller ──► Service ──► Repository ──► Database
 | 映射器 | └── CommentMapper.java | Comment ↔ CommentResponse 转换 |
 | 映射器 | └── TagMapper.java | Tag ↔ TagResponse 转换 |
 | 映射器 | └── CategoryMapper.java | Category ↔ CategoryResponse 转换 |
+| 映射器 | └── FollowMapper.java | Follow ↔ FollowUserResponse 转换 |
 | 实体层 | **model/** | 数据库实体类 (JPA Entity) |
 | 实体 | └── User.java | 用户实体 |
 | 实体 | └── Post.java | 文章实体（含浏览量字段）|
@@ -104,7 +112,11 @@ Controller ──► Service ──► Repository ──► Database
 | 实体 | └── Category.java | 分类实体 |
 | 实体 | └── Like.java | 点赞实体（支持文章和评论点赞）|
 | 实体 | └── Comment.java | 评论实体（支持顶层评论和子评论）|
+| 实体 | └── Follow.java | 关注关系实体（follower→followed）|
+| 实体 | └── FollowVisibility.java | 关注信息可见性设置实体 |
+| 实体 | └── VisibilitySetting.java | 可嵌入的可见性设置类 |
 | 枚举 | └── ContentType.java | 内容类型枚举 |
+| 枚举 | └── FollowInfoType.java | 关注信息类型枚举（FOLLOWING/FOLLOWERS/FRIENDS/STATS） |
 | 数据访问层 | **repository/** | 提供数据库操作接口 |
 | Repository | └── UserRepository.java | 用户数据访问接口 |
 | Repository | └── PostRepository.java | 文章数据访问接口 |
@@ -113,6 +125,8 @@ Controller ──► Service ──► Repository ──► Database
 | Repository | └── CategoryRepository.java | 分类数据访问接口 |
 | Repository | └── LikeRepository.java | 点赞数据访问接口（文章和评论）|
 | Repository | └── CommentRepository.java | 评论数据访问接口 |
+| Repository | └── FollowRepository.java | 关注关系数据访问接口 |
+| Repository | └── FollowVisibilityRepository.java | 关注可见性设置数据访问接口 |
 | 安全层 | **security/** | 与认证和授权相关的工具类 |
 | 工具类 | └── JwtTokenProvider.java | JWT 生成与验证 |
 | 过滤器 | └── JwtAuthenticationFilter.java | 拦截并校验 JWT 请求 |
@@ -136,6 +150,10 @@ Controller ──► Service ──► Repository ──► Database
 | 实现类 | └── StatisticsServiceImpl.java | 统计服务实现（用户总数、文章总数、活跃用户、今日访问） |
 | 接口 | └── ActiveUserService.java | 活跃用户追踪服务接口（可选，使用Redis） |
 | 实现类 | └── ActiveUserServiceImpl.java | 活跃用户追踪服务实现（可选，使用Redis） |
+| 接口 | └── FollowService.java | 关注服务接口 |
+| 实现类 | └── FollowServiceImpl.java | 关注服务实现（关注/取消关注、朋友检测、列表查询） |
+| 接口 | └── FollowVisibilityService.java | 关注可见性服务接口 |
+| 实现类 | └── FollowVisibilityServiceImpl.java | 关注可见性服务实现（按类型检查可见性） |
 | 配置文件 | **resources/** | 存放应用的资源文件 |
 | 配置文件 | └── application.properties | 应用配置（数据库、JWT密钥等） |
 
@@ -199,6 +217,8 @@ Service 层使用接口与实现分离：
 - **Tag**: 标签信息（名称、描述、颜色、图标、排序、创建者、创建时间）
 - **Like**: 点赞信息（用户、文章或评论、创建时间）
 - **Comment**: 评论信息（内容、用户、文章、父评论、被回复用户、层级、创建时间、更新时间）
+- **Follow**: 关注关系（关注者、被关注者、创建时间），用于存储单向关注关系
+- **FollowVisibility**: 关注可见性设置（用户、四种类型的独立可见性设置），控制关注信息对谁可见
 
 ### 关系设计
 
@@ -214,6 +234,9 @@ Service 层使用接口与实现分离：
 - Comment ←─[一对多]─→ Comment（一条评论可以有多条子评论，自引用关系）
 - Comment ←─[一对多]─→ Like（一条评论可以有多个点赞）
 - User ←─[多对一]─→ Comment（通过reply_to_user_id，一个用户可以被多条评论@）
+- User ←─[一对多]─→ Follow（follower，一个用户可以关注多个人）
+- User ←─[一对多]─→ Follow（followed，一个用户可以被多个人关注）
+- User ←─[一对一]─→ FollowVisibility（一个用户有一个可见性设置）
 
 ## 文件存储
 
@@ -313,7 +336,7 @@ uploads/
   - 特殊字符处理（SQL转义、URL处理、标点清理）
   - 搜索结果关键词高亮
   - 输入参数验证
-- **新增**: "记住我"功能、JWT自动刷新、增强的Markdown编辑器、头像上传系统、文章点赞功能、评论功能、评论点赞功能、子评论（回复）功能、子评论点赞功能、文章标签功能、创建者追踪、统一异常处理、**文章浏览量统计**（含防刷机制和访问日志）、**首页双模块布局**（热门文章+最新文章）、**文章摘要智能提取**（自动从内容提取）、**社区统计面板**（用户/文章/活跃用户/访问数）
+- **新增**: "记住我"功能、JWT自动刷新、增强的Markdown编辑器、头像上传系统、文章点赞功能、评论功能、评论点赞功能、子评论（回复）功能、子评论点赞功能、文章标签功能、创建者追踪、统一异常处理、**文章浏览量统计**（含防刷机制和访问日志）、**首页双模块布局**（热门文章+最新文章）、**文章摘要智能提取**（自动从内容提取）、**社区统计面板**（用户/文章/活跃用户/访问数）、**关注功能**（关注/取消关注、朋友检测、列表查询、独立可见性控制）
 
 ## Redis 集成（可选）
 
