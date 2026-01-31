@@ -361,13 +361,38 @@ export default {
       markingAllRead.value = true
       try {
         await markAllNotificationsAsRead(currentFilter.value)
-        // Update local state
-        notifications.value = notifications.value.map(n => ({ ...n, read: true }))
-        unreadCount.value = 0
+        // Update local state based on filter
+        const typesForFilter = getTypesForFilter(currentFilter.value)
+        notifications.value = notifications.value.map(n => {
+          // If 'all' filter or notification type matches filter, mark as read
+          if (!typesForFilter || typesForFilter.includes(n.type)) {
+            return { ...n, read: true }
+          }
+          return n
+        })
+        // Refresh unread count from server
+        const countRes = await getNotificationUnreadCount()
+        unreadCount.value = countRes.count || 0
       } catch (error) {
         console.error('标记全部已读失败:', error)
       } finally {
         markingAllRead.value = false
+      }
+    }
+    
+    // Helper function to get notification types for filter
+    const getTypesForFilter = (filter) => {
+      switch (filter) {
+        case 'comments':
+          return ['POST_COMMENTED', 'COMMENT_REPLIED']
+        case 'likes':
+          return ['POST_LIKED', 'COMMENT_LIKED']
+        case 'follows':
+          return ['FOLLOWED']
+        case 'messages':
+          return ['MESSAGE_RECEIVED']
+        default:
+          return null // all types
       }
     }
 

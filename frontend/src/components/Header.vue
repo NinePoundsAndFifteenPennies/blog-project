@@ -689,7 +689,9 @@ export default {
         case 'COMMENT_LIKED':
         case 'COMMENT_REPLIED':
           if (notification.postId) {
-            router.push(`/post/${notification.postId}`)
+            // Navigate to post with comment anchor
+            const commentAnchor = notification.commentId ? `#comment-${notification.commentId}` : ''
+            router.push(`/post/${notification.postId}${commentAnchor}`)
           }
           break
         case 'FOLLOWED':
