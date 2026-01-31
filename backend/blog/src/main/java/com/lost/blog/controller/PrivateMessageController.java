@@ -34,9 +34,9 @@ public class PrivateMessageController {
 
     /**
      * 发送私信
-     * POST /api/messages/{receiverId}
+     * POST /api/messages/send/{receiverId}
      */
-    @PostMapping("/{receiverId}")
+    @PostMapping("/send/{receiverId}")
     public ResponseEntity<PrivateMessageResponse> sendMessage(
             @PathVariable Long receiverId,
             @Valid @RequestBody PrivateMessageRequest request,

@@ -8,7 +8,7 @@ import request from '@/utils/request'
  */
 export function sendMessage(receiverId, content) {
     return request({
-        url: `/messages/${receiverId}`,
+        url: `/messages/send/${receiverId}`,
         method: 'post',
         data: { content }
     })
