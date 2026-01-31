@@ -39,8 +39,18 @@
                   <div class="text-xs text-gray-500">@{{ partnerUsername }}</div>
                 </div>
               </div>
+              <!-- Relationship labels -->
               <div v-if="isFriend" class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
                 朋友
+              </div>
+              <div v-else-if="isFollowing && !isFollowedBy" class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                已关注
+              </div>
+              <div v-else-if="!isFollowing && isFollowedBy" class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
+                被关注
+              </div>
+              <div v-else class="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+                陌生人
               </div>
             </div>
 
@@ -200,7 +210,11 @@
                         <span class="font-semibold text-gray-900 truncate">
                           {{ conv.partnerNickname || conv.partnerUsername }}
                         </span>
+                        <!-- Relationship labels -->
                         <span v-if="conv.friend" class="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 rounded">朋友</span>
+                        <span v-else-if="conv.following && !conv.followedBy" class="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">已关注</span>
+                        <span v-else-if="!conv.following && conv.followedBy" class="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">被关注</span>
+                        <span v-else class="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">陌生人</span>
                       </div>
                       <span class="text-xs text-gray-400">{{ formatTime(conv.lastMessageTime) }}</span>
                     </div>
@@ -276,6 +290,8 @@ export default {
     const partnerAvatarUrl = ref('')
     const partnerAvatarError = ref(false)
     const isFriend = ref(false)
+    const isFollowing = ref(false)
+    const isFollowedBy = ref(false)
     const canSend = ref(true)
     
     // Polling for real-time updates
@@ -453,6 +469,8 @@ export default {
       partnerAvatarUrl.value = getFullAvatarUrl(conv.partnerAvatarUrl)
       partnerAvatarError.value = false
       isFriend.value = conv.friend
+      isFollowing.value = conv.following || false
+      isFollowedBy.value = conv.followedBy || false
       
       // Save to sessionStorage for persistence
       saveConversationState()
@@ -469,6 +487,8 @@ export default {
       messages.value = []
       newMessage.value = ''
       currentPage.value = 0
+      isFollowing.value = false
+      isFollowedBy.value = false
       
       // Clear saved state
       clearConversationState()
@@ -486,7 +506,9 @@ export default {
         username: partnerUsername.value,
         name: partnerName.value,
         avatarUrl: partnerAvatarUrl.value,
-        friend: isFriend.value
+        friend: isFriend.value,
+        following: isFollowing.value,
+        followedBy: isFollowedBy.value
       }
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     }
@@ -506,6 +528,8 @@ export default {
             partnerName.value = state.name || ''
             partnerAvatarUrl.value = state.avatarUrl || ''
             isFriend.value = state.friend || false
+            isFollowing.value = state.following || false
+            isFollowedBy.value = state.followedBy || false
             return true
           }
         }
@@ -576,6 +600,8 @@ export default {
         partnerAvatarUrl.value = getFullAvatarUrl(route.query.avatar)
         partnerAvatarError.value = false
         isFriend.value = route.query.friend === 'true'
+        isFollowing.value = route.query.following === 'true'
+        isFollowedBy.value = route.query.followedBy === 'true'
         
         // Save state
         saveConversationState()
@@ -628,6 +654,8 @@ export default {
       partnerAvatarError,
       partnerInitial,
       isFriend,
+      isFollowing,
+      isFollowedBy,
       canSend,
       hasMoreMessages,
       currentUser,

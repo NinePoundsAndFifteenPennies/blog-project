@@ -419,7 +419,9 @@ export default {
           username: userProfile.value.username,
           nickname: userProfile.value.nickname,
           avatar: userProfile.value.avatarUrl,
-          friend: followStatus.value.isFriend ? 'true' : 'false'
+          friend: followStatus.value.isFriend ? 'true' : 'false',
+          following: followStatus.value.isFollowing ? 'true' : 'false',
+          followedBy: userProfile.value.isFollowingMe ? 'true' : 'false'
         }
       })
     }

@@ -16,6 +16,8 @@ public class ConversationResponse {
     private boolean lastMessageSentByMe;
     private long unreadCount;
     private boolean friend;
+    private boolean following;    // 我关注了对方
+    private boolean followedBy;   // 对方关注了我
 
     // --- Getters and Setters ---
 
@@ -89,5 +91,21 @@ public class ConversationResponse {
 
     public void setFriend(boolean friend) {
         this.friend = friend;
+    }
+    
+    public boolean isFollowing() {
+        return following;
+    }
+
+    public void setFollowing(boolean following) {
+        this.following = following;
+    }
+
+    public boolean isFollowedBy() {
+        return followedBy;
+    }
+
+    public void setFollowedBy(boolean followedBy) {
+        this.followedBy = followedBy;
     }
 }

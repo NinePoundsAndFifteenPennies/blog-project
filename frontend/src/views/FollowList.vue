@@ -342,6 +342,24 @@ export default {
     
     // Open message page with a specific user
     const openMessageWithUser = (user) => {
+      // Determine follow relationship based on list type and user data
+      let following = false
+      let followedBy = false
+      
+      if (user.friend === true) {
+        following = true
+        followedBy = true
+      } else if (isOwnList.value) {
+        if (activeTab.value === 'following') {
+          following = true  // 在自己的关注列表，意味着我关注了他们
+        } else if (activeTab.value === 'followers') {
+          followedBy = true  // 在自己的粉丝列表，意味着他们关注了我
+        } else if (activeTab.value === 'friends') {
+          following = true
+          followedBy = true
+        }
+      }
+      
       router.push({
         path: '/messages',
         query: {
@@ -349,7 +367,9 @@ export default {
           username: user.username,
           nickname: user.nickname,
           avatar: user.avatarUrl,
-          friend: user.friend === true ? 'true' : 'false'
+          friend: user.friend === true ? 'true' : 'false',
+          following: following ? 'true' : 'false',
+          followedBy: followedBy ? 'true' : 'false'
         }
       })
     }

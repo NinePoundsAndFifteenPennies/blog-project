@@ -111,6 +111,8 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
 
             long unreadCount = messageRepository.countUnreadFromUser(user, partner);
             boolean isFriend = isFriends(user, partner);
+            boolean isFollowing = followRepository.existsByFollowerAndFollowed(user, partner);
+            boolean isFollowedBy = followRepository.existsByFollowerAndFollowed(partner, user);
 
             ConversationResponse response = new ConversationResponse();
             response.setPartnerId(partner.getId());
@@ -122,6 +124,8 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
             response.setLastMessageSentByMe(lastMessage.getSender().getId().equals(user.getId()));
             response.setUnreadCount(unreadCount);
             response.setFriend(isFriend);
+            response.setFollowing(isFollowing);
+            response.setFollowedBy(isFollowedBy);
 
             conversations.add(response);
         }
