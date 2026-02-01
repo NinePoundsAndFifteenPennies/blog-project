@@ -122,6 +122,38 @@
                   <p v-if="notification.postTitle" class="text-sm text-gray-500 truncate">
                     📄 {{ notification.postTitle }}
                   </p>
+
+                  <!-- Quick Actions for comment-related notifications -->
+                  <div 
+                    v-if="isCommentNotification(notification)" 
+                    class="flex items-center space-x-3 mt-2"
+                    @click.stop
+                  >
+                    <!-- Reply Button -->
+                    <button 
+                      @click="handleQuickReply(notification)"
+                      class="flex items-center space-x-1 text-xs text-gray-500 hover:text-primary-600 transition-colors"
+                      title="回复"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                      </svg>
+                      <span>回复</span>
+                    </button>
+
+                    <!-- View Context Button -->
+                    <button 
+                      @click="handleViewContext(notification)"
+                      class="flex items-center space-x-1 text-xs text-gray-500 hover:text-primary-600 transition-colors"
+                      title="查看文章"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      <span>查看</span>
+                    </button>
+                  </div>
                 </div>
 
                 <!-- Unread indicator -->
@@ -426,6 +458,53 @@ export default {
       }
     }
 
+    // Check if notification is comment-related (for quick actions)
+    const isCommentNotification = (notification) => {
+      return ['POST_COMMENTED', 'COMMENT_REPLIED'].includes(notification.type)
+    }
+
+    // Handle quick reply - navigate to reply page
+    const handleQuickReply = async (notification) => {
+      // Mark as read first
+      if (!notification.read) {
+        try {
+          await markNotificationAsRead(notification.id)
+          notification.read = true
+          unreadCount.value = Math.max(0, unreadCount.value - 1)
+        } catch (error) {
+          console.error('标记已读失败:', error)
+        }
+      }
+
+      // Navigate to reply page for the comment
+      if (notification.commentId) {
+        router.push(`/comment/${notification.commentId}/reply`)
+      } else if (notification.postId) {
+        // Fallback to post page if no comment ID
+        router.push(`/post/${notification.postId}`)
+      }
+    }
+
+    // Handle view context - navigate to post/comment
+    const handleViewContext = async (notification) => {
+      // Mark as read first
+      if (!notification.read) {
+        try {
+          await markNotificationAsRead(notification.id)
+          notification.read = true
+          unreadCount.value = Math.max(0, unreadCount.value - 1)
+        } catch (error) {
+          console.error('标记已读失败:', error)
+        }
+      }
+
+      // Navigate to post with comment anchor
+      if (notification.postId) {
+        const commentAnchor = notification.commentId ? `#comment-${notification.commentId}` : ''
+        router.push(`/post/${notification.postId}${commentAnchor}`)
+      }
+    }
+
     // Watch for filter changes
     watch(currentFilter, () => {
       loadNotifications()
@@ -451,9 +530,12 @@ export default {
       getTypeStyle,
       getNotificationText,
       getEmptyMessage,
+      isCommentNotification,
       loadMore,
       handleNotificationClick,
-      handleMarkAllAsRead
+      handleMarkAllAsRead,
+      handleQuickReply,
+      handleViewContext
     }
   }
 }
