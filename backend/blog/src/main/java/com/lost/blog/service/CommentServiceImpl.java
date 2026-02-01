@@ -40,6 +40,7 @@ public class CommentServiceImpl implements CommentService {
     private final CommentMapper commentMapper;
     private final LikeService likeService;
     private final LikeRepository likeRepository;
+    private final NotificationService notificationService;
 
     @Autowired
     public CommentServiceImpl(CommentRepository commentRepository,
@@ -47,13 +48,15 @@ public class CommentServiceImpl implements CommentService {
                              UserRepository userRepository,
                              CommentMapper commentMapper,
                              LikeService likeService,
-                             LikeRepository likeRepository) {
+                             LikeRepository likeRepository,
+                             NotificationService notificationService) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.commentMapper = commentMapper;
         this.likeService = likeService;
         this.likeRepository = likeRepository;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -81,6 +84,9 @@ public class CommentServiceImpl implements CommentService {
 
         Comment savedComment = commentRepository.save(comment);
         logger.info("用户 {} 创建了评论ID: {} 在文章ID: {}", user.getUsername(), savedComment.getId(), postId);
+
+        // 创建通知
+        notificationService.createPostCommentedNotification(user, post, savedComment, commentRequest.getContent());
 
         CommentResponse response = commentMapper.toResponse(savedComment);
         response.setLikeCount(0);  // New comment has no likes
@@ -136,6 +142,9 @@ public class CommentServiceImpl implements CommentService {
 
         Comment savedReply = commentRepository.save(reply);
         logger.info("用户 {} 创建了子评论ID: {} 回复评论ID: {}", user.getUsername(), savedReply.getId(), commentId);
+
+        // 创建通知（通知父评论作者）
+        notificationService.createCommentRepliedNotification(user, parentComment, savedReply, replyRequest.getContent());
 
         CommentResponse response = commentMapper.toResponse(savedReply);
         response.setLikeCount(0);  // New reply has no likes

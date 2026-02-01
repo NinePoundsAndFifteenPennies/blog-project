@@ -172,10 +172,12 @@
           <!-- Comment Section -->
           <div class="mt-8 animate-slide-up" style="animation-delay: 0.4s;">
             <CommentList
+              ref="commentListRef"
               v-if="post"
               :post-id="post.id"
               :post-author-username="post.authorUsername"
               :is-draft="post.draft"
+              :expand-comment-id="expandCommentId"
               @comment-count-changed="handleCommentCountChanged"
             />
           </div>
@@ -222,7 +224,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { marked } from 'marked'
@@ -250,12 +252,16 @@ export default {
     const showBackToTop = ref(false)
     const avatarLoadError = ref(false)
     const commentCount = ref(0)
+    const commentListRef = ref(null)
 
     const currentUser = computed(() => store.getters.currentUser)
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
     const isAuthor = computed(() => {
       return currentUser.value && post.value?.authorUsername === currentUser.value.username
     })
+    
+    // For auto-expanding parent comment replies when navigating to a sub-comment
+    const expandCommentId = computed(() => route.query.expandComment)
 
     const authorInitial = computed(() => {
       return post.value?.authorUsername?.charAt(0).toUpperCase() || 'A'
@@ -350,11 +356,85 @@ export default {
         }
         
         commentCount.value = response.commentCount || 0
+        
+        // Scroll to hash anchor after content loads (for notification navigation)
+        await nextTick()
+        scrollToHashAnchor()
       } catch (error) {
         console.error('加载文章失败:', error)
         post.value = null
       } finally {
         loading.value = false
+      }
+    }
+    
+    // Scroll to hash anchor (e.g., #comment-123)
+    const scrollToHashAnchor = async () => {
+      const hash = route.hash
+      if (!hash) return
+      
+      const elementId = hash.substring(1) // Remove the # prefix
+      
+      // Function to scroll to element and highlight
+      const scrollAndHighlight = (element) => {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        // Add a highlight effect
+        element.classList.add('bg-yellow-50')
+        setTimeout(() => {
+          element.classList.remove('bg-yellow-50')
+        }, 2000)
+      }
+      
+      // If we're navigating to a comment, first ensure all comments are loaded
+      if (elementId.startsWith('comment-')) {
+        // Wait for the comment list ref to be available (max 3 seconds)
+        let waitAttempts = 0
+        while (!commentListRef.value && waitAttempts < 30) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          waitAttempts++
+        }
+        
+        if (commentListRef.value) {
+          try {
+            // Load all comments to ensure the target is available
+            await commentListRef.value.loadAllComments()
+            // Wait for Vue to render the loaded comments
+            await nextTick()
+            // Additional delay to ensure DOM is fully updated
+            await new Promise(resolve => setTimeout(resolve, 200))
+          } catch (e) {
+            console.warn('Failed to load all comments:', e)
+          }
+        }
+        
+        // Now try to find and scroll to the element
+        let element = document.getElementById(elementId)
+        if (element) {
+          scrollAndHighlight(element)
+          return
+        }
+        
+        // If still not found, poll for the element
+        const maxAttempts = 30
+        let attempts = 0
+        
+        const tryScroll = async () => {
+          element = document.getElementById(elementId)
+          if (element) {
+            scrollAndHighlight(element)
+          } else if (attempts < maxAttempts) {
+            attempts++
+            setTimeout(tryScroll, 200)
+          }
+        }
+        
+        tryScroll()
+      } else {
+        // For non-comment elements, just try to scroll
+        const element = document.getElementById(elementId)
+        if (element) {
+          scrollAndHighlight(element)
+        }
       }
     }
 
@@ -461,6 +541,8 @@ export default {
       renderedContent,
       showBackToTop,
       commentCount,
+      commentListRef,
+      expandCommentId,
       formatDate,
       formatFullDate,
       handleDelete,

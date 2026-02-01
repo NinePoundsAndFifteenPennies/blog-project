@@ -1,5 +1,6 @@
 <template>
   <div 
+    :id="`comment-${reply.id}`"
     class="py-4 border-b border-gray-200 last:border-b-0 transition-all"
     :style="{ paddingLeft: indentLevel + 'px' }"
   >

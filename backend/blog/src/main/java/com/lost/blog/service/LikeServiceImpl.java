@@ -26,16 +26,19 @@ public class LikeServiceImpl implements LikeService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final CommentRepository commentRepository;
+    private final NotificationService notificationService;
 
     @Autowired
     public LikeServiceImpl(LikeRepository likeRepository,
                            PostRepository postRepository,
                            UserRepository userRepository,
-                           CommentRepository commentRepository) {
+                           CommentRepository commentRepository,
+                           NotificationService notificationService) {
         this.likeRepository = likeRepository;
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.commentRepository = commentRepository;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -59,6 +62,9 @@ public class LikeServiceImpl implements LikeService {
         like.setUser(user);
         like.setPost(post);
         likeRepository.save(like);
+
+        // Create notification
+        notificationService.createPostLikedNotification(user, post);
 
         long likeCount = likeRepository.countByPost(post);
         logger.info("用户 {} 点赞了文章 {}，当前点赞数: {}", user.getUsername(), postId, likeCount);
@@ -141,6 +147,9 @@ public class LikeServiceImpl implements LikeService {
         like.setUser(user);
         like.setComment(comment);
         likeRepository.save(like);
+
+        // Create notification
+        notificationService.createCommentLikedNotification(user, comment);
 
         long likeCount = likeRepository.countByComment(comment);
         logger.info("用户 {} 点赞了评论 {}，当前点赞数: {}", user.getUsername(), commentId, likeCount);

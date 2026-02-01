@@ -38,14 +38,17 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
     private final PrivateMessageRepository messageRepository;
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
+    private final NotificationService notificationService;
 
     @Autowired
     public PrivateMessageServiceImpl(PrivateMessageRepository messageRepository,
                                       UserRepository userRepository,
-                                      FollowRepository followRepository) {
+                                      FollowRepository followRepository,
+                                      NotificationService notificationService) {
         this.messageRepository = messageRepository;
         this.userRepository = userRepository;
         this.followRepository = followRepository;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -73,6 +76,9 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
         message.setReceiver(receiver);
         message.setContent(request.getContent());
         message = messageRepository.save(message);
+
+        // 创建私信通知
+        notificationService.createMessageReceivedNotification(sender, receiver);
 
         logger.info("用户 {} 给用户 {} 发送了一条私信", sender.getUsername(), receiver.getUsername());
 

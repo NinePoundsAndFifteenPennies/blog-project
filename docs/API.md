@@ -2707,3 +2707,161 @@ Authorization: Bearer {token}
 **防骚扰机制说明:**
 - 如果两人是朋友（互相关注），可以无限制发送消息
 - 如果不是朋友，发送一条消息后，在对方回复前无法发送第二条消息
+
+---
+
+## 通知相关接口
+
+### 获取通知列表
+
+获取当前用户的通知列表，支持分页和类型过滤。
+
+```http
+GET /api/notifications?page=0&size=20&filter=all
+Authorization: Bearer {token}
+```
+
+**查询参数:**
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| page | integer | 0 | 页码（从0开始）|
+| size | integer | 20 | 每页数量 |
+| filter | string | all | 过滤类型：`all`（全部）、`comments`（评论）、`likes`（点赞）、`follows`（关注）、`messages`（私信）|
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "type": "POST_COMMENTED",
+      "actorId": 2,
+      "actorUsername": "bob",
+      "actorNickname": "Bob",
+      "actorAvatarUrl": "/uploads/2/avatars/abc.jpg",
+      "recipientId": 1,
+      "postId": 5,
+      "postTitle": "Vue.js 入门教程",
+      "commentId": 12,
+      "content": "写得真好！",
+      "read": false,
+      "createdAt": "2026-02-01T10:30:00Z"
+    },
+    {
+      "id": 2,
+      "type": "FOLLOWED",
+      "actorId": 3,
+      "actorUsername": "charlie",
+      "actorNickname": "Charlie",
+      "actorAvatarUrl": null,
+      "recipientId": 1,
+      "postId": null,
+      "postTitle": null,
+      "commentId": null,
+      "content": null,
+      "read": true,
+      "createdAt": "2026-02-01T09:15:00Z"
+    }
+  ],
+  "totalElements": 25,
+  "totalPages": 2,
+  "size": 20,
+  "number": 0
+}
+```
+
+**通知类型说明:**
+| 类型 | 说明 |
+|------|------|
+| POST_LIKED | 文章被点赞 |
+| POST_COMMENTED | 文章收到评论 |
+| COMMENT_LIKED | 评论被点赞 |
+| COMMENT_REPLIED | 评论收到回复 |
+| FOLLOWED | 被关注 |
+| MESSAGE_RECEIVED | 收到私信 |
+
+---
+
+### 获取最近通知
+
+获取最近的通知（用于导航栏下拉列表）。
+
+```http
+GET /api/notifications/recent
+Authorization: Bearer {token}
+```
+
+**成功响应:** `200 OK`
+```json
+[
+  {
+    "id": 1,
+    "type": "POST_COMMENTED",
+    "actorId": 2,
+    "actorUsername": "bob",
+    "actorNickname": "Bob",
+    "actorAvatarUrl": "/uploads/2/avatars/abc.jpg",
+    "recipientId": 1,
+    "postId": 5,
+    "postTitle": "Vue.js 入门教程",
+    "commentId": 12,
+    "content": "写得真好！",
+    "read": false,
+    "createdAt": "2026-02-01T10:30:00Z"
+  }
+]
+```
+
+---
+
+### 获取未读通知数量
+
+获取当前用户的未读通知总数。
+
+```http
+GET /api/notifications/unread/count
+Authorization: Bearer {token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "count": 5
+}
+```
+
+---
+
+### 标记单条通知为已读
+
+将指定通知标记为已读。
+
+```http
+PUT /api/notifications/{id}/read
+Authorization: Bearer {token}
+```
+
+**成功响应:** `200 OK`
+
+---
+
+### 标记通知为已读（批量）
+
+批量标记通知为已读，支持按类型过滤。
+
+```http
+PUT /api/notifications/read?filter=all
+Authorization: Bearer {token}
+```
+
+**查询参数:**
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| filter | string | all | 过滤类型：`all`（全部）、`comments`（评论）、`likes`（点赞）、`follows`（关注）、`messages`（私信）|
+
+**成功响应:** `200 OK`
+
+**说明:**
+- 当 `filter=all` 时，标记所有未读通知为已读
+- 当 `filter=comments` 时，仅标记评论相关通知（POST_COMMENTED, COMMENT_REPLIED）为已读
+- 其他 filter 类型同理

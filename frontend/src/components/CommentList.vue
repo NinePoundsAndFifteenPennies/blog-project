@@ -154,6 +154,7 @@
           :comment="comment"
           :post-author-username="postAuthorUsername"
           :is-draft="isDraft"
+          :auto-expand="expandCommentId && Number(expandCommentId) === comment.id"
           @comment-updated="handleCommentUpdated"
           @comment-deleted="handleCommentDeleted"
           @like-changed="handleLikeChanged"
@@ -216,6 +217,10 @@ export default {
     isDraft: {
       type: Boolean,
       default: false
+    },
+    expandCommentId: {
+      type: [Number, String],
+      default: null
     }
   },
   emits: ['comment-count-changed'],
@@ -413,6 +418,38 @@ export default {
       }
     }
 
+    // Load ALL comments at once (for navigation to specific comment)
+    const loadAllComments = async () => {
+      // If totalElements is 0, we haven't loaded any data yet, so proceed with loading
+      if (totalElements.value > 0 && totalElements.value <= comments.value.length) {
+        return // Already loaded all
+      }
+      
+      loading.value = true
+      const { sortBy, order } = parseSortParams()
+      
+      try {
+        // Load all comments in one request with a large page size
+        const response = await getPostComments(props.postId, {
+          page: 0,
+          size: 1000, // Load all at once (max practical size)
+          sortBy: sortBy,
+          order: order
+        })
+        
+        comments.value = response.content || []
+        loadedCount.value = comments.value.length
+        totalPages.value = response.totalPages || 1
+        totalElements.value = response.totalElements || 0
+        
+        emit('comment-count-changed', totalElements.value)
+      } catch (error) {
+        console.error('加载所有评论失败:', error)
+      } finally {
+        loading.value = false
+      }
+    }
+
     const handleScroll = () => {
       if (loadingMore.value || !hasMore.value) return
 
@@ -542,6 +579,7 @@ export default {
       handleCommentDeleted,
       handleLikeChanged,
       loadMore,
+      loadAllComments,
       selectedSort,
       sortTitle,
       handleSortChange,

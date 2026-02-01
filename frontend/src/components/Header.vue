@@ -50,6 +50,79 @@
             />
           </div>
 
+          <!-- Notification Bell (only when logged in) -->
+          <div v-if="isLoggedIn" class="relative">
+            <button
+              @click="showNotificationDropdown = !showNotificationDropdown"
+              class="relative p-2 text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <!-- Badge -->
+              <span 
+                v-if="unreadNotificationCount > 0" 
+                class="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full min-w-[18px] text-center"
+              >
+                {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
+              </span>
+            </button>
+
+            <!-- Notification Dropdown -->
+            <transition name="fade">
+              <div
+                v-if="showNotificationDropdown"
+                class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg py-2 border border-gray-100 z-50"
+              >
+                <div class="px-4 py-2 border-b border-gray-100 flex items-center justify-between">
+                  <h3 class="font-semibold text-gray-900">通知</h3>
+                  <router-link 
+                    to="/notifications" 
+                    class="text-sm text-primary-600 hover:text-primary-700"
+                    @click="showNotificationDropdown = false"
+                  >
+                    查看全部
+                  </router-link>
+                </div>
+                
+                <div v-if="loadingNotifications" class="p-4 text-center">
+                  <div class="spinner w-6 h-6 mx-auto"></div>
+                </div>
+                
+                <div v-else-if="recentNotifications.length === 0" class="p-4 text-center text-gray-500 text-sm">
+                  暂无通知
+                </div>
+                
+                <div v-else class="max-h-80 overflow-y-auto">
+                  <div
+                    v-for="notification in recentNotifications"
+                    :key="notification.id"
+                    @click="handleNotificationClick(notification)"
+                    :class="[
+                      'px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors duration-200 flex items-start space-x-3',
+                      !notification.read ? 'bg-blue-50/50' : ''
+                    ]"
+                  >
+                    <!-- Type Icon -->
+                    <div :class="['w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0', getNotificationTypeColor(notification.type)]">
+                      <span v-html="getNotificationTypeIcon(notification.type)"></span>
+                    </div>
+                    
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm text-gray-900 line-clamp-2">
+                        <span class="font-medium">{{ notification.actorNickname || notification.actorUsername }}</span>
+                        <span class="text-gray-600"> {{ getNotificationText(notification) }}</span>
+                      </p>
+                      <p class="text-xs text-gray-400 mt-1">{{ formatNotificationTime(notification.createdAt) }}</p>
+                    </div>
+                    
+                    <div v-if="!notification.read" class="w-2 h-2 bg-primary-600 rounded-full flex-shrink-0 mt-2"></div>
+                  </div>
+                </div>
+              </div>
+            </transition>
+          </div>
+
           <!-- User Menu -->
           <div v-if="isLoggedIn" class="relative">
             <button
@@ -91,28 +164,6 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                     <span>个人中心</span>
-                  </div>
-                </router-link>
-                
-                <!-- Messages Link -->
-                <router-link
-                    to="/messages"
-                    class="block px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                    @click="showUserMenu = false"
-                >
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-2">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      <span>私信</span>
-                    </div>
-                    <span 
-                      v-if="unreadMessageCount > 0" 
-                      class="px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full"
-                    >
-                      {{ unreadMessageCount > 99 ? '99+' : unreadMessageCount }}
-                    </span>
                   </div>
                 </router-link>
                 
@@ -209,17 +260,17 @@
                 个人中心
               </router-link>
               <router-link
-                  to="/messages"
+                  to="/notifications"
                   class="block px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                   @click="showMobileMenu = false"
               >
                 <div class="flex items-center justify-between">
-                  <span>私信</span>
+                  <span>通知</span>
                   <span 
-                    v-if="unreadMessageCount > 0" 
+                    v-if="unreadNotificationCount > 0" 
                     class="px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full"
                   >
-                    {{ unreadMessageCount > 99 ? '99+' : unreadMessageCount }}
+                    {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
                   </span>
                 </div>
               </router-link>
@@ -275,6 +326,7 @@ import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import SearchPreview from '@/components/SearchPreview.vue'
 import { searchPosts } from '@/api/posts'
 import { getUnreadCount, getUnreadCountFromUser } from '@/api/messages'
+import { getNotificationUnreadCount, getRecentNotifications, markNotificationAsRead } from '@/api/notifications'
 
 export default {
   name: 'Header',
@@ -287,14 +339,18 @@ export default {
     const scrolled = ref(false)
     const showUserMenu = ref(false)
     const showMobileMenu = ref(false)
+    const showNotificationDropdown = ref(false)
     const avatarLoadError = ref(false)
     const unreadMessageCount = ref(0)
+    const unreadNotificationCount = ref(0)
+    const recentNotifications = ref([])
+    const loadingNotifications = ref(false)
     
     // Track which user's messages have been marked as read to prevent duplicate deductions
     // Using an object for Vue reactivity instead of Set
     const readUserIds = ref({})
     
-    // Polling interval for unread messages
+    // Polling interval for unread messages and notifications
     let messagePollingInterval = null
     const MESSAGE_POLLING_INTERVAL = 10000 // 10 seconds
 
@@ -381,6 +437,7 @@ export default {
     const handleClickOutside = (e) => {
       if (!e.target.closest('.relative')) {
         showUserMenu.value = false
+        showNotificationDropdown.value = false
       }
     }
     
@@ -396,11 +453,41 @@ export default {
       }
     }
     
-    // Start polling for unread messages
+    // Fetch unread notification count
+    const fetchUnreadNotificationCount = async () => {
+      if (!isLoggedIn.value) return
+      
+      try {
+        const res = await getNotificationUnreadCount()
+        unreadNotificationCount.value = res.count || 0
+      } catch (error) {
+        console.error('Failed to fetch unread notification count:', error)
+      }
+    }
+    
+    // Fetch recent notifications
+    const fetchRecentNotifications = async () => {
+      if (!isLoggedIn.value) return
+      
+      loadingNotifications.value = true
+      try {
+        recentNotifications.value = await getRecentNotifications()
+      } catch (error) {
+        console.error('Failed to fetch recent notifications:', error)
+      } finally {
+        loadingNotifications.value = false
+      }
+    }
+    
+    // Start polling for unread messages and notifications
     const startMessagePolling = () => {
       stopMessagePolling()
       fetchUnreadMessageCount() // Fetch immediately
-      messagePollingInterval = setInterval(fetchUnreadMessageCount, MESSAGE_POLLING_INTERVAL)
+      fetchUnreadNotificationCount() // Fetch notifications immediately
+      messagePollingInterval = setInterval(() => {
+        fetchUnreadMessageCount()
+        fetchUnreadNotificationCount()
+      }, MESSAGE_POLLING_INTERVAL)
     }
     
     // Stop polling
@@ -456,9 +543,162 @@ export default {
       } else {
         stopMessagePolling()
         unreadMessageCount.value = 0
+        unreadNotificationCount.value = 0
+        recentNotifications.value = []
         readUserIds.value = {}
       }
     })
+    
+    // Watch for notification dropdown to open - fetch recent notifications
+    watch(showNotificationDropdown, (newValue) => {
+      if (newValue) {
+        fetchRecentNotifications()
+      }
+    })
+    
+    // Notification helper functions
+    const getNotificationTypeColor = (type) => {
+      switch (type) {
+        case 'POST_LIKED':
+        case 'COMMENT_LIKED':
+          return 'bg-red-100'
+        case 'POST_COMMENTED':
+        case 'COMMENT_REPLIED':
+          return 'bg-blue-100'
+        case 'FOLLOWED':
+          return 'bg-green-100'
+        case 'MESSAGE_RECEIVED':
+          return 'bg-purple-100'
+        default:
+          return 'bg-gray-100'
+      }
+    }
+    
+    const getNotificationTypeIcon = (type) => {
+      switch (type) {
+        case 'POST_LIKED':
+        case 'COMMENT_LIKED':
+          return '<svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>'
+        case 'POST_COMMENTED':
+        case 'COMMENT_REPLIED':
+          return '<svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>'
+        case 'FOLLOWED':
+          return '<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>'
+        case 'MESSAGE_RECEIVED':
+          return '<svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>'
+        default:
+          return '<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>'
+      }
+    }
+    
+    const getNotificationText = (notification) => {
+      switch (notification.type) {
+        case 'POST_LIKED':
+          return '赞了你的文章'
+        case 'POST_COMMENTED':
+          return '评论了你的文章'
+        case 'COMMENT_LIKED':
+          return '赞了你的评论'
+        case 'COMMENT_REPLIED':
+          return '回复了你的评论'
+        case 'FOLLOWED':
+          return '关注了你'
+        case 'MESSAGE_RECEIVED':
+          return '给你发送了私信'
+        default:
+          return ''
+      }
+    }
+    
+    const formatNotificationTime = (timeStr) => {
+      if (!timeStr) return ''
+      const date = new Date(timeStr)
+      const now = new Date()
+      const diffMs = now - date
+      const diffMins = Math.floor(diffMs / 60000)
+      const diffHours = Math.floor(diffMs / 3600000)
+      const diffDays = Math.floor(diffMs / 86400000)
+
+      if (diffMins < 1) return '刚刚'
+      if (diffMins < 60) return `${diffMins}分钟前`
+      if (diffHours < 24) return `${diffHours}小时前`
+      if (diffDays < 7) return `${diffDays}天前`
+      
+      return date.toLocaleDateString('zh-CN')
+    }
+    
+    const handleNotificationClick = async (notification) => {
+      showNotificationDropdown.value = false
+      
+      // Mark as read
+      if (!notification.read) {
+        try {
+          await markNotificationAsRead(notification.id)
+          notification.read = true
+          unreadNotificationCount.value = Math.max(0, unreadNotificationCount.value - 1)
+        } catch (error) {
+          console.error('Failed to mark notification as read:', error)
+        }
+      }
+
+      // Navigate based on type
+      switch (notification.type) {
+        case 'POST_LIKED':
+          if (notification.postId) {
+            router.push(`/post/${notification.postId}`)
+          }
+          break
+        case 'POST_COMMENTED':
+          if (notification.postId) {
+            // Navigate to post with comment anchor (the comment that was made)
+            const commentAnchor = notification.commentId ? `#comment-${notification.commentId}` : ''
+            // Include parentCommentId for sub-comments (replies)
+            if (notification.parentCommentId) {
+              router.push({
+                path: `/post/${notification.postId}`,
+                query: { expandComment: notification.parentCommentId },
+                hash: commentAnchor
+              })
+            } else {
+              router.push(`/post/${notification.postId}${commentAnchor}`)
+            }
+          }
+          break
+        case 'COMMENT_LIKED':
+        case 'COMMENT_REPLIED':
+          if (notification.postId) {
+            // Navigate to post with comment anchor
+            const commentAnchor = notification.commentId ? `#comment-${notification.commentId}` : ''
+            // Include parentCommentId for sub-comments (replies)
+            if (notification.parentCommentId) {
+              router.push({
+                path: `/post/${notification.postId}`,
+                query: { expandComment: notification.parentCommentId },
+                hash: commentAnchor
+              })
+            } else {
+              router.push(`/post/${notification.postId}${commentAnchor}`)
+            }
+          }
+          break
+        case 'FOLLOWED':
+          if (notification.actorUsername) {
+            router.push(`/user/${notification.actorUsername}`)
+          }
+          break
+        case 'MESSAGE_RECEIVED':
+          router.push({
+            path: '/messages',
+            query: {
+              userId: notification.actorId,
+              username: notification.actorUsername,
+              nickname: notification.actorNickname,
+              avatar: notification.actorAvatarUrl
+            }
+          })
+          break
+      }
+    }
 
     onMounted(() => {
       window.addEventListener('scroll', handleScroll)
@@ -480,12 +720,16 @@ export default {
       scrolled,
       showUserMenu,
       showMobileMenu,
+      showNotificationDropdown,
       isLoggedIn,
       currentUser,
       userInitial,
       userAvatarUrl,
       avatarLoadError,
       unreadMessageCount,
+      unreadNotificationCount,
+      recentNotifications,
+      loadingNotifications,
       currentKeyword,
       searchGlobal,
       handleSearchSelect,
@@ -493,7 +737,12 @@ export default {
       handleLogout,
       handleSwitchAccount,
       handleAvatarError,
-      handleAvatarLoad
+      handleAvatarLoad,
+      getNotificationTypeColor,
+      getNotificationTypeIcon,
+      getNotificationText,
+      formatNotificationTime,
+      handleNotificationClick
     }
   }
 }
