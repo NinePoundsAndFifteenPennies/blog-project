@@ -112,7 +112,58 @@
                       <span class="font-semibold">{{ notification.actorNickname || notification.actorUsername }}</span>
                       <span class="text-gray-600"> {{ getNotificationText(notification) }}</span>
                     </p>
-                    <span class="text-xs text-gray-400 flex-shrink-0 ml-4">{{ formatTime(notification.createdAt) }}</span>
+                    <div class="flex items-center space-x-2 flex-shrink-0 ml-4">
+                      <!-- Quick Actions for comment-related notifications (on the right) -->
+                      <div 
+                        v-if="isCommentNotification(notification)" 
+                        class="flex items-center space-x-2"
+                        @click.stop
+                      >
+                        <!-- Like Button -->
+                        <button 
+                          @click="handleQuickLike(notification)"
+                          :disabled="notification.liking"
+                          class="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50"
+                          :class="{ 'text-red-500': notification.commentLiked }"
+                          title="点赞"
+                        >
+                          <svg 
+                            class="w-4 h-4" 
+                            :fill="notification.commentLiked ? 'currentColor' : 'none'" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                          </svg>
+                        </button>
+
+                        <!-- Reply Button -->
+                        <button 
+                          @click="handleQuickReply(notification)"
+                          class="p-1.5 text-gray-400 hover:text-primary-600 transition-colors rounded-full hover:bg-primary-50"
+                          title="回复"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                          </svg>
+                        </button>
+
+                        <!-- Delete Button (only for POST_COMMENTED - comments on your articles) -->
+                        <button 
+                          v-if="notification.type === 'POST_COMMENTED'"
+                          @click="handleQuickDelete(notification)"
+                          :disabled="notification.deleting"
+                          class="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded-full hover:bg-red-50"
+                          title="删除评论"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                      
+                      <span class="text-xs text-gray-400">{{ formatTime(notification.createdAt) }}</span>
+                    </div>
                   </div>
                   
                   <!-- Additional content preview -->
@@ -122,38 +173,6 @@
                   <p v-if="notification.postTitle" class="text-sm text-gray-500 truncate">
                     📄 {{ notification.postTitle }}
                   </p>
-
-                  <!-- Quick Actions for comment-related notifications -->
-                  <div 
-                    v-if="isCommentNotification(notification)" 
-                    class="flex items-center space-x-3 mt-2"
-                    @click.stop
-                  >
-                    <!-- Reply Button -->
-                    <button 
-                      @click="handleQuickReply(notification)"
-                      class="flex items-center space-x-1 text-xs text-gray-500 hover:text-primary-600 transition-colors"
-                      title="回复"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                      </svg>
-                      <span>回复</span>
-                    </button>
-
-                    <!-- View Context Button -->
-                    <button 
-                      @click="handleViewContext(notification)"
-                      class="flex items-center space-x-1 text-xs text-gray-500 hover:text-primary-600 transition-colors"
-                      title="查看文章"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      <span>查看</span>
-                    </button>
-                  </div>
                 </div>
 
                 <!-- Unread indicator -->
@@ -189,6 +208,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead
 } from '@/api/notifications'
+import { likeComment, unlikeComment, deleteComment } from '@/api/comments'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
@@ -486,23 +506,50 @@ export default {
       }
     }
 
-    // Handle view context - navigate to post/comment
-    const handleViewContext = async (notification) => {
-      // Mark as read first
-      if (!notification.read) {
-        try {
-          await markNotificationAsRead(notification.id)
-          notification.read = true
-          unreadCount.value = Math.max(0, unreadCount.value - 1)
-        } catch (error) {
-          console.error('标记已读失败:', error)
+    // Handle quick like for comment
+    const handleQuickLike = async (notification) => {
+      if (!notification.commentId || notification.liking) return
+      
+      notification.liking = true
+      try {
+        if (notification.commentLiked) {
+          await unlikeComment(notification.commentId)
+          notification.commentLiked = false
+        } else {
+          await likeComment(notification.commentId)
+          notification.commentLiked = true
         }
+      } catch (error) {
+        console.error('点赞操作失败:', error)
+      } finally {
+        notification.liking = false
       }
+    }
 
-      // Navigate to post with comment anchor
-      if (notification.postId) {
-        const commentAnchor = notification.commentId ? `#comment-${notification.commentId}` : ''
-        router.push(`/post/${notification.postId}${commentAnchor}`)
+    // Handle quick delete for comment (only for comments on your articles)
+    const handleQuickDelete = async (notification) => {
+      if (!notification.commentId || notification.deleting) return
+      
+      // Confirm deletion
+      if (!confirm('确定要删除这条评论吗？')) return
+      
+      notification.deleting = true
+      try {
+        await deleteComment(notification.commentId)
+        // Remove from list after successful delete
+        const index = notifications.value.findIndex(n => n.id === notification.id)
+        if (index !== -1) {
+          notifications.value.splice(index, 1)
+        }
+        // Mark as read if it wasn't
+        if (!notification.read) {
+          unreadCount.value = Math.max(0, unreadCount.value - 1)
+        }
+      } catch (error) {
+        console.error('删除评论失败:', error)
+        alert('删除评论失败，请稍后重试')
+      } finally {
+        notification.deleting = false
       }
     }
 
@@ -536,7 +583,8 @@ export default {
       handleNotificationClick,
       handleMarkAllAsRead,
       handleQuickReply,
-      handleViewContext
+      handleQuickLike,
+      handleQuickDelete
     }
   }
 }
