@@ -154,6 +154,7 @@
           :comment="comment"
           :post-author-username="postAuthorUsername"
           :is-draft="isDraft"
+          :auto-expand="expandCommentId && Number(expandCommentId) === comment.id"
           @comment-updated="handleCommentUpdated"
           @comment-deleted="handleCommentDeleted"
           @like-changed="handleLikeChanged"
@@ -216,6 +217,10 @@ export default {
     isDraft: {
       type: Boolean,
       default: false
+    },
+    expandCommentId: {
+      type: [Number, String],
+      default: null
     }
   },
   emits: ['comment-count-changed'],

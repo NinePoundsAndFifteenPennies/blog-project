@@ -19,6 +19,7 @@ public class NotificationResponse {
     private Long postId;
     private String postTitle;
     private Long commentId;
+    private Long parentCommentId;  // For replies, the parent comment ID
     private String content;
     private boolean read;
     private LocalDateTime createdAt;
@@ -52,6 +53,10 @@ public class NotificationResponse {
         // Set comment info
         if (notification.getComment() != null) {
             response.setCommentId(notification.getComment().getId());
+            // Set parent comment ID for replies (sub-comments)
+            if (notification.getComment().getParent() != null) {
+                response.setParentCommentId(notification.getComment().getParent().getId());
+            }
         }
 
         return response;
@@ -129,6 +134,14 @@ public class NotificationResponse {
 
     public void setCommentId(Long commentId) {
         this.commentId = commentId;
+    }
+
+    public Long getParentCommentId() {
+        return parentCommentId;
+    }
+
+    public void setParentCommentId(Long parentCommentId) {
+        this.parentCommentId = parentCommentId;
     }
 
     public String getContent() {

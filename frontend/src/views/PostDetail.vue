@@ -176,6 +176,7 @@
               :post-id="post.id"
               :post-author-username="post.authorUsername"
               :is-draft="post.draft"
+              :expand-comment-id="expandCommentId"
               @comment-count-changed="handleCommentCountChanged"
             />
           </div>
@@ -256,6 +257,9 @@ export default {
     const isAuthor = computed(() => {
       return currentUser.value && post.value?.authorUsername === currentUser.value.username
     })
+    
+    // For auto-expanding parent comment replies when navigating to a sub-comment
+    const expandCommentId = computed(() => route.query.expandComment)
 
     const authorInitial = computed(() => {
       return post.value?.authorUsername?.charAt(0).toUpperCase() || 'A'
@@ -496,6 +500,7 @@ export default {
       renderedContent,
       showBackToTop,
       commentCount,
+      expandCommentId,
       formatDate,
       formatFullDate,
       handleDelete,

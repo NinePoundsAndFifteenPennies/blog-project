@@ -652,7 +652,16 @@ export default {
           if (notification.postId) {
             // Navigate to post with comment anchor (the comment that was made)
             const commentAnchor = notification.commentId ? `#comment-${notification.commentId}` : ''
-            router.push(`/post/${notification.postId}${commentAnchor}`)
+            // Include parentCommentId for sub-comments (replies)
+            if (notification.parentCommentId) {
+              router.push({
+                path: `/post/${notification.postId}`,
+                query: { expandComment: notification.parentCommentId },
+                hash: commentAnchor
+              })
+            } else {
+              router.push(`/post/${notification.postId}${commentAnchor}`)
+            }
           }
           break
         case 'COMMENT_LIKED':
@@ -660,7 +669,16 @@ export default {
           if (notification.postId) {
             // Navigate to post with comment anchor
             const commentAnchor = notification.commentId ? `#comment-${notification.commentId}` : ''
-            router.push(`/post/${notification.postId}${commentAnchor}`)
+            // Include parentCommentId for sub-comments (replies)
+            if (notification.parentCommentId) {
+              router.push({
+                path: `/post/${notification.postId}`,
+                query: { expandComment: notification.parentCommentId },
+                hash: commentAnchor
+              })
+            } else {
+              router.push(`/post/${notification.postId}${commentAnchor}`)
+            }
           }
           break
         case 'FOLLOWED':

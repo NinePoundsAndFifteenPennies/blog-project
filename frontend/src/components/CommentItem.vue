@@ -172,6 +172,10 @@ export default {
     isDraft: {
       type: Boolean,
       default: false
+    },
+    autoExpand: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['comment-updated', 'comment-deleted', 'like-changed'],
@@ -179,7 +183,7 @@ export default {
     const store = useStore()
     const router = useRouter()
     const avatarLoadError = ref(false)
-    const showReplies = ref(false)
+    const showReplies = ref(props.autoExpand) // Auto-expand if prop is true
     const replyListRef = ref(null)
     const localReplyCount = ref(props.comment.replyCount || 0)
 
