@@ -371,41 +371,70 @@ export default {
     // Scroll to hash anchor (e.g., #comment-123)
     const scrollToHashAnchor = async () => {
       const hash = route.hash
-      if (hash) {
-        const elementId = hash.substring(1) // Remove the # prefix
+      if (!hash) return
+      
+      const elementId = hash.substring(1) // Remove the # prefix
+      
+      // Function to scroll to element and highlight
+      const scrollAndHighlight = (element) => {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        // Add a highlight effect
+        element.classList.add('bg-yellow-50')
+        setTimeout(() => {
+          element.classList.remove('bg-yellow-50')
+        }, 2000)
+      }
+      
+      // If we're navigating to a comment, first ensure all comments are loaded
+      if (elementId.startsWith('comment-')) {
+        // Wait for the comment list ref to be available (max 3 seconds)
+        let waitAttempts = 0
+        while (!commentListRef.value && waitAttempts < 30) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          waitAttempts++
+        }
         
-        // If we're navigating to a comment, first ensure all comments are loaded
-        if (elementId.startsWith('comment-') && commentListRef.value) {
-          // Call loadAllComments to ensure the target comment is loaded
+        if (commentListRef.value) {
           try {
+            // Load all comments to ensure the target is available
             await commentListRef.value.loadAllComments()
+            // Wait for Vue to render the loaded comments
+            await nextTick()
+            // Additional delay to ensure DOM is fully updated
+            await new Promise(resolve => setTimeout(resolve, 200))
           } catch (e) {
             console.warn('Failed to load all comments:', e)
           }
         }
         
-        // Poll for the element with increasing delays (comments might load asynchronously)
-        const maxAttempts = 10
+        // Now try to find and scroll to the element
+        let element = document.getElementById(elementId)
+        if (element) {
+          scrollAndHighlight(element)
+          return
+        }
+        
+        // If still not found, poll for the element
+        const maxAttempts = 30
         let attempts = 0
         
-        const tryScroll = () => {
-          const element = document.getElementById(elementId)
+        const tryScroll = async () => {
+          element = document.getElementById(elementId)
           if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            // Add a highlight effect
-            element.classList.add('bg-yellow-50')
-            setTimeout(() => {
-              element.classList.remove('bg-yellow-50')
-            }, 2000)
+            scrollAndHighlight(element)
           } else if (attempts < maxAttempts) {
-            // Element not found yet, try again after delay
             attempts++
-            setTimeout(tryScroll, 300) // Check every 300ms
+            setTimeout(tryScroll, 200)
           }
         }
         
-        // Start checking after initial delay for page render
-        setTimeout(tryScroll, 500)
+        tryScroll()
+      } else {
+        // For non-comment elements, just try to scroll
+        const element = document.getElementById(elementId)
+        if (element) {
+          scrollAndHighlight(element)
+        }
       }
     }
 

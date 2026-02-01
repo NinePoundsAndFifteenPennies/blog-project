@@ -420,7 +420,8 @@ export default {
 
     // Load ALL comments at once (for navigation to specific comment)
     const loadAllComments = async () => {
-      if (totalElements.value <= comments.value.length) {
+      // If totalElements is 0, we haven't loaded any data yet, so proceed with loading
+      if (totalElements.value > 0 && totalElements.value <= comments.value.length) {
         return // Already loaded all
       }
       
@@ -431,7 +432,7 @@ export default {
         // Load all comments in one request with a large page size
         const response = await getPostComments(props.postId, {
           page: 0,
-          size: totalElements.value || 1000, // Load all at once
+          size: 1000, // Load all at once (max practical size)
           sortBy: sortBy,
           order: order
         })
