@@ -172,6 +172,7 @@
           <!-- Comment Section -->
           <div class="mt-8 animate-slide-up" style="animation-delay: 0.4s;">
             <CommentList
+              ref="commentListRef"
               v-if="post"
               :post-id="post.id"
               :post-author-username="post.authorUsername"
@@ -251,6 +252,7 @@ export default {
     const showBackToTop = ref(false)
     const avatarLoadError = ref(false)
     const commentCount = ref(0)
+    const commentListRef = ref(null)
 
     const currentUser = computed(() => store.getters.currentUser)
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
@@ -367,10 +369,20 @@ export default {
     }
     
     // Scroll to hash anchor (e.g., #comment-123)
-    const scrollToHashAnchor = () => {
+    const scrollToHashAnchor = async () => {
       const hash = route.hash
       if (hash) {
         const elementId = hash.substring(1) // Remove the # prefix
+        
+        // If we're navigating to a comment, first ensure all comments are loaded
+        if (elementId.startsWith('comment-') && commentListRef.value) {
+          // Call loadAllComments to ensure the target comment is loaded
+          try {
+            await commentListRef.value.loadAllComments()
+          } catch (e) {
+            console.warn('Failed to load all comments:', e)
+          }
+        }
         
         // Poll for the element with increasing delays (comments might load asynchronously)
         const maxAttempts = 10
@@ -500,6 +512,7 @@ export default {
       renderedContent,
       showBackToTop,
       commentCount,
+      commentListRef,
       expandCommentId,
       formatDate,
       formatFullDate,
