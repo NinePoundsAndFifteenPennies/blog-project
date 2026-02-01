@@ -346,11 +346,22 @@ export default {
 
     // 处理点赞变化
     const handleLikeChanged = ({ postId, likeCount, isLiked }) => {
+      // Update in latest posts list
       const postIndex = posts.value.findIndex(p => p.id === postId)
       if (postIndex !== -1) {
         // Update the post object to ensure reactivity
         posts.value[postIndex] = {
           ...posts.value[postIndex],
+          likeCount,
+          isLiked
+        }
+      }
+      
+      // Also update in hot posts list
+      const hotPostIndex = hotPosts.value.findIndex(p => p.id === postId)
+      if (hotPostIndex !== -1) {
+        hotPosts.value[hotPostIndex] = {
+          ...hotPosts.value[hotPostIndex],
           likeCount,
           isLiked
         }

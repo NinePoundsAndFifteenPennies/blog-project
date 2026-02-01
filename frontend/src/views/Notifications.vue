@@ -79,17 +79,30 @@
                   <span v-html="getTypeStyle(notification.type).icon"></span>
                 </div>
 
-                <!-- Avatar -->
+                <!-- Avatar with Hover Card -->
+                <UserProfileHoverCard 
+                  v-if="notification.actorUsername"
+                  :username="notification.actorUsername"
+                  :user-data="getActorData(notification)"
+                  @click.stop
+                >
+                  <div
+                    class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600 flex-shrink-0 cursor-pointer"
+                  >
+                    <img
+                      v-if="notification.actorAvatarUrl"
+                      :src="getAvatarUrl(notification.actorAvatarUrl)"
+                      :alt="notification.actorNickname || notification.actorUsername"
+                      class="w-full h-full object-cover"
+                    />
+                    <span v-else>{{ getInitial(notification.actorNickname || notification.actorUsername) }}</span>
+                  </div>
+                </UserProfileHoverCard>
                 <div
+                  v-else
                   class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600 flex-shrink-0"
                 >
-                  <img
-                    v-if="notification.actorAvatarUrl"
-                    :src="getAvatarUrl(notification.actorAvatarUrl)"
-                    :alt="notification.actorNickname || notification.actorUsername"
-                    class="w-full h-full object-cover"
-                  />
-                  <span v-else>{{ getInitial(notification.actorNickname || notification.actorUsername) }}</span>
+                  <span>{{ getInitial(notification.actorNickname || notification.actorUsername) }}</span>
                 </div>
 
                 <!-- Content -->
@@ -137,6 +150,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
+import UserProfileHoverCard from '@/components/UserProfileHoverCard.vue'
 import { 
   getNotifications, 
   getNotificationUnreadCount,
@@ -147,7 +161,7 @@ import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
   name: 'Notifications',
-  components: { Header },
+  components: { Header, UserProfileHoverCard },
   setup() {
     const router = useRouter()
     
@@ -183,12 +197,26 @@ export default {
         value: 'follows', 
         label: '关注',
         icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>'
+      },
+      { 
+        value: 'messages', 
+        label: '私信',
+        icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>'
       }
     ]
 
     const getAvatarUrl = (url) => getFullAvatarUrl(url)
 
     const getInitial = (name) => (name || 'U').charAt(0).toUpperCase()
+
+    // Helper to get actor data for UserProfileHoverCard
+    const getActorData = (notification) => {
+      return {
+        username: notification.actorUsername,
+        nickname: notification.actorNickname,
+        avatarUrl: getAvatarUrl(notification.actorAvatarUrl)
+      }
+    }
 
     const formatTime = (timeStr) => {
       if (!timeStr) return ''
@@ -266,6 +294,8 @@ export default {
           return '暂无点赞相关的通知'
         case 'follows':
           return '暂无关注相关的通知'
+        case 'messages':
+          return '暂无私信相关的通知'
         default:
           return '当有人与你互动时，通知将会显示在这里'
       }
@@ -416,6 +446,7 @@ export default {
       tabs,
       getAvatarUrl,
       getInitial,
+      getActorData,
       formatTime,
       getTypeStyle,
       getNotificationText,
