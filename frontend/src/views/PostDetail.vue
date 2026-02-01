@@ -222,7 +222,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { marked } from 'marked'
@@ -350,11 +350,35 @@ export default {
         }
         
         commentCount.value = response.commentCount || 0
+        
+        // Scroll to hash anchor after content loads (for notification navigation)
+        await nextTick()
+        scrollToHashAnchor()
       } catch (error) {
         console.error('加载文章失败:', error)
         post.value = null
       } finally {
         loading.value = false
+      }
+    }
+    
+    // Scroll to hash anchor (e.g., #comment-123)
+    const scrollToHashAnchor = () => {
+      const hash = route.hash
+      if (hash) {
+        // Wait for comments to be rendered
+        setTimeout(() => {
+          const elementId = hash.substring(1) // Remove the # prefix
+          const element = document.getElementById(elementId)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            // Add a highlight effect
+            element.classList.add('bg-yellow-50')
+            setTimeout(() => {
+              element.classList.remove('bg-yellow-50')
+            }, 2000)
+          }
+        }, 500) // Give time for comments to load
       }
     }
 

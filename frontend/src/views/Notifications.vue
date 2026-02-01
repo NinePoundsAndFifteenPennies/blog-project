@@ -407,9 +407,15 @@ export default {
       // Navigate based on type
       switch (notification.type) {
         case 'POST_LIKED':
-        case 'POST_COMMENTED':
           if (notification.postId) {
             router.push(`/post/${notification.postId}`)
+          }
+          break
+        case 'POST_COMMENTED':
+          if (notification.postId) {
+            // Navigate to post with comment anchor (the comment that was made)
+            const commentAnchor = notification.commentId ? `#comment-${notification.commentId}` : ''
+            router.push(`/post/${notification.postId}${commentAnchor}`)
           }
           break
         case 'COMMENT_LIKED':
