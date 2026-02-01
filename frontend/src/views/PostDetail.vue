@@ -366,9 +366,13 @@ export default {
     const scrollToHashAnchor = () => {
       const hash = route.hash
       if (hash) {
-        // Wait for comments to be rendered
-        setTimeout(() => {
-          const elementId = hash.substring(1) // Remove the # prefix
+        const elementId = hash.substring(1) // Remove the # prefix
+        
+        // Poll for the element with increasing delays (comments might load asynchronously)
+        const maxAttempts = 10
+        let attempts = 0
+        
+        const tryScroll = () => {
           const element = document.getElementById(elementId)
           if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -377,8 +381,15 @@ export default {
             setTimeout(() => {
               element.classList.remove('bg-yellow-50')
             }, 2000)
+          } else if (attempts < maxAttempts) {
+            // Element not found yet, try again after delay
+            attempts++
+            setTimeout(tryScroll, 300) // Check every 300ms
           }
-        }, 500) // Give time for comments to load
+        }
+        
+        // Start checking after initial delay for page render
+        setTimeout(tryScroll, 500)
       }
     }
 

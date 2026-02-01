@@ -256,6 +256,7 @@ import {
   getUnreadCount,
   canSendMessage as checkCanSend 
 } from '@/api/messages'
+import { getFollowStats } from '@/api/follow'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
 export default {
@@ -599,9 +600,26 @@ export default {
         partnerName.value = route.query.nickname || route.query.username || ''
         partnerAvatarUrl.value = getFullAvatarUrl(route.query.avatar)
         partnerAvatarError.value = false
-        isFriend.value = route.query.friend === 'true'
-        isFollowing.value = route.query.following === 'true'
-        isFollowedBy.value = route.query.followedBy === 'true'
+        
+        // If friend/following status is provided in query, use it; otherwise fetch it
+        if (route.query.friend !== undefined) {
+          isFriend.value = route.query.friend === 'true'
+          isFollowing.value = route.query.following === 'true'
+          isFollowedBy.value = route.query.followedBy === 'true'
+        } else {
+          // Fetch relationship status from API (e.g., when coming from notification)
+          try {
+            const stats = await getFollowStats(parseInt(newUserId))
+            isFriend.value = stats.isFriend || false
+            isFollowing.value = stats.isFollowing || false
+            isFollowedBy.value = stats.isFollowedBy || false
+          } catch (error) {
+            console.error('Failed to fetch relationship status:', error)
+            isFriend.value = false
+            isFollowing.value = false
+            isFollowedBy.value = false
+          }
+        }
         
         // Save state
         saveConversationState()
