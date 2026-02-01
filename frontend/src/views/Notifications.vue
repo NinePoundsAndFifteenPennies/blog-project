@@ -463,7 +463,7 @@ export default {
       return ['POST_COMMENTED', 'COMMENT_REPLIED'].includes(notification.type)
     }
 
-    // Handle quick reply - navigate to reply page
+    // Handle quick reply - navigate to post with reply intent
     const handleQuickReply = async (notification) => {
       // Mark as read first
       if (!notification.read) {
@@ -476,12 +476,13 @@ export default {
         }
       }
 
-      // Navigate to reply page for the comment
-      if (notification.commentId) {
-        router.push(`/comment/${notification.commentId}/reply`)
-      } else if (notification.postId) {
-        // Fallback to post page if no comment ID
-        router.push(`/post/${notification.postId}`)
+      // Navigate to post page with comment anchor and reply intent
+      if (notification.postId) {
+        const commentAnchor = notification.commentId ? `#comment-${notification.commentId}` : ''
+        router.push({
+          path: `/post/${notification.postId}${commentAnchor}`,
+          query: { replyTo: notification.commentId }
+        })
       }
     }
 
