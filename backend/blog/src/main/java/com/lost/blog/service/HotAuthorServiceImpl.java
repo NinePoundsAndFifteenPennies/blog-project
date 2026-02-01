@@ -35,6 +35,9 @@ public class HotAuthorServiceImpl implements HotAuthorService {
     private static final double WEIGHT_LIKES = 2.5;
     private static final double WEIGHT_COMMENTS = 6.0;
     private static final double WEIGHT_VIEWS = 1.0;
+    
+    // 最大返回作者数量
+    public static final int MAX_HOT_AUTHORS_LIMIT = 30;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -47,8 +50,8 @@ public class HotAuthorServiceImpl implements HotAuthorService {
 
     @Override
     public List<HotAuthorResponse> getHotAuthors(int limit) {
-        // 限制最大返回数量为30
-        int effectiveLimit = Math.min(Math.max(limit, 1), 30);
+        // 限制最大返回数量
+        int effectiveLimit = Math.min(Math.max(limit, 1), MAX_HOT_AUTHORS_LIMIT);
 
         // 使用原生SQL查询，计算每个作者的热度值
         // 只统计有发布文章的作者（非草稿）

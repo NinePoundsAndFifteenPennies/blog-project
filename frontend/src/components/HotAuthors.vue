@@ -159,10 +159,10 @@
         </div>
       </div>
 
-      <!-- View full list link -->
-      <div v-if="authors.length >= 7" class="text-center pt-2 border-t border-gray-100">
-        <span class="text-sm text-gray-500">
-          查看完整榜单 &gt;
+      <!-- Info about the list limit -->
+      <div v-if="authors.length >= 30" class="text-center pt-2 border-t border-gray-100">
+        <span class="text-xs text-gray-400">
+          最多显示30位热门作者
         </span>
       </div>
     </div>
