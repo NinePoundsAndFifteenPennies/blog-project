@@ -67,6 +67,7 @@ Controller ──► Service ──► Repository ──► Database
 | 控制器 | └── StatisticsController.java | 提供社区统计 API（用户总数、文章总数、活跃用户、今日访问） |
 | 控制器 | └── FollowController.java | 提供关注功能 API（关注/取消关注、列表查询、可见性设置） |
 | 控制器 | └── PrivateMessageController.java | 提供私信功能 API（发送消息、获取对话、未读数统计） |
+| 控制器 | └── NotificationController.java | 提供通知功能 API（通知列表、未读数、标记已读） |
 | 数据传输对象 | **dto/** | 定义请求和响应的数据模型 |
 | DTO | └── UserRegistrationRequest.java | 用户注册请求体 |
 | DTO | └── LoginRequest.java | 用户登录请求体 |
@@ -95,6 +96,7 @@ Controller ──► Service ──► Repository ──► Database
 | DTO | └── PrivateMessageRequest.java | 私信发送请求体 |
 | DTO | └── PrivateMessageResponse.java | 私信响应体 |
 | DTO | └── ConversationResponse.java | 会话列表响应体 |
+| DTO | └── NotificationResponse.java | 通知响应体 |
 | 拦截器层 | **interceptor/** | HTTP 请求拦截器 |
 | 拦截器 | └── UserActivityInterceptor.java | 用户活跃追踪拦截器（可选，配合Redis使用） |
 | 异常层 | **exception/** | 自定义异常类与全局异常处理 |
@@ -120,8 +122,10 @@ Controller ──► Service ──► Repository ──► Database
 | 实体 | └── FollowVisibility.java | 关注信息可见性设置实体 |
 | 实体 | └── VisibilitySetting.java | 可嵌入的可见性设置类 |
 | 实体 | └── PrivateMessage.java | 私信消息实体 |
+| 实体 | └── Notification.java | 通知实体 |
 | 枚举 | └── ContentType.java | 内容类型枚举 |
 | 枚举 | └── FollowInfoType.java | 关注信息类型枚举（FOLLOWING/FOLLOWERS/FRIENDS/STATS） |
+| 枚举 | └── NotificationType.java | 通知类型枚举（POST_LIKED/POST_COMMENTED/FOLLOWED/COMMENT_LIKED/COMMENT_REPLIED/MESSAGE_RECEIVED） |
 | 数据访问层 | **repository/** | 提供数据库操作接口 |
 | Repository | └── UserRepository.java | 用户数据访问接口 |
 | Repository | └── PostRepository.java | 文章数据访问接口 |
@@ -133,6 +137,7 @@ Controller ──► Service ──► Repository ──► Database
 | Repository | └── FollowRepository.java | 关注关系数据访问接口 |
 | Repository | └── FollowVisibilityRepository.java | 关注可见性设置数据访问接口 |
 | Repository | └── PrivateMessageRepository.java | 私信消息数据访问接口 |
+| Repository | └── NotificationRepository.java | 通知数据访问接口 |
 | 安全层 | **security/** | 与认证和授权相关的工具类 |
 | 工具类 | └── JwtTokenProvider.java | JWT 生成与验证 |
 | 过滤器 | └── JwtAuthenticationFilter.java | 拦截并校验 JWT 请求 |
@@ -145,9 +150,9 @@ Controller ──► Service ──► Repository ──► Database
 | 接口 | └── FileService.java | 文件服务接口 |
 | 实现类 | └── FileServiceImpl.java | 文件服务实现（头像上传、更新、删除） |
 | 接口 | └── LikeService.java | 点赞服务接口 |
-| 实现类 | └── LikeServiceImpl.java | 点赞服务实现（文章和评论点赞）|
+| 实现类 | └── LikeServiceImpl.java | 点赞服务实现（文章和评论点赞，触发通知）|
 | 接口 | └── CommentService.java | 评论服务接口 |
-| 实现类 | └── CommentServiceImpl.java | 评论服务实现 |
+| 实现类 | └── CommentServiceImpl.java | 评论服务实现（触发通知）|
 | 接口 | └── TagService.java | 标签服务接口 |
 | 实现类 | └── TagServiceImpl.java | 标签服务实现 |
 | 接口 | └── CategoryService.java | 分类服务接口 |
@@ -157,11 +162,13 @@ Controller ──► Service ──► Repository ──► Database
 | 接口 | └── ActiveUserService.java | 活跃用户追踪服务接口（可选，使用Redis） |
 | 实现类 | └── ActiveUserServiceImpl.java | 活跃用户追踪服务实现（可选，使用Redis） |
 | 接口 | └── FollowService.java | 关注服务接口 |
-| 实现类 | └── FollowServiceImpl.java | 关注服务实现（关注/取消关注、朋友检测、列表查询） |
+| 实现类 | └── FollowServiceImpl.java | 关注服务实现（关注/取消关注、朋友检测、列表查询，触发通知） |
 | 接口 | └── FollowVisibilityService.java | 关注可见性服务接口 |
 | 实现类 | └── FollowVisibilityServiceImpl.java | 关注可见性服务实现（按类型检查可见性） |
 | 接口 | └── PrivateMessageService.java | 私信服务接口 |
-| 实现类 | └── PrivateMessageServiceImpl.java | 私信服务实现（发送消息、防骚扰机制、已读状态） |
+| 实现类 | └── PrivateMessageServiceImpl.java | 私信服务实现（发送消息、防骚扰机制、已读状态，触发通知） |
+| 接口 | └── NotificationService.java | 通知服务接口 |
+| 实现类 | └── NotificationServiceImpl.java | 通知服务实现（创建通知、查询、标记已读、未读计数） |
 | 配置文件 | **resources/** | 存放应用的资源文件 |
 | 配置文件 | └── application.properties | 应用配置（数据库、JWT密钥等） |
 
@@ -227,6 +234,8 @@ Service 层使用接口与实现分离：
 - **Comment**: 评论信息（内容、用户、文章、父评论、被回复用户、层级、创建时间、更新时间）
 - **Follow**: 关注关系（关注者、被关注者、创建时间），用于存储单向关注关系
 - **FollowVisibility**: 关注可见性设置（用户、四种类型的独立可见性设置），控制关注信息对谁可见
+- **PrivateMessage**: 私信消息（发送者、接收者、内容、已读状态、创建时间）
+- **Notification**: 通知（类型、触发者、接收者、关联文章、关联评论、内容、已读状态、创建时间），用于消息中心
 
 ### 关系设计
 
@@ -245,6 +254,8 @@ Service 层使用接口与实现分离：
 - User ←─[一对多]─→ Follow（follower，一个用户可以关注多个人）
 - User ←─[一对多]─→ Follow（followed，一个用户可以被多个人关注）
 - User ←─[一对一]─→ FollowVisibility（一个用户有一个可见性设置）
+- User ←─[一对多]─→ Notification（recipient，一个用户可以收到多条通知）
+- User ←─[一对多]─→ Notification（actor，一个用户可以触发多条通知）
 
 ## 文件存储
 
@@ -296,11 +307,13 @@ uploads/
 - **ProfileEdit**: 编辑个人资料
 - **UserProfile**: 公开用户主页（查看其他用户资料及文章）
 - **CreatePost**: 创建/编辑文章
-- **PostDetail**: 文章详情
+- **PostDetail**: 文章详情（支持评论锚点跳转和高亮显示）
 - **TagPosts**: 标签文章列表
 - **Search**: 搜索结果页面（支持多维度搜索、排序、关键词高亮）
 - **CommentEdit**: 编辑评论页面（支持Markdown工具栏和实时预览）
 - **ReplyCreate**: 创建回复页面（支持Markdown工具栏和实时预览，与评论编辑页面体验一致）
+- **Messages**: 私信页面（实时聊天、会话列表、未读标记）
+- **Notifications**: 通知中心（通知列表、类型过滤、快捷操作、锚点导航）
 
 ### UI设计特点
 
@@ -344,7 +357,7 @@ uploads/
   - 特殊字符处理（SQL转义、URL处理、标点清理）
   - 搜索结果关键词高亮
   - 输入参数验证
-- **新增**: "记住我"功能、JWT自动刷新、增强的Markdown编辑器、头像上传系统、文章点赞功能、评论功能、评论点赞功能、子评论（回复）功能、子评论点赞功能、文章标签功能、创建者追踪、统一异常处理、**文章浏览量统计**（含防刷机制和访问日志）、**首页双模块布局**（热门文章+最新文章）、**文章摘要智能提取**（自动从内容提取）、**社区统计面板**（用户/文章/活跃用户/访问数）、**关注功能**（关注/取消关注、朋友检测、列表查询、独立可见性控制）
+- **新增**: "记住我"功能、JWT自动刷新、增强的Markdown编辑器、头像上传系统、文章点赞功能、评论功能、评论点赞功能、子评论（回复）功能、子评论点赞功能、文章标签功能、创建者追踪、统一异常处理、**文章浏览量统计**（含防刷机制和访问日志）、**首页双模块布局**（热门文章+最新文章）、**文章摘要智能提取**（自动从内容提取）、**社区统计面板**（用户/文章/活跃用户/访问数）、**关注功能**（关注/取消关注、朋友检测、列表查询、独立可见性控制）、**通知功能**（收件箱、未读计数、类型过滤、快捷操作、锚点跳转）
 
 ## Redis 集成（可选）
 
