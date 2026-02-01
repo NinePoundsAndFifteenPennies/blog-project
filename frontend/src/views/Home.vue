@@ -185,16 +185,8 @@
                 <!-- Popular Tags -->
                 <PopularTags />
 
-                <!-- Popular Authors Placeholder -->
-                <div class="card p-6">
-                  <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    热门作者
-                  </h3>
-                  <p class="text-sm text-gray-500">功能开发中...</p>
-                </div>
+                <!-- Hot Authors -->
+                <HotAuthors />
 
                 <!-- Community Stats -->
                 <CommunityStats />
@@ -217,6 +209,7 @@ import Pagination from '@/components/Pagination.vue'
 import PopularTags from '@/components/PopularTags.vue'
 import SearchPreview from '@/components/SearchPreview.vue'
 import CommunityStats from '@/components/CommunityStats.vue'
+import HotAuthors from '@/components/HotAuthors.vue'
 import { getPosts, searchPosts } from '@/api/posts'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
@@ -228,7 +221,8 @@ export default {
     Pagination,
     PopularTags,
     SearchPreview,
-    CommunityStats
+    CommunityStats,
+    HotAuthors
   },
   setup() {
     const store = useStore()
