@@ -82,7 +82,7 @@ public class HotAuthorServiceImpl implements HotAuthorService {
                 GROUP BY followed_id
             ) f ON u.id = f.followed_id
             LEFT JOIN (
-                SELECT user_id, COUNT(*) AS article_count, SUM(view_count) AS view_count 
+                SELECT user_id, COUNT(*) AS article_count, COALESCE(SUM(view_count), 0) AS view_count 
                 FROM posts 
                 WHERE is_draft = false 
                 GROUP BY user_id
@@ -102,7 +102,7 @@ public class HotAuthorServiceImpl implements HotAuthorService {
                 GROUP BY po.user_id
             ) c ON u.id = c.user_id
             WHERE p.article_count > 0
-            ORDER BY heat_score DESC
+            ORDER BY heat_score DESC, u.id ASC
             LIMIT :limit
             """;
 
