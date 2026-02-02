@@ -151,8 +151,7 @@ const routes = [
     {
         path: "/admin/login",
         name: "AdminLogin",
-        component: () => import("@/views/admin/AdminLogin.vue"),
-        meta: { title: "管理员登录", adminGuest: true },
+        redirect: { name: "Login", query: { redirect: "/admin" } },
     },
     {
         path: "/admin",
@@ -237,23 +236,19 @@ router.beforeEach((to, from, next) => {
     // 需要管理员权限的页面
     if (to.meta.requiresAdmin) {
         if (!isAuthenticated) {
+            // 未登录，跳转到统一登录页面
             return next({
-                path: "/admin/login",
+                path: "/login",
                 query: { redirect: to.fullPath },
             });
         } else if (!isAdmin) {
-            // 已登录但非管理员，显示403或跳转
+            // 已登录但非管理员，跳转首页并可以显示提示
             return next({
-                path: "/admin/login",
-                query: { message: "您没有管理员权限" },
+                path: "/",
             });
         } else {
             return next();
         }
-    }
-    // 管理员登录页面（已是管理员则跳转到管理后台）
-    else if (to.meta.adminGuest && isAuthenticated && isAdmin) {
-        return next("/admin");
     }
     // 需要认证的页面
     else if (to.meta.requiresAuth && !isAuthenticated) {

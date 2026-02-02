@@ -1,24 +1,6 @@
 import request from '@/utils/request'
 
 /**
- * 管理员登录
- * @param {Object} credentials - 登录凭证 { username, password, rememberMe }
- * @returns {Promise<string>} - 返回JWT token
- */
-export async function adminLogin(credentials) {
-    const response = await request({
-        url: "/admin/login",
-        method: "post",
-        data: {
-            username: credentials.username,
-            password: credentials.password,
-            rememberMe: credentials.rememberMe || false
-        },
-    });
-    return response.accessToken;
-}
-
-/**
  * 获取当前管理员信息
  * @returns {Promise<Object>} - 返回管理员用户对象
  */
