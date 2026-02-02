@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,6 +19,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     // CustomUserDetailsService 被 JwtAuthenticationFilter 依赖，所以这里不再需要直接注入
@@ -51,6 +53,10 @@ public class SecurityConfig {
                         // --- 权限规则调整 ---
                         // 允许对登录和注册接口的匿名访问
                         .requestMatchers("/api/users/register", "/api/users/login").permitAll()
+                        // 允许对管理员登录接口的匿名访问
+                        .requestMatchers("/api/admin/login").permitAll()
+                        // 管理员接口需要ADMIN角色（通过@PreAuthorize注解控制）
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // 允许对公开用户资料的匿名访问
                         .requestMatchers(HttpMethod.GET, "/api/users/*").permitAll()
                         // 允许对关注相关的GET请求的匿名访问（查看关注统计、关注/粉丝/朋友列表）

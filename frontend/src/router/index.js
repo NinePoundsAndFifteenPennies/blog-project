@@ -147,6 +147,19 @@ const routes = [
         component: () => import("@/views/Notifications.vue"),
         meta: { title: "通知", requiresAuth: true },
     },
+    // -------- 管理后台路由 --------
+    {
+        path: "/admin/login",
+        name: "AdminLogin",
+        component: () => import("@/views/admin/AdminLogin.vue"),
+        meta: { title: "管理员登录", adminGuest: true },
+    },
+    {
+        path: "/admin",
+        name: "AdminDashboard",
+        component: () => import("@/views/admin/AdminDashboard.vue"),
+        meta: { title: "管理后台", requiresAdmin: true },
+    },
     {
         path: "/:pathMatch(.*)*",
         name: "NotFound",
@@ -208,8 +221,33 @@ router.beforeEach((to, from, next) => {
     const token = localStorage.getItem("token");
     const isAuthenticated = !!token;
 
+    // 获取用户信息检查角色
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    const isAdmin = user && user.role === "ADMIN";
+
+    // 需要管理员权限的页面
+    if (to.meta.requiresAdmin) {
+        if (!isAuthenticated) {
+            next({
+                path: "/admin/login",
+                query: { redirect: to.fullPath },
+            });
+        } else if (!isAdmin) {
+            // 已登录但非管理员，显示403或跳转
+            next({
+                path: "/admin/login",
+                query: { message: "您没有管理员权限" },
+            });
+        } else {
+            next();
+        }
+    }
+    // 管理员登录页面（已是管理员则跳转到管理后台）
+    else if (to.meta.adminGuest && isAuthenticated && isAdmin) {
+        next("/admin");
+    }
     // 需要认证的页面
-    if (to.meta.requiresAuth && !isAuthenticated) {
+    else if (to.meta.requiresAuth && !isAuthenticated) {
         next({
             path: "/login",
             query: { redirect: to.fullPath },
