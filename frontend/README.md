@@ -78,24 +78,3 @@ npm run serve
 # 生产构建
 npm run build
 ```
-
-## 📖 主要API接口
-
-### 私信接口
-
-- `POST /api/messages/send/{receiverId}` - 发送私信
-- `GET /api/messages/conversations` - 获取会话列表
-- `GET /api/messages/conversation/{partnerId}` - 获取对话消息
-- `PUT /api/messages/read/{partnerId}` - 标记消息已读
-- `GET /api/messages/unread/count` - 获取未读消息总数
-- `GET /api/messages/unread/count/{userId}` - 获取来自特定用户的未读数
-
-### 关注接口
-
-- `POST /api/users/:userId/follow` - 关注用户
-- `DELETE /api/users/:userId/follow` - 取消关注
-- `GET /api/users/:userId/follow/stats` - 获取关注统计
-- `GET /api/users/:userId/following` - 获取关注列表
-- `GET /api/users/:userId/followers` - 获取粉丝列表
-- `GET /api/users/:userId/friends` - 获取朋友列表
-
