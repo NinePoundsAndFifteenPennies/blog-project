@@ -52,10 +52,17 @@
     <section class="py-16 relative">
       <div class="container mx-auto px-4">
         <div class="max-w-7xl mx-auto">
-          <!-- Main Content Layout -->
-          <div class="flex flex-col lg:flex-row gap-8">
-            <!-- Main Content Area (Left - 2/3 width) -->
-            <div class="flex-1 lg:w-2/3 order-1 lg:order-1 space-y-12">
+          <!-- Main Content Layout - 3 columns -->
+          <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Left Sidebar - Hot Authors -->
+            <aside class="lg:w-72 flex-shrink-0 order-2 lg:order-1">
+              <div class="lg:sticky lg:top-24">
+                <HotAuthors />
+              </div>
+            </aside>
+
+            <!-- Main Content Area (Center) -->
+            <div class="flex-1 min-w-0 order-1 lg:order-2 space-y-12">
               
               <!-- Module 1: Hot Articles (Top 12 by hotness) -->
               <div>
@@ -168,8 +175,8 @@
               </div>
             </div>
 
-            <!-- Sidebar (Right - 1/3 width) -->
-            <aside class="lg:w-1/3 flex-shrink-0 order-2 lg:order-2">
+            <!-- Sidebar (Right) -->
+            <aside class="lg:w-64 flex-shrink-0 order-3 lg:order-3">
               <div class="lg:sticky lg:top-24 space-y-6">
                 <!-- Search Box -->
                 <div class="card p-6 overflow-visible">
@@ -184,17 +191,6 @@
 
                 <!-- Popular Tags -->
                 <PopularTags />
-
-                <!-- Popular Authors Placeholder -->
-                <div class="card p-6">
-                  <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    热门作者
-                  </h3>
-                  <p class="text-sm text-gray-500">功能开发中...</p>
-                </div>
 
                 <!-- Community Stats -->
                 <CommunityStats />
@@ -217,6 +213,7 @@ import Pagination from '@/components/Pagination.vue'
 import PopularTags from '@/components/PopularTags.vue'
 import SearchPreview from '@/components/SearchPreview.vue'
 import CommunityStats from '@/components/CommunityStats.vue'
+import HotAuthors from '@/components/HotAuthors.vue'
 import { getPosts, searchPosts } from '@/api/posts'
 import { getFullAvatarUrl } from '@/utils/avatar'
 
@@ -228,7 +225,8 @@ export default {
     Pagination,
     PopularTags,
     SearchPreview,
-    CommunityStats
+    CommunityStats,
+    HotAuthors
   },
   setup() {
     const store = useStore()

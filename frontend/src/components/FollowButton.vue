@@ -32,6 +32,7 @@
 <script>
 import { ref, computed, watch } from 'vue'
 import { useStore } from 'vuex'
+import { useRouter } from 'vue-router'
 import { followUser, unfollowUser } from '@/api/follow'
 
 export default {
@@ -53,6 +54,7 @@ export default {
   emits: ['follow-change'],
   setup(props, { emit }) {
     const store = useStore()
+    const router = useRouter()
     const loading = ref(false)
     const isFollowing = ref(props.initialFollowing)
     const isFriend = ref(props.initialFriend)
@@ -87,8 +89,11 @@ export default {
 
     const toggleFollow = async () => {
       if (!isLoggedIn.value) {
-        // 未登录，可以跳转到登录页或显示提示
-        alert('请先登录')
+        // 未登录，跳转到登录页
+        router.push({ 
+          path: '/login', 
+          query: { redirect: router.currentRoute.value.fullPath } 
+        })
         return
       }
 

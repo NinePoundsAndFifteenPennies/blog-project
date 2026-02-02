@@ -257,6 +257,91 @@ Content-Type: application/json
 }
 ```
 
+---
+
+## 热门作者相关接口
+
+### 获取热门作者列表
+
+获取按热度排序的作者列表。热度值根据加权对数混合模型计算：
+
+$$H = W_a \cdot A + W_f \cdot F + W_l \cdot L + W_c \cdot C + W_v \cdot \log_{10}(V + 1)$$
+
+其中权重为：
+- 文章数量 (W_a): 5.0
+- 粉丝数 (W_f): 15.0
+- 点赞数 (W_l): 2.5
+- 评论数 (W_c): 6.0
+- 浏览量对数 (W_v): 1.0
+
+```http
+GET /api/authors/hot
+```
+
+**查询参数:**
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| limit | int | 30 | 返回数量，最大 30 |
+
+**成功响应:** `200 OK`
+```json
+[
+  {
+    "id": 1,
+    "username": "alice",
+    "nickname": "Alice",
+    "avatarUrl": "/uploads/1/avatars/abc.jpg",
+    "bio": "技术博主",
+    "followerCount": 1200,
+    "articleCount": 50,
+    "likeCount": 3500,
+    "commentCount": 800,
+    "viewCount": 150000,
+    "heatScore": 85.5,
+    "lastActiveAt": "2026-02-01T10:30:00Z"
+  },
+  {
+    "id": 2,
+    "username": "bob",
+    "nickname": "Bob",
+    "avatarUrl": "/uploads/2/avatars/xyz.jpg",
+    "bio": "前端开发者",
+    "followerCount": 800,
+    "articleCount": 30,
+    "likeCount": 2000,
+    "commentCount": 500,
+    "viewCount": 80000,
+    "heatScore": 65.2,
+    "lastActiveAt": "2026-02-01T08:15:00Z"
+  }
+]
+```
+
+**字段说明:**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | Long | 用户 ID |
+| username | String | 用户名 |
+| nickname | String | 昵称 |
+| avatarUrl | String | 头像 URL |
+| bio | String | 个人简介 |
+| followerCount | Long | 粉丝数 |
+| articleCount | Long | 已发布文章数 |
+| likeCount | Long | 获得的总点赞数 |
+| commentCount | Long | 获得的总评论数 |
+| viewCount | Long | 总浏览量 |
+| heatScore | Double | 计算出的热度值 |
+| lastActiveAt | DateTime | 最后活跃时间 |
+
+**说明:**
+- 此接口为公开接口，无需认证
+- 只统计已发布文章（非草稿）的作者
+- 结果按热度值降序排列
+
+---
+
 ## 文章相关接口
 
 ### 创建文章
@@ -2722,6 +2807,7 @@ Authorization: Bearer {token}
 ```
 
 **查询参数:**
+
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | page | integer | 0 | 页码（从0开始）|
@@ -2771,6 +2857,7 @@ Authorization: Bearer {token}
 ```
 
 **通知类型说明:**
+
 | 类型 | 说明 |
 |------|------|
 | POST_LIKED | 文章被点赞 |
@@ -2855,6 +2942,7 @@ Authorization: Bearer {token}
 ```
 
 **查询参数:**
+
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | filter | string | all | 过滤类型：`all`（全部）、`comments`（评论）、`likes`（点赞）、`follows`（关注）、`messages`（私信）|

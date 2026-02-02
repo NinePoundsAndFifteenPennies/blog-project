@@ -68,6 +68,7 @@ Controller ──► Service ──► Repository ──► Database
 | 控制器 | └── FollowController.java | 提供关注功能 API（关注/取消关注、列表查询、可见性设置） |
 | 控制器 | └── PrivateMessageController.java | 提供私信功能 API（发送消息、获取对话、未读数统计） |
 | 控制器 | └── NotificationController.java | 提供通知功能 API（通知列表、未读数、标记已读） |
+| 控制器 | └── HotAuthorController.java | 提供热门作者 API（按热度排序的作者列表） |
 | 数据传输对象 | **dto/** | 定义请求和响应的数据模型 |
 | DTO | └── UserRegistrationRequest.java | 用户注册请求体 |
 | DTO | └── LoginRequest.java | 用户登录请求体 |
@@ -97,6 +98,7 @@ Controller ──► Service ──► Repository ──► Database
 | DTO | └── PrivateMessageResponse.java | 私信响应体 |
 | DTO | └── ConversationResponse.java | 会话列表响应体 |
 | DTO | └── NotificationResponse.java | 通知响应体 |
+| DTO | └── HotAuthorResponse.java | 热门作者响应体（含热度值、统计数据） |
 | 拦截器层 | **interceptor/** | HTTP 请求拦截器 |
 | 拦截器 | └── UserActivityInterceptor.java | 用户活跃追踪拦截器（可选，配合Redis使用） |
 | 异常层 | **exception/** | 自定义异常类与全局异常处理 |
@@ -169,6 +171,8 @@ Controller ──► Service ──► Repository ──► Database
 | 实现类 | └── PrivateMessageServiceImpl.java | 私信服务实现（发送消息、防骚扰机制、已读状态，触发通知） |
 | 接口 | └── NotificationService.java | 通知服务接口 |
 | 实现类 | └── NotificationServiceImpl.java | 通知服务实现（创建通知、查询、标记已读、未读计数） |
+| 接口 | └── HotAuthorService.java | 热门作者服务接口 |
+| 实现类 | └── HotAuthorServiceImpl.java | 热门作者服务实现（加权对数混合模型计算热度） |
 | 配置文件 | **resources/** | 存放应用的资源文件 |
 | 配置文件 | └── application.properties | 应用配置（数据库、JWT密钥等） |
 
@@ -333,33 +337,34 @@ uploads/
 - API未实现时使用占位数据，确保界面完整
 
 **侧边栏组件**:
+- 热门作者榜单: 左侧边栏，"品"字形布局展示前三名（大头像+皇冠/奖牌），列表展示4-30名
 - 搜索框: 支持实时搜索，关键词高亮
 - 热门标签: 显示使用频率最高的标签
-- 热门作者: 占位(待后端支持)
 - 社区统计: 实时更新社区数据
 
-## 与原始方案的差异
+## 热门作者算法
 
-### 功能差异
+### 核心公式：加权对数混合模型
 
-- **已实现**: 标签 (Tag) 系统，包含：
-  - 完整的CRUD操作
-  - 创建者追踪（便于后台管理）
-  - 颜色和图标支持（便于前端展示）
-  - 排序功能
-  - 多对多关系（文章与标签）
-  - 自动标签创建（创建文章时）
-  - 热门标签查询
-  - 增强的参数验证和异常处理
-- **已实现**: 文章搜索功能，包含：
-  - 多维度搜索（关键词、作者、标题、标签）
-  - 按时间或热度排序（支持升序/降序）
-  - 特殊字符处理（SQL转义、URL处理、标点清理）
-  - 搜索结果关键词高亮
-  - 输入参数验证
-- **新增**: "记住我"功能、JWT自动刷新、增强的Markdown编辑器、头像上传系统、文章点赞功能、评论功能、评论点赞功能、子评论（回复）功能、子评论点赞功能、文章标签功能、创建者追踪、统一异常处理、**文章浏览量统计**（含防刷机制和访问日志）、**首页双模块布局**（热门文章+最新文章）、**文章摘要智能提取**（自动从内容提取）、**社区统计面板**（用户/文章/活跃用户/访问数）、**关注功能**（关注/取消关注、朋友检测、列表查询、独立可见性控制）、**通知功能**（收件箱、未读计数、类型过滤、快捷操作、锚点跳转）
+为平衡不同量级的数据，采用对数平滑处理浏览量，并对高价值行为赋予高权重：
 
-## Redis 集成（可选）
+$$H = W_a \cdot A + W_f \cdot F + W_l \cdot L + W_c \cdot C + W_v \cdot \log_{10}(V + 1)$$
+
+**权重配置**:
+| 参数 | 权重 | 说明 |
+|------|------|------|
+| 文章数量 (A) | 5.0 | 代表产出能力 |
+| 粉丝数 (F) | 15.0 | 最高权重，代表长期价值 |
+| 点赞数 (L) | 2.5 | 轻度认可 |
+| 评论数 (C) | 6.0 | 深度互动 |
+| 浏览量对数 (V) | 1.0 | 基础底座，需对数处理 |
+
+**前端展示**:
+- 前三名使用"品"字形布局：Top 1 大头像+👑皇冠，Top 2/3 中头像+🥈🥉奖牌
+- 4-30名列表展示：显示排名、头像、昵称、粉丝数、热度值
+- 头像悬停弹出用户卡片，支持一键关注
+
+## Redis 集成
 
 ### 概述
 
@@ -418,12 +423,6 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 - 拦截器通过 `getUserIdFromJWT()` 提取用户ID
 - 如果旧 token 不包含 userId，自动通过 username 查询数据库
 - 确保新旧 token 共存期间系统正常运行
-
-### 架构差异
-
-- **认证入口**: 使用 UserController 而非 AuthController
-- **配置文件**: 使用 application.properties 而非 application.yml
-- **文档工具**: 未集成 Swagger
 
 ### 权限简化
 

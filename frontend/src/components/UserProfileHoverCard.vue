@@ -28,9 +28,10 @@
           <!-- User Info -->
           <div v-else class="space-y-3">
             <!-- Avatar and Name -->
-            <div class="flex items-center space-x-3 cursor-pointer" @click="goToProfile">
+            <div class="flex items-center space-x-3">
               <div 
-                class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shadow-sm overflow-hidden bg-primary-600 hover:ring-2 hover:ring-primary-300 transition-all"
+                class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shadow-sm overflow-hidden bg-primary-600 hover:ring-2 hover:ring-primary-300 transition-all cursor-pointer"
+                @click="goToProfile"
               >
                 <img 
                   v-if="userInfo.avatarUrl && !avatarError" 
@@ -42,7 +43,7 @@
                 <span v-else>{{ userInitial }}</span>
               </div>
               <div class="flex-1 min-w-0">
-                <h3 class="text-base font-bold text-gray-900 truncate hover:text-primary-600 transition-colors">{{ displayName }}</h3>
+                <h3 class="text-base font-bold text-gray-900 truncate hover:text-primary-600 transition-colors cursor-pointer" @click="goToProfile">{{ displayName }}</h3>
                 <p class="text-xs text-gray-500 truncate">@{{ userInfo.username }}</p>
               </div>
             </div>
@@ -52,6 +53,16 @@
               {{ userInfo.bio }}
             </p>
             <p v-else class="text-sm text-gray-400 italic">暂无个人简介</p>
+
+            <!-- Follow Button -->
+            <FollowButton 
+              v-if="showFollowButton && userInfo.id"
+              :user-id="userInfo.id"
+              :initial-following="isFollowing"
+              :initial-friend="isFriend"
+              class="w-full justify-center"
+              @click.stop
+            />
 
             <!-- Stats -->
             <div class="flex items-center space-x-4 text-xs text-gray-500 border-t pt-3">
@@ -90,9 +101,14 @@ import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { getFullAvatarUrl } from '@/utils/avatar'
 import { getPublicUserProfile } from '@/api/auth'
+import { getFollowStats } from '@/api/follow'
+import FollowButton from '@/components/FollowButton.vue'
 
 export default {
   name: 'UserProfileHoverCard',
+  components: {
+    FollowButton
+  },
   props: {
     username: {
       type: String,
@@ -112,13 +128,25 @@ export default {
     const userInfo = ref(props.userData)
     const avatarError = ref(false)
     const cardStyle = ref({})
+    const isFollowing = ref(false)
+    const isFriend = ref(false)
     let hideTimeout = null
 
     const currentUser = computed(() => store.getters.currentUser)
+    const isLoggedIn = computed(() => store.getters.isLoggedIn)
+    
+    // Show follow button if not viewing own profile (show for both logged-in and non-logged-in users)
+    const showFollowButton = computed(() => {
+      return userInfo.value && 
+             (!currentUser.value || currentUser.value.username !== props.username)
+    })
 
     // Watch for userData prop changes (when hovering over different users)
     watch(() => props.userData, (newData) => {
       userInfo.value = newData
+      // Reset follow status when user changes
+      isFollowing.value = false
+      isFriend.value = false
     })
 
     const displayName = computed(() => {
@@ -207,6 +235,18 @@ export default {
               ...publicProfile,
               avatarUrl: getFullAvatarUrl(publicProfile.avatarUrl)
             }
+            
+            // Fetch follow status if user is logged in and has user id
+            if (isLoggedIn.value && userInfo.value.id) {
+              try {
+                const followStats = await getFollowStats(userInfo.value.id)
+                isFollowing.value = followStats.isFollowing || false
+                isFriend.value = followStats.isFriend || false
+              } catch (followError) {
+                console.error('Failed to load follow status:', followError)
+                // Don't block the card from showing
+              }
+            }
           } catch (error) {
             console.error('Failed to load public profile:', error)
             // If fetch fails but we have basic data (name/avatar), don't hide the card
@@ -215,6 +255,15 @@ export default {
             }
           } finally {
             loading.value = false
+          }
+        } else if (isLoggedIn.value && userInfo.value.id) {
+          // User data exists but might need to fetch follow status
+          try {
+            const followStats = await getFollowStats(userInfo.value.id)
+            isFollowing.value = followStats.isFollowing || false
+            isFriend.value = followStats.isFriend || false
+          } catch (followError) {
+            console.error('Failed to load follow status:', followError)
           }
         }
       }
@@ -265,6 +314,9 @@ export default {
       cardStyle,
       displayName,
       userInitial,
+      showFollowButton,
+      isFollowing,
+      isFriend,
       handleMouseEnter,
       showCard,
       cancelHide,
