@@ -61,7 +61,7 @@ public class User {
     private LocalDateTime updatedAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false, length = 20)
+    @Column(name = "role", length = 20)
     private Role role = Role.USER; // 默认为普通用户
 
     // 在持久化之前自动设置创建时间和更新时间

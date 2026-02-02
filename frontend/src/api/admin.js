@@ -39,9 +39,7 @@ export async function adminRefreshToken(rememberMe) {
     const response = await request({
         url: "/admin/refresh-token",
         method: "post",
-        data: {
-            rememberMe: rememberMe || false
-        },
+        data: rememberMe || false,
     });
     return response.accessToken;
 }

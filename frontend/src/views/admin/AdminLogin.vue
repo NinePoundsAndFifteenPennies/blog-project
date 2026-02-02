@@ -31,11 +31,9 @@
                   type="text"
                   placeholder="请输入管理员用户名"
                   class="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                  :class="{ 'border-red-500': errors.username }"
                   required
               />
             </div>
-            <p v-if="errors.username" class="mt-1 text-sm text-red-400">{{ errors.username }}</p>
           </div>
 
           <!-- Password Field -->
@@ -54,7 +52,6 @@
                   :type="showPassword ? 'text' : 'password'"
                   placeholder="请输入密码"
                   class="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg pl-10 pr-10 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                  :class="{ 'border-red-500': errors.password }"
                   required
               />
               <button
@@ -71,7 +68,6 @@
                 </svg>
               </button>
             </div>
-            <p v-if="errors.password" class="mt-1 text-sm text-red-400">{{ errors.password }}</p>
           </div>
 
           <!-- Remember Me -->
@@ -153,11 +149,6 @@ export default {
       rememberMe: false
     })
 
-    const errors = reactive({
-      username: '',
-      password: ''
-    })
-
     // 检查是否有来自URL的提示信息
     onMounted(() => {
       if (route.query.message) {
@@ -166,12 +157,6 @@ export default {
     })
 
     const handleLogin = async () => {
-      // 简单的本地验证
-      if (!formData.username || !formData.password) {
-        errorMessage.value = '请输入用户名和密码';
-        return;
-      }
-
       loading.value = true
       errorMessage.value = ''
 
@@ -214,7 +199,6 @@ export default {
       showPassword,
       errorMessage,
       formData,
-      errors,
       handleLogin
     }
   }

@@ -1,5 +1,6 @@
 package com.lost.blog.security; // 确保包名正确
 
+import com.lost.blog.model.Role;
 import com.lost.blog.model.User;
 import com.lost.blog.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,11 +36,12 @@ public class CustomUserDetailsService implements UserDetailsService {
                     }
                 });
          // 将我们的User实体转换为Spring Security所需的UserDetails对象
-         // 包含用户角色信息
+         // 包含用户角色信息（如果role为null，默认为USER）
+        Role role = user.getRole() != null ? user.getRole() : Role.USER;
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()))
         );
     }
 }

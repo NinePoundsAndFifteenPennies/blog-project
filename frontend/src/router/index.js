@@ -221,43 +221,52 @@ router.beforeEach((to, from, next) => {
     const token = localStorage.getItem("token");
     const isAuthenticated = !!token;
 
-    // 获取用户信息检查角色
-    const user = JSON.parse(localStorage.getItem("user") || "null");
-    const isAdmin = user && user.role === "ADMIN";
+    // 获取用户信息检查角色（安全解析localStorage数据）
+    let user = null;
+    let isAdmin = false;
+    try {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+            user = JSON.parse(userStr);
+            isAdmin = user && typeof user.role === "string" && user.role === "ADMIN";
+        }
+    } catch {
+        // 如果解析失败，忽略并使用默认值
+    }
 
     // 需要管理员权限的页面
     if (to.meta.requiresAdmin) {
         if (!isAuthenticated) {
-            next({
+            return next({
                 path: "/admin/login",
                 query: { redirect: to.fullPath },
             });
         } else if (!isAdmin) {
             // 已登录但非管理员，显示403或跳转
-            next({
+            return next({
                 path: "/admin/login",
                 query: { message: "您没有管理员权限" },
             });
         } else {
-            next();
+            return next();
         }
     }
     // 管理员登录页面（已是管理员则跳转到管理后台）
     else if (to.meta.adminGuest && isAuthenticated && isAdmin) {
-        next("/admin");
+        return next("/admin");
     }
     // 需要认证的页面
     else if (to.meta.requiresAuth && !isAuthenticated) {
-        next({
+        return next({
             path: "/login",
             query: { redirect: to.fullPath },
         });
     }
     // 已登录用户访问登录/注册页面,重定向到首页
     else if (to.meta.guest && isAuthenticated) {
-        next("/");
+        return next("/");
     } else {
-        next();
+        return next();
     }
 });
 

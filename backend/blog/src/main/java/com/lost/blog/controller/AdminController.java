@@ -83,10 +83,6 @@ public class AdminController {
     @GetMapping("/me")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getCurrentAdmin(@AuthenticationPrincipal UserDetails currentUser) {
-        if (currentUser == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未登录");
-        }
-        
         User user = userService.findByUsername(currentUser.getUsername());
         UserResponse userResponse = UserMapper.toUserResponse(user);
         return ResponseEntity.ok(userResponse);
@@ -98,14 +94,10 @@ public class AdminController {
     @PostMapping("/refresh-token")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> refreshToken(@AuthenticationPrincipal UserDetails currentUser,
-                                         @RequestBody(required = false) LoginRequest refreshRequest) {
-        if (currentUser == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未登录");
-        }
-        
+                                         @RequestBody(required = false) Boolean rememberMe) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        boolean rememberMe = refreshRequest != null && refreshRequest.isRememberMe();
-        String jwt = tokenProvider.generateToken(authentication, rememberMe);
+        boolean shouldRemember = rememberMe != null && rememberMe;
+        String jwt = tokenProvider.generateToken(authentication, shouldRemember);
         return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
     }
 
@@ -116,10 +108,6 @@ public class AdminController {
     @GetMapping("/dashboard")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails currentUser) {
-        if (currentUser == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未登录");
-        }
-        
         // 返回简单的仪表盘数据，后续可以扩展
         return ResponseEntity.ok(java.util.Map.of(
             "message", "欢迎进入管理后台",
