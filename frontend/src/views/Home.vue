@@ -52,10 +52,17 @@
     <section class="py-16 relative">
       <div class="container mx-auto px-4">
         <div class="max-w-7xl mx-auto">
-          <!-- Main Content Layout -->
-          <div class="flex flex-col lg:flex-row gap-8">
-            <!-- Main Content Area (Left - 2/3 width) -->
-            <div class="flex-1 lg:w-2/3 order-1 lg:order-1 space-y-12">
+          <!-- Main Content Layout - 3 columns -->
+          <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Left Sidebar - Hot Authors -->
+            <aside class="lg:w-56 flex-shrink-0 order-2 lg:order-1">
+              <div class="lg:sticky lg:top-24">
+                <HotAuthors />
+              </div>
+            </aside>
+
+            <!-- Main Content Area (Center) -->
+            <div class="flex-1 order-1 lg:order-2 space-y-12">
               
               <!-- Module 1: Hot Articles (Top 12 by hotness) -->
               <div>
@@ -168,8 +175,8 @@
               </div>
             </div>
 
-            <!-- Sidebar (Right - 1/3 width) -->
-            <aside class="lg:w-1/3 flex-shrink-0 order-2 lg:order-2">
+            <!-- Sidebar (Right) -->
+            <aside class="lg:w-72 flex-shrink-0 order-3 lg:order-3">
               <div class="lg:sticky lg:top-24 space-y-6">
                 <!-- Search Box -->
                 <div class="card p-6 overflow-visible">
@@ -184,9 +191,6 @@
 
                 <!-- Popular Tags -->
                 <PopularTags />
-
-                <!-- Hot Authors -->
-                <HotAuthors />
 
                 <!-- Community Stats -->
                 <CommunityStats />

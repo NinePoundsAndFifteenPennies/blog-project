@@ -37,23 +37,28 @@
       <div v-if="topAuthors.length > 0" class="pb-4 border-b border-gray-100">
         <!-- Top 1 - Center, largest -->
         <div v-if="topAuthors[0]" class="flex flex-col items-center mb-4">
-          <div class="relative cursor-pointer" @click="goToProfile(topAuthors[0])">
-            <!-- Crown for #1 -->
-            <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 text-xl z-10">👑</div>
-            <div 
-              class="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg overflow-hidden ring-4 ring-yellow-400 hover:ring-yellow-500 transition-all"
-              :style="{ backgroundColor: getAvatarColor(topAuthors[0].username) }"
-            >
-              <img 
-                v-if="topAuthors[0].avatarUrl && !avatarErrors[topAuthors[0].id]" 
-                :src="getFullAvatarUrl(topAuthors[0].avatarUrl)" 
-                :alt="getDisplayName(topAuthors[0])"
-                class="w-full h-full object-cover"
-                @error="avatarErrors[topAuthors[0].id] = true"
-              />
-              <span v-else>{{ getInitial(topAuthors[0]) }}</span>
+          <UserProfileHoverCard 
+            :username="topAuthors[0].username" 
+            :user-data="formatUserDataForHoverCard(topAuthors[0])"
+          >
+            <div class="relative">
+              <!-- Crown for #1 -->
+              <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 text-xl z-10">👑</div>
+              <div 
+                class="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg overflow-hidden ring-4 ring-yellow-400 hover:ring-yellow-500 transition-all"
+                :style="{ backgroundColor: getAvatarColor(topAuthors[0].username) }"
+              >
+                <img 
+                  v-if="topAuthors[0].avatarUrl && !avatarErrors[topAuthors[0].id]" 
+                  :src="getFullAvatarUrl(topAuthors[0].avatarUrl)" 
+                  :alt="getDisplayName(topAuthors[0])"
+                  class="w-full h-full object-cover"
+                  @error="avatarErrors[topAuthors[0].id] = true"
+                />
+                <span v-else>{{ getInitial(topAuthors[0]) }}</span>
+              </div>
             </div>
-          </div>
+          </UserProfileHoverCard>
           <div class="mt-2 text-center">
             <h4 
               class="font-bold text-gray-900 cursor-pointer hover:text-primary-600 transition-colors"
@@ -64,13 +69,6 @@
             <div class="flex items-center justify-center text-orange-500 font-medium text-sm">
               🔥 {{ formatHeatScore(topAuthors[0].heatScore) }}°C
             </div>
-            <FollowButton 
-              v-if="currentUser && currentUser.id !== topAuthors[0].id"
-              :user-id="topAuthors[0].id"
-              :initial-following="false"
-              :initial-friend="false"
-              class="mt-2 text-xs px-3 py-1"
-            />
           </div>
         </div>
 
@@ -81,26 +79,31 @@
             :key="author.id"
             class="flex flex-col items-center"
           >
-            <div class="relative cursor-pointer" @click="goToProfile(author)">
-              <!-- Medal for #2 and #3 -->
-              <div class="absolute -top-2 left-1/2 transform -translate-x-1/2 text-sm z-10">
-                {{ index === 0 ? '🥈' : '🥉' }}
+            <UserProfileHoverCard 
+              :username="author.username" 
+              :user-data="formatUserDataForHoverCard(author)"
+            >
+              <div class="relative">
+                <!-- Medal for #2 and #3 -->
+                <div class="absolute -top-2 left-1/2 transform -translate-x-1/2 text-sm z-10">
+                  {{ index === 0 ? '🥈' : '🥉' }}
+                </div>
+                <div 
+                  class="w-14 h-14 rounded-full flex items-center justify-center text-white text-lg font-bold shadow-md overflow-hidden ring-2 hover:ring-3 transition-all"
+                  :class="index === 0 ? 'ring-gray-400 hover:ring-gray-500' : 'ring-amber-600 hover:ring-amber-700'"
+                  :style="{ backgroundColor: getAvatarColor(author.username) }"
+                >
+                  <img 
+                    v-if="author.avatarUrl && !avatarErrors[author.id]" 
+                    :src="getFullAvatarUrl(author.avatarUrl)" 
+                    :alt="getDisplayName(author)"
+                    class="w-full h-full object-cover"
+                    @error="avatarErrors[author.id] = true"
+                  />
+                  <span v-else>{{ getInitial(author) }}</span>
+                </div>
               </div>
-              <div 
-                class="w-14 h-14 rounded-full flex items-center justify-center text-white text-lg font-bold shadow-md overflow-hidden ring-2 hover:ring-3 transition-all"
-                :class="index === 0 ? 'ring-gray-400 hover:ring-gray-500' : 'ring-amber-600 hover:ring-amber-700'"
-                :style="{ backgroundColor: getAvatarColor(author.username) }"
-              >
-                <img 
-                  v-if="author.avatarUrl && !avatarErrors[author.id]" 
-                  :src="getFullAvatarUrl(author.avatarUrl)" 
-                  :alt="getDisplayName(author)"
-                  class="w-full h-full object-cover"
-                  @error="avatarErrors[author.id] = true"
-                />
-                <span v-else>{{ getInitial(author) }}</span>
-              </div>
-            </div>
+            </UserProfileHoverCard>
             <div class="mt-2 text-center">
               <h4 
                 class="font-semibold text-gray-900 text-sm cursor-pointer hover:text-primary-600 transition-colors"
@@ -126,21 +129,25 @@
           <div class="flex items-center space-x-3">
             <!-- Rank number -->
             <span class="text-gray-400 text-sm font-medium w-5 text-right">{{ index + 4 }}</span>
-            <!-- Avatar -->
-            <div 
-              class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary-300 transition-all"
-              :style="{ backgroundColor: getAvatarColor(author.username) }"
-              @click="goToProfile(author)"
+            <!-- Avatar with hover card -->
+            <UserProfileHoverCard 
+              :username="author.username" 
+              :user-data="formatUserDataForHoverCard(author)"
             >
-              <img 
-                v-if="author.avatarUrl && !avatarErrors[author.id]" 
-                :src="getFullAvatarUrl(author.avatarUrl)" 
-                :alt="getDisplayName(author)"
-                class="w-full h-full object-cover"
-                @error="avatarErrors[author.id] = true"
-              />
-              <span v-else>{{ getInitial(author) }}</span>
-            </div>
+              <div 
+                class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm overflow-hidden hover:ring-2 hover:ring-primary-300 transition-all"
+                :style="{ backgroundColor: getAvatarColor(author.username) }"
+              >
+                <img 
+                  v-if="author.avatarUrl && !avatarErrors[author.id]" 
+                  :src="getFullAvatarUrl(author.avatarUrl)" 
+                  :alt="getDisplayName(author)"
+                  class="w-full h-full object-cover"
+                  @error="avatarErrors[author.id] = true"
+                />
+                <span v-else>{{ getInitial(author) }}</span>
+              </div>
+            </UserProfileHoverCard>
             <!-- Name and followers -->
             <div class="min-w-0">
               <h4 
@@ -171,25 +178,21 @@
 
 <script>
 import { ref, computed, onMounted, reactive } from 'vue'
-import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { getHotAuthors } from '@/api/authors'
 import { getFullAvatarUrl } from '@/utils/avatar'
-import FollowButton from '@/components/FollowButton.vue'
+import UserProfileHoverCard from '@/components/UserProfileHoverCard.vue'
 
 export default {
   name: 'HotAuthors',
   components: {
-    FollowButton
+    UserProfileHoverCard
   },
   setup() {
-    const store = useStore()
     const router = useRouter()
     const loading = ref(true)
     const authors = ref([])
     const avatarErrors = reactive({})
-
-    const currentUser = computed(() => store.getters.currentUser)
 
     // Top 3 authors for special display
     const topAuthors = computed(() => authors.value.slice(0, 3))
@@ -263,6 +266,17 @@ export default {
       router.push(`/user/${author.username}`)
     }
 
+    // Format user data for hover card component
+    const formatUserDataForHoverCard = (author) => {
+      return {
+        id: author.id,
+        username: author.username,
+        nickname: author.nickname,
+        avatarUrl: getFullAvatarUrl(author.avatarUrl),
+        bio: author.bio
+      }
+    }
+
     onMounted(() => {
       loadHotAuthors()
     })
@@ -273,14 +287,14 @@ export default {
       topAuthors,
       restAuthors,
       avatarErrors,
-      currentUser,
       getDisplayName,
       getInitial,
       getAvatarColor,
       getFullAvatarUrl,
       formatHeatScore,
       formatCount,
-      goToProfile
+      goToProfile,
+      formatUserDataForHoverCard
     }
   }
 }

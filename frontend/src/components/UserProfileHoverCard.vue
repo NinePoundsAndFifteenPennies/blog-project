@@ -28,9 +28,10 @@
           <!-- User Info -->
           <div v-else class="space-y-3">
             <!-- Avatar and Name -->
-            <div class="flex items-center space-x-3 cursor-pointer" @click="goToProfile">
+            <div class="flex items-center space-x-3">
               <div 
-                class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shadow-sm overflow-hidden bg-primary-600 hover:ring-2 hover:ring-primary-300 transition-all"
+                class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shadow-sm overflow-hidden bg-primary-600 hover:ring-2 hover:ring-primary-300 transition-all cursor-pointer"
+                @click="goToProfile"
               >
                 <img 
                   v-if="userInfo.avatarUrl && !avatarError" 
@@ -42,7 +43,7 @@
                 <span v-else>{{ userInitial }}</span>
               </div>
               <div class="flex-1 min-w-0">
-                <h3 class="text-base font-bold text-gray-900 truncate hover:text-primary-600 transition-colors">{{ displayName }}</h3>
+                <h3 class="text-base font-bold text-gray-900 truncate hover:text-primary-600 transition-colors cursor-pointer" @click="goToProfile">{{ displayName }}</h3>
                 <p class="text-xs text-gray-500 truncate">@{{ userInfo.username }}</p>
               </div>
             </div>
@@ -52,6 +53,16 @@
               {{ userInfo.bio }}
             </p>
             <p v-else class="text-sm text-gray-400 italic">暂无个人简介</p>
+
+            <!-- Follow Button -->
+            <FollowButton 
+              v-if="showFollowButton && userInfo.id"
+              :user-id="userInfo.id"
+              :initial-following="false"
+              :initial-friend="false"
+              class="w-full justify-center"
+              @click.stop
+            />
 
             <!-- Stats -->
             <div class="flex items-center space-x-4 text-xs text-gray-500 border-t pt-3">
@@ -90,9 +101,13 @@ import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { getFullAvatarUrl } from '@/utils/avatar'
 import { getPublicUserProfile } from '@/api/auth'
+import FollowButton from '@/components/FollowButton.vue'
 
 export default {
   name: 'UserProfileHoverCard',
+  components: {
+    FollowButton
+  },
   props: {
     username: {
       type: String,
@@ -115,6 +130,13 @@ export default {
     let hideTimeout = null
 
     const currentUser = computed(() => store.getters.currentUser)
+    
+    // Show follow button only if user is logged in and not viewing their own profile
+    const showFollowButton = computed(() => {
+      return currentUser.value && 
+             userInfo.value && 
+             currentUser.value.username !== props.username
+    })
 
     // Watch for userData prop changes (when hovering over different users)
     watch(() => props.userData, (newData) => {
@@ -265,6 +287,7 @@ export default {
       cardStyle,
       displayName,
       userInitial,
+      showFollowButton,
       handleMouseEnter,
       showCard,
       cancelHide,
