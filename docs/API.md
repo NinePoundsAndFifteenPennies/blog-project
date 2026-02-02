@@ -2722,6 +2722,7 @@ Authorization: Bearer {token}
 ```
 
 **查询参数:**
+
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | page | integer | 0 | 页码（从0开始）|
@@ -2771,6 +2772,7 @@ Authorization: Bearer {token}
 ```
 
 **通知类型说明:**
+
 | 类型 | 说明 |
 |------|------|
 | POST_LIKED | 文章被点赞 |
@@ -2855,6 +2857,7 @@ Authorization: Bearer {token}
 ```
 
 **查询参数:**
+
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | filter | string | all | 过滤类型：`all`（全部）、`comments`（评论）、`likes`（点赞）、`follows`（关注）、`messages`（私信）|
