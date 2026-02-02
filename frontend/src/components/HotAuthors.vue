@@ -255,10 +255,8 @@ export default {
     // Format heat score for display
     const formatHeatScore = (score) => {
       if (!score) return '0'
-      // Normalize to a "temperature" display (max ~100°C)
-      // Using logarithmic scaling for better display
-      const normalized = Math.min(Math.round(score / 10), 100)
-      return normalized
+      // Display the raw heat score, rounded to integer
+      return Math.round(score)
     }
 
     // Format count for display (e.g., 1234 -> 1.2k)
