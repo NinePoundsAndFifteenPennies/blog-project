@@ -11,6 +11,7 @@
 - 🏷️ **内容组织** - 标签系统,分类功能,文章搜索
 - 👤 **用户系统** - 个人主页,资料编辑,头像上传,悬浮卡片,**关注/粉丝列表**
 - 📊 **社区统计** - 用户总数,文章总数,在线用户,今日访问
+- 🔥 **热门作者榜单** - "品"字形布局,热度算法排名,悬浮卡片关注
 - 🔒 **隐私控制** - 关注信息可见性设置
 - 💌 **私信系统** - 实时聊天,防骚扰机制,已读状态,未读提醒
 
@@ -35,7 +36,8 @@ frontend/
 │   │   ├── posts.js        # 文章相关API
 │   │   ├── comments.js     # 评论相关API
 │   │   ├── follow.js       # 关注功能API
-│   │   └── messages.js     # 私信功能API
+│   │   ├── messages.js     # 私信功能API
+│   │   └── authors.js      # 热门作者API
 │   ├── assets/             # 全局样式
 │   ├── components/         # 可复用组件
 │   │   ├── Header.vue      # 导航栏(含未读私信提醒)
@@ -46,12 +48,13 @@ frontend/
 │   │   ├── CommunityStats.vue # 社区统计
 │   │   ├── UserProfileHoverCard.vue # 用户悬浮卡片
 │   │   ├── FollowButton.vue # 关注/取消关注按钮
-│   │   └── FollowStats.vue  # 关注统计(关注数/粉丝数/朋友数)
+│   │   ├── FollowStats.vue  # 关注统计(关注数/粉丝数/朋友数)
+│   │   └── HotAuthors.vue   # 热门作者榜单("品"字形布局)
 │   ├── router/             # 路由配置+导航守卫
 │   ├── store/              # Vuex状态(认证、用户)
 │   ├── utils/              # 工具函数(Axios封装等)
 │   ├── views/              # 页面组件
-│   │   ├── Home.vue        # 首页(热门文章+最新文章)
+│   │   ├── Home.vue        # 首页(热门作者+热门文章+最新文章,三栏布局)
 │   │   ├── PostDetail.vue  # 文章详情
 │   │   ├── PostEdit.vue    # 文章编辑
 │   │   ├── Profile.vue     # 个人中心
