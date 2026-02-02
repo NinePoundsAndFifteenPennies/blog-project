@@ -204,7 +204,19 @@ export default {
       loading.value = true
       try {
         const response = await getHotAuthors({ limit: 30 })
-        authors.value = response || []
+        // Ensure the response is sorted by heat score descending (backend should already do this, but double-check)
+        const sortedAuthors = (response || []).sort((a, b) => {
+          const scoreA = a.heatScore || 0
+          const scoreB = b.heatScore || 0
+          return scoreB - scoreA
+        })
+        authors.value = sortedAuthors
+        console.log('Hot authors loaded:', sortedAuthors.map(a => ({ 
+          username: a.username, 
+          heatScore: a.heatScore,
+          articleCount: a.articleCount,
+          followerCount: a.followerCount
+        })))
       } catch (error) {
         console.error('加载热门作者失败:', error)
         authors.value = []

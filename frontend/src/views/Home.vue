@@ -55,14 +55,14 @@
           <!-- Main Content Layout - 3 columns -->
           <div class="flex flex-col lg:flex-row gap-6">
             <!-- Left Sidebar - Hot Authors -->
-            <aside class="lg:w-56 flex-shrink-0 order-2 lg:order-1">
+            <aside class="lg:w-72 flex-shrink-0 order-2 lg:order-1">
               <div class="lg:sticky lg:top-24">
                 <HotAuthors />
               </div>
             </aside>
 
             <!-- Main Content Area (Center) -->
-            <div class="flex-1 order-1 lg:order-2 space-y-12">
+            <div class="flex-1 min-w-0 order-1 lg:order-2 space-y-12">
               
               <!-- Module 1: Hot Articles (Top 12 by hotness) -->
               <div>
@@ -176,7 +176,7 @@
             </div>
 
             <!-- Sidebar (Right) -->
-            <aside class="lg:w-72 flex-shrink-0 order-3 lg:order-3">
+            <aside class="lg:w-64 flex-shrink-0 order-3 lg:order-3">
               <div class="lg:sticky lg:top-24 space-y-6">
                 <!-- Search Box -->
                 <div class="card p-6 overflow-visible">
