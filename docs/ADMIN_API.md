@@ -203,36 +203,6 @@ Content-Type: application/json
 
 ---
 
-## 前端路由
-
-管理后台前端路由配置：
-
-| 路由 | 组件 | 权限 | 说明 |
-|------|------|------|------|
-| `/admin` | AdminDashboard | requiresAdmin | 管理后台仪表盘 |
-| `/admin/login` | 重定向到 `/login` | - | 统一登录页面 |
-
-### 路由守卫
-
-前端使用 Vue Router 守卫验证管理员身份：
-
-```javascript
-router.beforeEach((to, from, next) => {
-  if (to.matched.some(record => record.meta.requiresAdmin)) {
-    const user = JSON.parse(localStorage.getItem('user'))
-    if (!user || user.role !== 'ADMIN') {
-      next({ path: '/login', query: { redirect: to.fullPath } })
-    } else {
-      next()
-    }
-  } else {
-    next()
-  }
-})
-```
-
----
-
 ## 后续规划
 
 管理后台 API 将陆续增加以下功能：
