@@ -10,16 +10,27 @@
       </div>
       
       <nav class="nav-menu">
-        <a 
-          v-for="item in menuItems" 
-          :key="item.id"
-          href="#"
-          :class="['nav-item', { active: currentView === item.id }]"
-          @click.prevent="currentView = item.id"
-        >
-          <span class="nav-icon" v-html="item.icon"></span>
-          <span class="nav-text">{{ item.label }}</span>
-        </a>
+        <template v-for="item in menuItems" :key="item.id">
+          <!-- Users link uses router-link -->
+          <router-link 
+            v-if="item.id === 'users'"
+            to="/admin/users"
+            :class="['nav-item']"
+          >
+            <span class="nav-icon" v-html="item.icon"></span>
+            <span class="nav-text">{{ item.label }}</span>
+          </router-link>
+          <!-- Other items use local navigation -->
+          <a 
+            v-else
+            href="#"
+            :class="['nav-item', { active: currentView === item.id }]"
+            @click.prevent="currentView = item.id"
+          >
+            <span class="nav-icon" v-html="item.icon"></span>
+            <span class="nav-text">{{ item.label }}</span>
+          </a>
+        </template>
       </nav>
     </aside>
 
@@ -35,19 +46,50 @@
             </svg>
             <input type="text" placeholder="搜索..." class="search-input" />
           </div>
-          <button class="notification-btn">
+          <!-- Notification Bell - Links to notifications page -->
+          <router-link to="/notifications" class="notification-btn">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
-          </button>
-          <div class="user-avatar">{{ userInitial }}</div>
+            <span v-if="unreadNotificationCount > 0" class="notification-badge">
+              {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
+            </span>
+          </router-link>
+          <!-- User Avatar - Shows actual avatar -->
+          <div class="user-avatar">
+            <img 
+              v-if="userAvatarUrl && !avatarLoadError" 
+              :src="userAvatarUrl" 
+              :alt="adminName"
+              @error="handleAvatarError"
+              class="avatar-img"
+            />
+            <span v-else class="avatar-initial">{{ userInitial }}</span>
+          </div>
         </div>
       </header>
 
       <!-- Content Area -->
       <div class="content-area">
-        <!-- Dashboard View -->
+        <!-- Dashboard View with Welcome Animation -->
         <div v-if="currentView === 'dashboard'" class="view-dashboard">
+          <!-- Welcome Banner with Animation -->
+          <transition name="welcome-fade" appear>
+            <div v-if="showWelcome" class="welcome-banner">
+              <div class="welcome-content">
+                <div class="welcome-icon">👋</div>
+                <div class="welcome-text">
+                  <h2 class="welcome-title">
+                    <span class="typing-text">{{ typedWelcome }}</span>
+                    <span class="cursor">|</span>
+                  </h2>
+                  <p class="welcome-subtitle">欢迎回到管理后台，祝您工作愉快！</p>
+                </div>
+              </div>
+              <button class="welcome-close" @click="showWelcome = false">×</button>
+            </div>
+          </transition>
+
           <!-- Stats Grid -->
           <div class="stats-grid">
             <div class="stat-card" v-for="stat in statsData" :key="stat.label">
@@ -248,214 +290,6 @@
           </div>
         </div>
 
-        <!-- Users View -->
-        <div v-if="currentView === 'users'" class="view-users">
-          <!-- Search Form -->
-          <div class="card search-card">
-            <div class="card-header">
-              <h3>搜索条件</h3>
-              <button class="btn btn-secondary" @click="resetUserSearch">重置</button>
-            </div>
-            <div class="search-form">
-              <div class="form-row">
-                <div class="form-group">
-                  <label>用户名/昵称</label>
-                  <input type="text" v-model="userSearchForm.username" class="form-input" placeholder="搜索用户名或昵称">
-                </div>
-                <div class="form-group">
-                  <label>邮箱</label>
-                  <input type="text" v-model="userSearchForm.email" class="form-input" placeholder="搜索邮箱">
-                </div>
-                <div class="form-group">
-                  <label>角色</label>
-                  <select v-model="userSearchForm.role" class="form-input">
-                    <option value="">全部</option>
-                    <option value="USER">普通用户</option>
-                    <option value="ADMIN">管理员</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>状态</label>
-                  <select v-model="userSearchForm.enabled" class="form-input">
-                    <option value="">全部</option>
-                    <option value="true">启用</option>
-                    <option value="false">禁用</option>
-                  </select>
-                </div>
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>注册开始日期</label>
-                  <input type="date" v-model="userSearchForm.startDate" class="form-input">
-                </div>
-                <div class="form-group">
-                  <label>注册结束日期</label>
-                  <input type="date" v-model="userSearchForm.endDate" class="form-input">
-                </div>
-                <div class="form-group search-btn-group">
-                  <button class="btn btn-primary" @click="searchUsers">搜索</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- User List -->
-          <div class="card">
-            <div class="card-header">
-              <h3>用户列表 <span v-if="userPagination.total > 0">({{ userPagination.total }})</span></h3>
-            </div>
-            <div v-if="usersLoading" class="loading-container">
-              <div class="loading-spinner">加载中...</div>
-            </div>
-            <table v-else class="data-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>用户名</th>
-                  <th>昵称</th>
-                  <th>邮箱</th>
-                  <th>角色</th>
-                  <th>状态</th>
-                  <th>发文数</th>
-                  <th>评论数</th>
-                  <th>注册日期</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="userList.length === 0">
-                  <td colspan="10" class="empty-row">暂无用户数据</td>
-                </tr>
-                <tr v-for="user in userList" :key="user.id">
-                  <td>{{ user.id }}</td>
-                  <td>{{ user.username }}</td>
-                  <td>{{ user.nickname || '-' }}</td>
-                  <td>{{ user.email }}</td>
-                  <td>
-                    <span :class="['badge', user.role === 'ADMIN' ? 'badge-info' : 'badge-default']">
-                      {{ user.role === 'ADMIN' ? '管理员' : '用户' }}
-                    </span>
-                  </td>
-                  <td>
-                    <span :class="['badge', user.enabled ? 'badge-success' : 'badge-danger']">
-                      {{ user.enabled ? '启用' : '禁用' }}
-                    </span>
-                  </td>
-                  <td>{{ user.postCount }}</td>
-                  <td>{{ user.commentCount }}</td>
-                  <td>{{ formatDate(user.createdAt) }}</td>
-                  <td class="actions">
-                    <button class="action-btn" @click="viewUserDetail(user)">详情</button>
-                    <button 
-                      v-if="user.role !== 'ADMIN'" 
-                      class="action-btn info" 
-                      @click="promoteToAdmin(user)"
-                    >设为管理员</button>
-                    <button 
-                      v-if="user.role === 'ADMIN' && !isCurrentUser(user)" 
-                      class="action-btn warning" 
-                      @click="demoteToUser(user)"
-                    >取消管理员</button>
-                    <button 
-                      v-if="user.enabled && !isCurrentUser(user)" 
-                      class="action-btn danger" 
-                      @click="disableUser(user)"
-                    >禁用</button>
-                    <button 
-                      v-if="!user.enabled" 
-                      class="action-btn success" 
-                      @click="enableUser(user)"
-                    >启用</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <!-- Pagination -->
-            <div v-if="userPagination.totalPages > 1" class="pagination">
-              <button 
-                class="page-btn" 
-                :disabled="userPagination.page === 0"
-                @click="changeUserPage(userPagination.page - 1)"
-              >上一页</button>
-              <span class="page-info">
-                第 {{ userPagination.page + 1 }} / {{ userPagination.totalPages }} 页
-              </span>
-              <button 
-                class="page-btn" 
-                :disabled="userPagination.page >= userPagination.totalPages - 1"
-                @click="changeUserPage(userPagination.page + 1)"
-              >下一页</button>
-            </div>
-          </div>
-
-          <!-- User Detail Modal -->
-          <div v-if="showUserModal" class="modal-overlay" @click.self="closeUserModal">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h3>用户详情</h3>
-                <button class="close-btn" @click="closeUserModal">&times;</button>
-              </div>
-              <div class="modal-body" v-if="selectedUser">
-                <div class="user-detail-row">
-                  <span class="label">ID:</span>
-                  <span class="value">{{ selectedUser.id }}</span>
-                </div>
-                <div class="user-detail-row">
-                  <span class="label">用户名:</span>
-                  <span class="value">{{ selectedUser.username }}</span>
-                </div>
-                <div class="user-detail-row">
-                  <span class="label">昵称:</span>
-                  <span class="value">{{ selectedUser.nickname || '-' }}</span>
-                </div>
-                <div class="user-detail-row">
-                  <span class="label">邮箱:</span>
-                  <span class="value">{{ selectedUser.email }}</span>
-                </div>
-                <div class="user-detail-row">
-                  <span class="label">简介:</span>
-                  <span class="value">{{ selectedUser.bio || '-' }}</span>
-                </div>
-                <div class="user-detail-row">
-                  <span class="label">角色:</span>
-                  <span class="value">
-                    <span :class="['badge', selectedUser.role === 'ADMIN' ? 'badge-info' : 'badge-default']">
-                      {{ selectedUser.role === 'ADMIN' ? '管理员' : '用户' }}
-                    </span>
-                  </span>
-                </div>
-                <div class="user-detail-row">
-                  <span class="label">状态:</span>
-                  <span class="value">
-                    <span :class="['badge', selectedUser.enabled ? 'badge-success' : 'badge-danger']">
-                      {{ selectedUser.enabled ? '启用' : '禁用' }}
-                    </span>
-                  </span>
-                </div>
-                <div class="user-detail-row">
-                  <span class="label">发文数:</span>
-                  <span class="value">{{ selectedUser.postCount }}</span>
-                </div>
-                <div class="user-detail-row">
-                  <span class="label">评论数:</span>
-                  <span class="value">{{ selectedUser.commentCount }}</span>
-                </div>
-                <div class="user-detail-row">
-                  <span class="label">注册时间:</span>
-                  <span class="value">{{ formatDateTime(selectedUser.createdAt) }}</span>
-                </div>
-                <div class="user-detail-row">
-                  <span class="label">更新时间:</span>
-                  <span class="value">{{ formatDateTime(selectedUser.updatedAt) }}</span>
-                </div>
-              </div>
-              <div class="modal-footer">
-                <button class="btn btn-secondary" @click="closeUserModal">关闭</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Settings View -->
         <div v-if="currentView === 'settings'" class="view-settings">
           <div class="settings-section">
@@ -534,10 +368,10 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
-import { getUsers, getUserDetail, updateUserStatus, updateUserRole } from '@/api/admin'
+import { getUnreadCount } from '@/api/notifications'
 
 export default {
   name: 'AdminDashboard',
@@ -548,25 +382,17 @@ export default {
     const currentFilter = ref('all')
     const currentCommentFilter = ref('all')
 
-    // ======================= User Management State =======================
-    const userList = ref([])
-    const usersLoading = ref(false)
-    const userPagination = ref({
-      page: 0,
-      size: 10,
-      total: 0,
-      totalPages: 0
-    })
-    const userSearchForm = ref({
-      username: '',
-      email: '',
-      role: '',
-      enabled: '',
-      startDate: '',
-      endDate: ''
-    })
-    const showUserModal = ref(false)
-    const selectedUser = ref(null)
+    // ======================= Welcome Animation State =======================
+    const showWelcome = ref(true)
+    const typedWelcome = ref('')
+    const welcomeText = ref('')
+    let typingInterval = null
+
+    // ======================= Notification State =======================
+    const unreadNotificationCount = ref(0)
+
+    // ======================= Avatar State =======================
+    const avatarLoadError = ref(false)
 
     const adminName = computed(() => {
       const user = store.getters.currentUser
@@ -576,6 +402,17 @@ export default {
     const userInitial = computed(() => {
       return adminName.value.charAt(0).toUpperCase()
     })
+
+    const userAvatarUrl = computed(() => {
+      const user = store.getters.currentUser
+      if (!user?.avatarUrl) return null
+      const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+      return user.avatarUrl.startsWith('http') ? user.avatarUrl : `${baseUrl}${user.avatarUrl}`
+    })
+
+    const handleAvatarError = () => {
+      avatarLoadError.value = true
+    }
 
     const currentPageTitle = computed(() => {
       const titles = {
@@ -657,12 +494,6 @@ export default {
       { id: 3, content: '文章内容很实用，感谢分享', author: '用户C', article: 'Docker 部署指南', status: 'approved', statusText: '已通过', date: '2024-01-13' }
     ]
 
-    const users = [
-      { id: 1, username: 'admin', email: 'admin@example.com', role: 'ADMIN', status: 'active', statusText: '启用', date: '2024-01-01' },
-      { id: 2, username: 'user1', email: 'user1@example.com', role: 'USER', status: 'active', statusText: '启用', date: '2024-01-05' },
-      { id: 3, username: 'user2', email: 'user2@example.com', role: 'USER', status: 'inactive', statusText: '禁用', date: '2024-01-10' }
-    ]
-
     const getBadgeClass = (status) => {
       const classes = {
         published: 'badge-success',
@@ -681,154 +512,41 @@ export default {
       router.push('/login')
     }
 
-    // ======================= User Management Methods =======================
-
-    // Check if user is current admin
-    const isCurrentUser = (user) => {
-      const currentUser = store.getters.currentUser
-      return currentUser && currentUser.username === user.username
-    }
-
-    // Format date for display
-    const formatDate = (dateString) => {
-      if (!dateString) return '-'
-      const date = new Date(dateString)
-      return date.toLocaleDateString('zh-CN')
-    }
-
-    // Format datetime for display
-    const formatDateTime = (dateString) => {
-      if (!dateString) return '-'
-      const date = new Date(dateString)
-      return date.toLocaleString('zh-CN')
-    }
-
-    // Load users from API
-    const loadUsers = async () => {
-      usersLoading.value = true
-      try {
-        const params = {
-          page: userPagination.value.page,
-          size: userPagination.value.size,
-          username: userSearchForm.value.username || undefined,
-          email: userSearchForm.value.email || undefined,
-          role: userSearchForm.value.role || undefined,
-          enabled: userSearchForm.value.enabled === '' ? undefined : userSearchForm.value.enabled === 'true',
-          startDate: userSearchForm.value.startDate || undefined,
-          endDate: userSearchForm.value.endDate || undefined
+    // ======================= Welcome Animation Methods =======================
+    const startTypingAnimation = () => {
+      const fullText = `您好，${adminName.value}！`
+      welcomeText.value = fullText
+      typedWelcome.value = ''
+      let index = 0
+      
+      typingInterval = setInterval(() => {
+        if (index < fullText.length) {
+          typedWelcome.value += fullText[index]
+          index++
+        } else {
+          clearInterval(typingInterval)
         }
-        const response = await getUsers(params)
-        userList.value = response.content || []
-        userPagination.value.total = response.totalElements || 0
-        userPagination.value.totalPages = response.totalPages || 0
-      } catch (error) {
-        console.error('Failed to load users:', error)
-        alert('加载用户列表失败: ' + (error.message || '未知错误'))
-      } finally {
-        usersLoading.value = false
-      }
+      }, 100)
     }
 
-    // Search users
-    const searchUsers = () => {
-      userPagination.value.page = 0
-      loadUsers()
-    }
-
-    // Reset search form
-    const resetUserSearch = () => {
-      userSearchForm.value = {
-        username: '',
-        email: '',
-        role: '',
-        enabled: '',
-        startDate: '',
-        endDate: ''
-      }
-      userPagination.value.page = 0
-      loadUsers()
-    }
-
-    // Change page
-    const changeUserPage = (newPage) => {
-      userPagination.value.page = newPage
-      loadUsers()
-    }
-
-    // View user detail
-    const viewUserDetail = async (user) => {
+    // Load notification count
+    const loadNotificationCount = async () => {
       try {
-        const detail = await getUserDetail(user.id)
-        selectedUser.value = detail
-        showUserModal.value = true
+        const response = await getUnreadCount()
+        unreadNotificationCount.value = response.count || 0
       } catch (error) {
-        console.error('Failed to load user detail:', error)
-        alert('加载用户详情失败')
+        console.error('Failed to load notification count:', error)
       }
     }
 
-    // Close user modal
-    const closeUserModal = () => {
-      showUserModal.value = false
-      selectedUser.value = null
-    }
+    onMounted(() => {
+      startTypingAnimation()
+      loadNotificationCount()
+    })
 
-    // Enable user
-    const enableUser = async (user) => {
-      if (!confirm(`确定要启用用户 "${user.username}" 吗？`)) return
-      try {
-        await updateUserStatus(user.id, true)
-        await loadUsers()
-        alert('用户已启用')
-      } catch (error) {
-        console.error('Failed to enable user:', error)
-        alert('启用用户失败: ' + (error.response?.data || error.message))
-      }
-    }
-
-    // Disable user
-    const disableUser = async (user) => {
-      if (!confirm(`确定要禁用用户 "${user.username}" 吗？\n禁用后该用户将无法登录，其内容将对外隐藏。`)) return
-      try {
-        await updateUserStatus(user.id, false)
-        await loadUsers()
-        alert('用户已禁用')
-      } catch (error) {
-        console.error('Failed to disable user:', error)
-        alert('禁用用户失败: ' + (error.response?.data || error.message))
-      }
-    }
-
-    // Promote to admin
-    const promoteToAdmin = async (user) => {
-      if (!confirm(`确定要将用户 "${user.username}" 设为管理员吗？`)) return
-      try {
-        await updateUserRole(user.id, 'ADMIN')
-        await loadUsers()
-        alert('已将用户设为管理员')
-      } catch (error) {
-        console.error('Failed to promote user:', error)
-        alert('设置管理员失败: ' + (error.response?.data || error.message))
-      }
-    }
-
-    // Demote to user
-    const demoteToUser = async (user) => {
-      if (!confirm(`确定要取消用户 "${user.username}" 的管理员权限吗？`)) return
-      try {
-        await updateUserRole(user.id, 'USER')
-        await loadUsers()
-        alert('已取消管理员权限')
-      } catch (error) {
-        console.error('Failed to demote user:', error)
-        alert('取消管理员失败: ' + (error.response?.data || error.message))
-      }
-    }
-
-    // Watch for view changes to load users when entering users view
-    watch(currentView, (newView) => {
-      if (newView === 'users') {
-        loadUsers()
+    onUnmounted(() => {
+      if (typingInterval) {
+        clearInterval(typingInterval)
       }
     })
 
@@ -838,6 +556,10 @@ export default {
       currentCommentFilter,
       adminName,
       userInitial,
+      userAvatarUrl,
+      avatarLoadError,
+      handleAvatarError,
+      unreadNotificationCount,
       currentPageTitle,
       menuItems,
       statsData,
@@ -847,28 +569,11 @@ export default {
       categories,
       tags,
       comments,
-      users,
       getBadgeClass,
       handleLogout,
-      // User management
-      userList,
-      usersLoading,
-      userPagination,
-      userSearchForm,
-      showUserModal,
-      selectedUser,
-      isCurrentUser,
-      formatDate,
-      formatDateTime,
-      searchUsers,
-      resetUserSearch,
-      changeUserPage,
-      viewUserDetail,
-      closeUserModal,
-      enableUser,
-      disableUser,
-      promoteToAdmin,
-      demoteToUser
+      // Welcome animation
+      showWelcome,
+      typedWelcome
     }
   }
 }
@@ -1734,5 +1439,200 @@ export default {
 
 .data-table .actions .action-btn {
   margin-right: 4px;
+}
+
+/* ======================= Welcome Banner Styles ======================= */
+.welcome-banner {
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 50%, #69c0ff 100%);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-banner::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 300px;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+.welcome-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  z-index: 1;
+}
+
+.welcome-icon {
+  font-size: 48px;
+  animation: wave 1.5s ease-in-out infinite;
+}
+
+@keyframes wave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(20deg); }
+  75% { transform: rotate(-10deg); }
+}
+
+.welcome-text {
+  color: #fff;
+}
+
+.welcome-title {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+}
+
+.typing-text {
+  display: inline-block;
+}
+
+.cursor {
+  display: inline-block;
+  width: 3px;
+  margin-left: 2px;
+  animation: blink 0.8s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.welcome-subtitle {
+  font-size: 16px;
+  margin: 0;
+  opacity: 0.9;
+}
+
+.welcome-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 1;
+}
+
+.welcome-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.welcome-fade-enter-active {
+  animation: slideDown 0.5s ease-out;
+}
+
+.welcome-fade-leave-active {
+  animation: slideUp 0.3s ease-in;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+/* ======================= Avatar & Notification Styles ======================= */
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  background: #1890ff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-initial {
+  text-transform: uppercase;
+}
+
+.notification-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #f5f7fa;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #666;
+  text-decoration: none;
+}
+
+.notification-btn:hover {
+  background: #e8e8e8;
+  color: #1890ff;
+}
+
+.notification-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #f5222d;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
