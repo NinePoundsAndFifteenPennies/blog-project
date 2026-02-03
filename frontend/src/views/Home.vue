@@ -54,8 +54,8 @@
         <div class="max-w-7xl mx-auto">
           <!-- Main Content Layout - 3 columns -->
           <div class="flex flex-col lg:flex-row gap-6">
-            <!-- Left Sidebar - Hot Authors -->
-            <aside class="lg:w-72 flex-shrink-0 order-2 lg:order-1">
+            <!-- Left Sidebar - Hot Authors (narrower to give more space to center and right) -->
+            <aside class="lg:w-56 flex-shrink-0 order-2 lg:order-1">
               <div class="lg:sticky lg:top-24">
                 <HotAuthors />
               </div>
@@ -175,8 +175,8 @@
               </div>
             </div>
 
-            <!-- Sidebar (Right) -->
-            <aside class="lg:w-64 flex-shrink-0 order-3 lg:order-3">
+            <!-- Sidebar (Right) - Wider for better readability -->
+            <aside class="lg:w-80 flex-shrink-0 order-3 lg:order-3">
               <div class="lg:sticky lg:top-24 space-y-6">
                 <!-- Search Box -->
                 <div class="card p-6 overflow-visible">
