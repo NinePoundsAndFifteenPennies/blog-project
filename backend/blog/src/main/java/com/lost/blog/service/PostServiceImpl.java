@@ -157,13 +157,13 @@ public class PostServiceImpl implements PostService {
             
             // PENDING_REVISION 状态 - 对外展示旧版本内容
             if (currentStatus == PostStatus.PENDING_REVISION) {
-                // 创建一个用于返回旧版本的临时Post对象
-                if (post.getPreviousTitle() != null) {
-                    post.setTitle(post.getPreviousTitle());
-                }
-                if (post.getPreviousContent() != null) {
-                    post.setContent(post.getPreviousContent());
-                }
+                // 使用旧版本内容创建响应（不修改实体）
+                String displayTitle = post.getPreviousTitle() != null ? post.getPreviousTitle() : post.getTitle();
+                String displayContent = post.getPreviousContent() != null ? post.getPreviousContent() : post.getContent();
+                PostResponse response = postMapper.toResponse(post, currentUser);
+                response.setTitle(displayTitle);
+                response.setContent(displayContent);
+                return response;
             }
         }
 
@@ -285,8 +285,8 @@ public class PostServiceImpl implements PostService {
         }
 
         // 检查是否有实质内容变化（用于已发布文章的重审逻辑）
-        boolean contentChanged = !post.getTitle().equals(postRequest.getTitle()) ||
-                                 !post.getContent().equals(postRequest.getContent());
+        boolean contentChanged = !java.util.Objects.equals(post.getTitle(), postRequest.getTitle()) ||
+                                 !java.util.Objects.equals(post.getContent(), postRequest.getContent());
 
         // 处理已发布文章的修改重审逻辑
         if (currentStatus == PostStatus.PUBLISHED && contentChanged && !willBeDraft) {

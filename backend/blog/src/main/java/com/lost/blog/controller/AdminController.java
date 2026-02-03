@@ -294,6 +294,13 @@ public class AdminController {
         User admin = userService.findByUsername(currentUser.getUsername());
         String action = request.getAction().toUpperCase();
         
+        // 验证需要理由的操作
+        if (("REJECT".equals(action) || "DELETE".equals(action)) && 
+            (request.getReason() == null || request.getReason().trim().isEmpty())) {
+            return ResponseEntity.badRequest().body(action.equals("REJECT") ? 
+                    "拒绝操作需要填写理由" : "删除操作需要填写理由");
+        }
+        
         AdminBatchActionResponse result;
         
         switch (action) {
@@ -303,9 +310,6 @@ public class AdminController {
                 break;
                 
             case "REJECT":
-                if (request.getReason() == null || request.getReason().trim().isEmpty()) {
-                    return ResponseEntity.badRequest().body("拒绝操作需要填写理由");
-                }
                 result = adminPostService.rejectPosts(
                         request.getPostIds(), 
                         request.getFormTitle(), 
@@ -316,9 +320,6 @@ public class AdminController {
                 break;
                 
             case "DELETE":
-                if (request.getReason() == null || request.getReason().trim().isEmpty()) {
-                    return ResponseEntity.badRequest().body("删除操作需要填写理由");
-                }
                 result = adminPostService.deletePosts(
                         request.getPostIds(), 
                         request.getFormTitle(), 

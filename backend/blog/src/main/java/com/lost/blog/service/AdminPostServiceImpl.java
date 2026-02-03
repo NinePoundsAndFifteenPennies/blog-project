@@ -172,13 +172,13 @@ public class AdminPostServiceImpl implements AdminPostService {
                 // 检查文章状态是否可以拒绝（不能拒绝草稿）
                 if (post.getStatus() == PostStatus.DRAFT) {
                     failures.add(new AdminBatchActionResponse.FailureItem(postId, 
-                            "草稿状态的文章不需要审核拒绝"));
+                            "草稿状态的文章无需审核。可拒绝的状态: 待审核、修改待审核、已发布"));
                     continue;
                 }
                 
                 if (post.getStatus() == PostStatus.REJECTED) {
                     failures.add(new AdminBatchActionResponse.FailureItem(postId, 
-                            "文章已经是拒绝状态"));
+                            "文章已经是拒绝状态，无法重复拒绝"));
                     continue;
                 }
                 

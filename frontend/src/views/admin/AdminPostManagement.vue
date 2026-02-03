@@ -308,7 +308,7 @@
               <!-- Content Preview -->
               <div class="content-preview">
                 <h4>文章内容预览</h4>
-                <div class="content-box" v-html="selectedPost.content.substring(0, 500) + (selectedPost.content.length > 500 ? '...' : '')"></div>
+                <div class="content-box">{{ truncateText(stripHtml(selectedPost.content), 500) }}</div>
               </div>
             </div>
             <div class="modal-footer">
@@ -520,6 +520,13 @@ export default {
     const truncateText = (text, maxLength) => {
       if (!text) return ''
       return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
+    }
+
+    const stripHtml = (html) => {
+      if (!html) return ''
+      // Remove HTML tags and decode entities
+      const doc = new DOMParser().parseFromString(html, 'text/html')
+      return doc.body.textContent || ''
     }
 
     const formatDate = (dateString) => {
@@ -803,6 +810,7 @@ export default {
       toggleSelectAll,
       togglePostSelection,
       truncateText,
+      stripHtml,
       formatDate,
       formatDateTime,
       getStatusLabel,
