@@ -26,6 +26,9 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 管理员控制器
  * 处理管理员登录、获取管理员信息等请求
+ * 
+ * 注意：管理员的token刷新请使用 /api/users/refresh-token 接口，
+ * 该接口对所有已认证用户通用。
  */
 @RestController
 @RequestMapping("/api/admin")
@@ -47,8 +50,11 @@ public class AdminController {
     }
 
     /**
-     * 管理员登录接口
+     * 管理员登录接口（可选）
      * 验证用户凭证并检查是否具有管理员角色
+     * 
+     * 注意：也可以使用普通登录接口 /api/users/login，
+     * 登录后前端根据用户角色决定跳转目标。
      */
     @PostMapping("/login")
     public ResponseEntity<?> adminLogin(@Valid @RequestBody LoginRequest loginRequest) {
@@ -86,19 +92,6 @@ public class AdminController {
         User user = userService.findByUsername(currentUser.getUsername());
         UserResponse userResponse = UserMapper.toUserResponse(user);
         return ResponseEntity.ok(userResponse);
-    }
-
-    /**
-     * 管理员刷新Token
-     */
-    @PostMapping("/refresh-token")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> refreshToken(@AuthenticationPrincipal UserDetails currentUser,
-                                         @RequestBody(required = false) Boolean rememberMe) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        boolean shouldRemember = rememberMe != null && rememberMe;
-        String jwt = tokenProvider.generateToken(authentication, shouldRemember);
-        return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
     }
 
     /**
