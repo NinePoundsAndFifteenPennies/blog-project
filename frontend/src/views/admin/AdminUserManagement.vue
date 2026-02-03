@@ -360,10 +360,6 @@ export default {
       return user.avatarUrl.startsWith('http') ? user.avatarUrl : `${baseUrl}${user.avatarUrl}`
     })
 
-    const userAvatarStyle = computed(() => {
-      return {}
-    })
-
     const menuItems = [
       { id: 'dashboard', path: '/admin', label: '仪表盘', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
       { id: 'articles', path: '/admin', label: '文章管理', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>' },
@@ -562,13 +558,12 @@ export default {
       if (selectedUserIds.value.length === 0) return
       if (!confirm(`确定要批量启用 ${selectedUserIds.value.length} 个用户吗？`)) return
       
+      const count = selectedUserIds.value.length
       try {
-        for (const userId of selectedUserIds.value) {
-          await updateUserStatus(userId, true)
-        }
-        await loadUsers()
-        alert(`已成功启用 ${selectedUserIds.value.length} 个用户`)
+        await Promise.all(selectedUserIds.value.map(userId => updateUserStatus(userId, true)))
         selectedUserIds.value = []
+        await loadUsers()
+        alert(`已成功启用 ${count} 个用户`)
       } catch (error) {
         console.error('Batch enable failed:', error)
         alert('批量启用失败: ' + (error.response?.data || error.message))
@@ -579,13 +574,12 @@ export default {
       if (selectedUserIds.value.length === 0) return
       if (!confirm(`确定要批量禁用 ${selectedUserIds.value.length} 个用户吗？\n禁用后这些用户将无法登录。`)) return
       
+      const count = selectedUserIds.value.length
       try {
-        for (const userId of selectedUserIds.value) {
-          await updateUserStatus(userId, false)
-        }
-        await loadUsers()
-        alert(`已成功禁用 ${selectedUserIds.value.length} 个用户`)
+        await Promise.all(selectedUserIds.value.map(userId => updateUserStatus(userId, false)))
         selectedUserIds.value = []
+        await loadUsers()
+        alert(`已成功禁用 ${count} 个用户`)
       } catch (error) {
         console.error('Batch disable failed:', error)
         alert('批量禁用失败: ' + (error.response?.data || error.message))
@@ -596,13 +590,12 @@ export default {
       if (selectedUserIds.value.length === 0) return
       if (!confirm(`确定要将 ${selectedUserIds.value.length} 个用户设为管理员吗？`)) return
       
+      const count = selectedUserIds.value.length
       try {
-        for (const userId of selectedUserIds.value) {
-          await updateUserRole(userId, 'ADMIN')
-        }
-        await loadUsers()
-        alert(`已成功将 ${selectedUserIds.value.length} 个用户设为管理员`)
+        await Promise.all(selectedUserIds.value.map(userId => updateUserRole(userId, 'ADMIN')))
         selectedUserIds.value = []
+        await loadUsers()
+        alert(`已成功将 ${count} 个用户设为管理员`)
       } catch (error) {
         console.error('Batch set admin failed:', error)
         alert('批量设置管理员失败: ' + (error.response?.data || error.message))
@@ -628,7 +621,6 @@ export default {
       adminName,
       userInitial,
       userAvatarUrl,
-      userAvatarStyle,
       avatarLoadError,
       handleAvatarError,
       unreadNotificationCount,
