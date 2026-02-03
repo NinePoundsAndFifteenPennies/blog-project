@@ -2,6 +2,7 @@ package com.lost.blog.service;
 
 import com.lost.blog.dto.AdminUserQueryRequest;
 import com.lost.blog.dto.AdminUserResponse;
+import com.lost.blog.exception.ResourceNotFoundException;
 import com.lost.blog.model.Role;
 import com.lost.blog.model.User;
 import com.lost.blog.repository.CommentRepository;
@@ -108,7 +109,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     public User findById(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("用户不存在: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("用户不存在: " + userId));
     }
 
     /**
