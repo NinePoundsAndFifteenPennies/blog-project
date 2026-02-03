@@ -250,25 +250,86 @@
 
         <!-- Users View -->
         <div v-if="currentView === 'users'" class="view-users">
+          <!-- Search Form -->
+          <div class="card search-card">
+            <div class="card-header">
+              <h3>搜索条件</h3>
+              <button class="btn btn-secondary" @click="resetUserSearch">重置</button>
+            </div>
+            <div class="search-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>用户名/昵称</label>
+                  <input type="text" v-model="userSearchForm.username" class="form-input" placeholder="搜索用户名或昵称">
+                </div>
+                <div class="form-group">
+                  <label>邮箱</label>
+                  <input type="text" v-model="userSearchForm.email" class="form-input" placeholder="搜索邮箱">
+                </div>
+                <div class="form-group">
+                  <label>角色</label>
+                  <select v-model="userSearchForm.role" class="form-input">
+                    <option value="">全部</option>
+                    <option value="USER">普通用户</option>
+                    <option value="ADMIN">管理员</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>状态</label>
+                  <select v-model="userSearchForm.enabled" class="form-input">
+                    <option value="">全部</option>
+                    <option value="true">启用</option>
+                    <option value="false">禁用</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>注册开始日期</label>
+                  <input type="date" v-model="userSearchForm.startDate" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label>注册结束日期</label>
+                  <input type="date" v-model="userSearchForm.endDate" class="form-input">
+                </div>
+                <div class="form-group search-btn-group">
+                  <button class="btn btn-primary" @click="searchUsers">搜索</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- User List -->
           <div class="card">
             <div class="card-header">
-              <h3>用户管理</h3>
-              <button class="btn btn-primary">+ 添加用户</button>
+              <h3>用户列表 <span v-if="userPagination.total > 0">({{ userPagination.total }})</span></h3>
             </div>
-            <table class="data-table">
+            <div v-if="usersLoading" class="loading-container">
+              <div class="loading-spinner">加载中...</div>
+            </div>
+            <table v-else class="data-table">
               <thead>
                 <tr>
+                  <th>ID</th>
                   <th>用户名</th>
+                  <th>昵称</th>
                   <th>邮箱</th>
                   <th>角色</th>
                   <th>状态</th>
+                  <th>发文数</th>
+                  <th>评论数</th>
                   <th>注册日期</th>
                   <th>操作</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="user in users" :key="user.id">
+                <tr v-if="userList.length === 0">
+                  <td colspan="10" class="empty-row">暂无用户数据</td>
+                </tr>
+                <tr v-for="user in userList" :key="user.id">
+                  <td>{{ user.id }}</td>
                   <td>{{ user.username }}</td>
+                  <td>{{ user.nickname || '-' }}</td>
                   <td>{{ user.email }}</td>
                   <td>
                     <span :class="['badge', user.role === 'ADMIN' ? 'badge-info' : 'badge-default']">
@@ -276,18 +337,122 @@
                     </span>
                   </td>
                   <td>
-                    <span :class="['badge', getBadgeClass(user.status)]">
-                      {{ user.statusText }}
+                    <span :class="['badge', user.enabled ? 'badge-success' : 'badge-danger']">
+                      {{ user.enabled ? '启用' : '禁用' }}
                     </span>
                   </td>
-                  <td>{{ user.date }}</td>
+                  <td>{{ user.postCount }}</td>
+                  <td>{{ user.commentCount }}</td>
+                  <td>{{ formatDate(user.createdAt) }}</td>
                   <td class="actions">
-                    <button class="action-btn">编辑</button>
-                    <button class="action-btn danger">禁用</button>
+                    <button class="action-btn" @click="viewUserDetail(user)">详情</button>
+                    <button 
+                      v-if="user.role !== 'ADMIN'" 
+                      class="action-btn info" 
+                      @click="promoteToAdmin(user)"
+                    >设为管理员</button>
+                    <button 
+                      v-if="user.role === 'ADMIN' && !isCurrentUser(user)" 
+                      class="action-btn warning" 
+                      @click="demoteToUser(user)"
+                    >取消管理员</button>
+                    <button 
+                      v-if="user.enabled && !isCurrentUser(user)" 
+                      class="action-btn danger" 
+                      @click="disableUser(user)"
+                    >禁用</button>
+                    <button 
+                      v-if="!user.enabled" 
+                      class="action-btn success" 
+                      @click="enableUser(user)"
+                    >启用</button>
                   </td>
                 </tr>
               </tbody>
             </table>
+            <!-- Pagination -->
+            <div v-if="userPagination.totalPages > 1" class="pagination">
+              <button 
+                class="page-btn" 
+                :disabled="userPagination.page === 0"
+                @click="changeUserPage(userPagination.page - 1)"
+              >上一页</button>
+              <span class="page-info">
+                第 {{ userPagination.page + 1 }} / {{ userPagination.totalPages }} 页
+              </span>
+              <button 
+                class="page-btn" 
+                :disabled="userPagination.page >= userPagination.totalPages - 1"
+                @click="changeUserPage(userPagination.page + 1)"
+              >下一页</button>
+            </div>
+          </div>
+
+          <!-- User Detail Modal -->
+          <div v-if="showUserModal" class="modal-overlay" @click.self="closeUserModal">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h3>用户详情</h3>
+                <button class="close-btn" @click="closeUserModal">&times;</button>
+              </div>
+              <div class="modal-body" v-if="selectedUser">
+                <div class="user-detail-row">
+                  <span class="label">ID:</span>
+                  <span class="value">{{ selectedUser.id }}</span>
+                </div>
+                <div class="user-detail-row">
+                  <span class="label">用户名:</span>
+                  <span class="value">{{ selectedUser.username }}</span>
+                </div>
+                <div class="user-detail-row">
+                  <span class="label">昵称:</span>
+                  <span class="value">{{ selectedUser.nickname || '-' }}</span>
+                </div>
+                <div class="user-detail-row">
+                  <span class="label">邮箱:</span>
+                  <span class="value">{{ selectedUser.email }}</span>
+                </div>
+                <div class="user-detail-row">
+                  <span class="label">简介:</span>
+                  <span class="value">{{ selectedUser.bio || '-' }}</span>
+                </div>
+                <div class="user-detail-row">
+                  <span class="label">角色:</span>
+                  <span class="value">
+                    <span :class="['badge', selectedUser.role === 'ADMIN' ? 'badge-info' : 'badge-default']">
+                      {{ selectedUser.role === 'ADMIN' ? '管理员' : '用户' }}
+                    </span>
+                  </span>
+                </div>
+                <div class="user-detail-row">
+                  <span class="label">状态:</span>
+                  <span class="value">
+                    <span :class="['badge', selectedUser.enabled ? 'badge-success' : 'badge-danger']">
+                      {{ selectedUser.enabled ? '启用' : '禁用' }}
+                    </span>
+                  </span>
+                </div>
+                <div class="user-detail-row">
+                  <span class="label">发文数:</span>
+                  <span class="value">{{ selectedUser.postCount }}</span>
+                </div>
+                <div class="user-detail-row">
+                  <span class="label">评论数:</span>
+                  <span class="value">{{ selectedUser.commentCount }}</span>
+                </div>
+                <div class="user-detail-row">
+                  <span class="label">注册时间:</span>
+                  <span class="value">{{ formatDateTime(selectedUser.createdAt) }}</span>
+                </div>
+                <div class="user-detail-row">
+                  <span class="label">更新时间:</span>
+                  <span class="value">{{ formatDateTime(selectedUser.updatedAt) }}</span>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-secondary" @click="closeUserModal">关闭</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -369,9 +534,10 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
+import { getUsers, getUserDetail, updateUserStatus, updateUserRole } from '@/api/admin'
 
 export default {
   name: 'AdminDashboard',
@@ -381,6 +547,26 @@ export default {
     const currentView = ref('dashboard')
     const currentFilter = ref('all')
     const currentCommentFilter = ref('all')
+
+    // ======================= User Management State =======================
+    const userList = ref([])
+    const usersLoading = ref(false)
+    const userPagination = ref({
+      page: 0,
+      size: 10,
+      total: 0,
+      totalPages: 0
+    })
+    const userSearchForm = ref({
+      username: '',
+      email: '',
+      role: '',
+      enabled: '',
+      startDate: '',
+      endDate: ''
+    })
+    const showUserModal = ref(false)
+    const selectedUser = ref(null)
 
     const adminName = computed(() => {
       const user = store.getters.currentUser
@@ -495,6 +681,157 @@ export default {
       router.push('/login')
     }
 
+    // ======================= User Management Methods =======================
+
+    // Check if user is current admin
+    const isCurrentUser = (user) => {
+      const currentUser = store.getters.currentUser
+      return currentUser && currentUser.username === user.username
+    }
+
+    // Format date for display
+    const formatDate = (dateString) => {
+      if (!dateString) return '-'
+      const date = new Date(dateString)
+      return date.toLocaleDateString('zh-CN')
+    }
+
+    // Format datetime for display
+    const formatDateTime = (dateString) => {
+      if (!dateString) return '-'
+      const date = new Date(dateString)
+      return date.toLocaleString('zh-CN')
+    }
+
+    // Load users from API
+    const loadUsers = async () => {
+      usersLoading.value = true
+      try {
+        const params = {
+          page: userPagination.value.page,
+          size: userPagination.value.size,
+          username: userSearchForm.value.username || undefined,
+          email: userSearchForm.value.email || undefined,
+          role: userSearchForm.value.role || undefined,
+          enabled: userSearchForm.value.enabled === '' ? undefined : userSearchForm.value.enabled === 'true',
+          startDate: userSearchForm.value.startDate || undefined,
+          endDate: userSearchForm.value.endDate || undefined
+        }
+        const response = await getUsers(params)
+        userList.value = response.content || []
+        userPagination.value.total = response.totalElements || 0
+        userPagination.value.totalPages = response.totalPages || 0
+      } catch (error) {
+        console.error('Failed to load users:', error)
+        alert('加载用户列表失败: ' + (error.message || '未知错误'))
+      } finally {
+        usersLoading.value = false
+      }
+    }
+
+    // Search users
+    const searchUsers = () => {
+      userPagination.value.page = 0
+      loadUsers()
+    }
+
+    // Reset search form
+    const resetUserSearch = () => {
+      userSearchForm.value = {
+        username: '',
+        email: '',
+        role: '',
+        enabled: '',
+        startDate: '',
+        endDate: ''
+      }
+      userPagination.value.page = 0
+      loadUsers()
+    }
+
+    // Change page
+    const changeUserPage = (newPage) => {
+      userPagination.value.page = newPage
+      loadUsers()
+    }
+
+    // View user detail
+    const viewUserDetail = async (user) => {
+      try {
+        const detail = await getUserDetail(user.id)
+        selectedUser.value = detail
+        showUserModal.value = true
+      } catch (error) {
+        console.error('Failed to load user detail:', error)
+        alert('加载用户详情失败')
+      }
+    }
+
+    // Close user modal
+    const closeUserModal = () => {
+      showUserModal.value = false
+      selectedUser.value = null
+    }
+
+    // Enable user
+    const enableUser = async (user) => {
+      if (!confirm(`确定要启用用户 "${user.username}" 吗？`)) return
+      try {
+        await updateUserStatus(user.id, true)
+        await loadUsers()
+        alert('用户已启用')
+      } catch (error) {
+        console.error('Failed to enable user:', error)
+        alert('启用用户失败: ' + (error.response?.data || error.message))
+      }
+    }
+
+    // Disable user
+    const disableUser = async (user) => {
+      if (!confirm(`确定要禁用用户 "${user.username}" 吗？\n禁用后该用户将无法登录，其内容将对外隐藏。`)) return
+      try {
+        await updateUserStatus(user.id, false)
+        await loadUsers()
+        alert('用户已禁用')
+      } catch (error) {
+        console.error('Failed to disable user:', error)
+        alert('禁用用户失败: ' + (error.response?.data || error.message))
+      }
+    }
+
+    // Promote to admin
+    const promoteToAdmin = async (user) => {
+      if (!confirm(`确定要将用户 "${user.username}" 设为管理员吗？`)) return
+      try {
+        await updateUserRole(user.id, 'ADMIN')
+        await loadUsers()
+        alert('已将用户设为管理员')
+      } catch (error) {
+        console.error('Failed to promote user:', error)
+        alert('设置管理员失败: ' + (error.response?.data || error.message))
+      }
+    }
+
+    // Demote to user
+    const demoteToUser = async (user) => {
+      if (!confirm(`确定要取消用户 "${user.username}" 的管理员权限吗？`)) return
+      try {
+        await updateUserRole(user.id, 'USER')
+        await loadUsers()
+        alert('已取消管理员权限')
+      } catch (error) {
+        console.error('Failed to demote user:', error)
+        alert('取消管理员失败: ' + (error.response?.data || error.message))
+      }
+    }
+
+    // Watch for view changes to load users when entering users view
+    watch(currentView, (newView) => {
+      if (newView === 'users') {
+        loadUsers()
+      }
+    })
+
     return {
       currentView,
       currentFilter,
@@ -512,7 +849,26 @@ export default {
       comments,
       users,
       getBadgeClass,
-      handleLogout
+      handleLogout,
+      // User management
+      userList,
+      usersLoading,
+      userPagination,
+      userSearchForm,
+      showUserModal,
+      selectedUser,
+      isCurrentUser,
+      formatDate,
+      formatDateTime,
+      searchUsers,
+      resetUserSearch,
+      changeUserPage,
+      viewUserDetail,
+      closeUserModal,
+      enableUser,
+      disableUser,
+      promoteToAdmin,
+      demoteToUser
     }
   }
 }
@@ -1160,5 +1516,223 @@ export default {
 .quick-link svg {
   width: 18px;
   height: 18px;
+}
+
+/* ======================= User Management Styles ======================= */
+
+/* Search Form */
+.search-card {
+  margin-bottom: 20px;
+}
+
+.search-form {
+  padding: 16px 0;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.form-row .form-group {
+  flex: 1;
+  min-width: 180px;
+  margin-bottom: 0;
+}
+
+.search-btn-group {
+  display: flex;
+  align-items: flex-end;
+}
+
+/* Loading Container */
+.loading-container {
+  padding: 40px;
+  text-align: center;
+}
+
+.loading-spinner {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Empty Row */
+.empty-row {
+  text-align: center;
+  color: #999;
+  padding: 40px !important;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  border-top: 1px solid #e8e8e8;
+}
+
+.page-btn {
+  padding: 8px 16px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  color: #333;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.page-btn:disabled {
+  background: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Action Button Variants */
+.action-btn.success {
+  color: #52c41a;
+}
+
+.action-btn.success:hover {
+  background: #f6ffed;
+}
+
+.action-btn.info {
+  color: #1890ff;
+}
+
+.action-btn.info:hover {
+  background: #e6f7ff;
+}
+
+.action-btn.warning {
+  color: #faad14;
+}
+
+.action-btn.warning:hover {
+  background: #fffbe6;
+}
+
+/* Button secondary variant */
+.btn-secondary {
+  background: #fff;
+  color: #666;
+  border: 1px solid #d9d9d9;
+}
+
+.btn-secondary:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 8px;
+  width: 500px;
+  max-width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #e8e8e8;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* User Detail Row */
+.user-detail-row {
+  display: flex;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.user-detail-row:last-child {
+  border-bottom: none;
+}
+
+.user-detail-row .label {
+  width: 100px;
+  flex-shrink: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.user-detail-row .value {
+  flex: 1;
+  color: #333;
+  font-size: 14px;
+}
+
+/* Actions column - make it wider for more buttons */
+.data-table td.actions {
+  white-space: nowrap;
+}
+
+.data-table .actions .action-btn {
+  margin-right: 4px;
 }
 </style>

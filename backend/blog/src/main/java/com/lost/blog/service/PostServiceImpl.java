@@ -108,6 +108,18 @@ public class PostServiceImpl implements PostService {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + id + " 的文章"));
 
+        // 如果文章作者被禁用，隐藏其文章（除非是本人查看）
+        User author = post.getUser();
+        if (author.getEnabled() != null && !author.getEnabled()) {
+            // 检查是否为作者本人
+            boolean isAuthor = currentUser != null && 
+                    author.getUsername().equals(currentUser.getUsername());
+            if (!isAuthor) {
+                logger.debug("文章 {} 的作者已被禁用，隐藏文章", id);
+                throw new ResourceNotFoundException("未找到ID为: " + id + " 的文章");
+            }
+        }
+
         // 草稿文章权限检查
         if (post.getDraft()) {
             // 如果是草稿，必须是作者本人才能查看
@@ -446,6 +458,12 @@ public class PostServiceImpl implements PostService {
     public Page<PostResponse> getPostsByUsername(String username, Pageable pageable, UserDetails currentUser) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到用户: " + username));
+        
+        // 如果用户被禁用，返回空页面（隐藏被封禁用户的文章）
+        if (user.getEnabled() != null && !user.getEnabled()) {
+            logger.debug("用户 {} 已被禁用，隐藏其文章", username);
+            return Page.empty(pageable);
+        }
         
         // 只返回该用户已发布的文章（不包括草稿）
         Page<Post> postsPage = postRepository.findByUserAndDraftFalse(user, pageable);

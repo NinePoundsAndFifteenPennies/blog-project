@@ -37,10 +37,17 @@ public class CustomUserDetailsService implements UserDetailsService {
                 });
          // 将我们的User实体转换为Spring Security所需的UserDetails对象
          // 包含用户角色信息（如果role为null，默认为USER）
+         // 包含用户启用状态（如果enabled为null，默认为true）
         Role role = user.getRole() != null ? user.getRole() : Role.USER;
+        boolean enabled = user.getEnabled() != null ? user.getEnabled() : true;
+        
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),
+                enabled,                    // enabled - 用户是否启用
+                true,                       // accountNonExpired
+                true,                       // credentialsNonExpired
+                true,                       // accountNonLocked
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()))
         );
     }

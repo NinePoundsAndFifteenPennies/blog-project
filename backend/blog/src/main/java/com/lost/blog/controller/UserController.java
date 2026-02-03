@@ -93,6 +93,10 @@ public class UserController {
     public ResponseEntity<?> getPublicUserProfile(@PathVariable String username) {
         try {
             User user = userService.getPublicProfile(username);
+            // 如果用户被禁用，返回404（隐藏被封禁用户的主页）
+            if (user.getEnabled() != null && !user.getEnabled()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("用户不存在");
+            }
             UserResponse userResponse = UserMapper.toUserResponse(user);
             return ResponseEntity.ok(userResponse);
         } catch (RuntimeException e) {

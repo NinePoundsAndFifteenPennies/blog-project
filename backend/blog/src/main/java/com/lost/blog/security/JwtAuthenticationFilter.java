@@ -42,6 +42,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // 从数据库加载用户信息
                 UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+                
+                // 检查用户是否被禁用（封禁后强制下线）
+                if (!userDetails.isEnabled()) {
+                    logger.warn("用户 {} 已被禁用，拒绝访问", username);
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"error\":\"账号已被禁用\"}");
+                    return;
+                }
+                
                 // 创建认证令牌
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

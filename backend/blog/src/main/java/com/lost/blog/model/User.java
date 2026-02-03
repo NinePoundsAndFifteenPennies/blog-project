@@ -64,6 +64,9 @@ public class User {
     @Column(name = "role", length = 20)
     private Role role = Role.USER; // 默认为普通用户
 
+    @Column(name = "enabled", nullable = false)
+    private Boolean enabled = true; // 默认启用，false表示被封禁
+
     // 在持久化之前自动设置创建时间和更新时间
     @PrePersist
     protected void onCreate() {
@@ -190,5 +193,13 @@ public class User {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public Boolean getEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(Boolean enabled) {
+        this.enabled = enabled;
     }
 }
