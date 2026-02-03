@@ -204,9 +204,29 @@ export default {
           rememberMe: formData.rememberMe
         })
 
-        // 登录成功后跳转到之前想去的页面，或首页
-        const redirect = route.query.redirect || '/'
-        router.push(redirect)
+        // 登录成功后根据角色和redirect参数跳转
+        const user = store.getters.currentUser
+        const isAdmin = user && user.role === 'ADMIN'
+        const redirect = route.query.redirect || null
+        
+        // 如果有redirect参数，检查是否是管理后台路径
+        if (redirect) {
+          if (redirect.startsWith('/admin')) {
+            // 尝试访问管理后台
+            if (isAdmin) {
+              router.push(redirect)
+            } else {
+              // 非管理员尝试访问管理后台，跳转首页并通过query传递提示
+              router.push({ path: '/', query: { message: '您没有管理员权限' } })
+            }
+          } else {
+            // 普通页面，直接跳转
+            router.push(redirect)
+          }
+        } else {
+          // 没有redirect参数，所有用户都跳转首页（管理员可以从菜单进入后台）
+          router.push('/')
+        }
 
       } catch (error) {
         errorMessage.value = error.response?.data?.message || '登录失败, 请检查用户名和密码'

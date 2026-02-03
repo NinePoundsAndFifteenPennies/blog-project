@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import com.lost.blog.model.Role;
 
 @Entity // 声明这是一个JPA实体类，它将映射到数据库的一张表
 @Table(name = "users") // 指定映射的数据库表名为 "users"
@@ -58,6 +59,10 @@ public class User {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", length = 20)
+    private Role role = Role.USER; // 默认为普通用户
 
     // 在持久化之前自动设置创建时间和更新时间
     @PrePersist
@@ -177,5 +182,13 @@ public class User {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
     }
 }

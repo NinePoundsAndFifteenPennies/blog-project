@@ -147,6 +147,18 @@ const routes = [
         component: () => import("@/views/Notifications.vue"),
         meta: { title: "通知", requiresAuth: true },
     },
+    // -------- 管理后台路由 --------
+    {
+        path: "/admin/login",
+        name: "AdminLogin",
+        redirect: { name: "Login", query: { redirect: "/admin" } },
+    },
+    {
+        path: "/admin",
+        name: "AdminDashboard",
+        component: () => import("@/views/admin/AdminDashboard.vue"),
+        meta: { title: "管理后台", requiresAdmin: true },
+    },
     {
         path: "/:pathMatch(.*)*",
         name: "NotFound",
@@ -208,18 +220,48 @@ router.beforeEach((to, from, next) => {
     const token = localStorage.getItem("token");
     const isAuthenticated = !!token;
 
+    // 获取用户信息检查角色（安全解析localStorage数据）
+    let user = null;
+    let isAdmin = false;
+    try {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+            user = JSON.parse(userStr);
+            isAdmin = user && typeof user.role === "string" && user.role === "ADMIN";
+        }
+    } catch {
+        // 如果解析失败，忽略并使用默认值
+    }
+
+    // 需要管理员权限的页面
+    if (to.meta.requiresAdmin) {
+        if (!isAuthenticated) {
+            // 未登录，跳转到统一登录页面
+            return next({
+                path: "/login",
+                query: { redirect: to.fullPath },
+            });
+        } else if (!isAdmin) {
+            // 已登录但非管理员，跳转首页并可以显示提示
+            return next({
+                path: "/",
+            });
+        } else {
+            return next();
+        }
+    }
     // 需要认证的页面
-    if (to.meta.requiresAuth && !isAuthenticated) {
-        next({
+    else if (to.meta.requiresAuth && !isAuthenticated) {
+        return next({
             path: "/login",
             query: { redirect: to.fullPath },
         });
     }
     // 已登录用户访问登录/注册页面,重定向到首页
     else if (to.meta.guest && isAuthenticated) {
-        next("/");
+        return next("/");
     } else {
-        next();
+        return next();
     }
 });
 

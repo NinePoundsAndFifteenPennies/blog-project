@@ -11,12 +11,14 @@ public class UserResponse {
     private String gender;
     private String birthday;
     private String location;
+    private String role;
 
     public UserResponse() {
     }
 
     public UserResponse(Long id, String username, String email, String avatarUrl, String nickname,
-                        String bio, String socialLink, String gender, String birthday, String location) {
+                        String bio, String socialLink, String gender, String birthday, String location,
+                        String role) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -27,6 +29,7 @@ public class UserResponse {
         this.gender = gender;
         this.birthday = birthday;
         this.location = location;
+        this.role = role;
     }
 
     public Long getId() {
@@ -107,5 +110,13 @@ public class UserResponse {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

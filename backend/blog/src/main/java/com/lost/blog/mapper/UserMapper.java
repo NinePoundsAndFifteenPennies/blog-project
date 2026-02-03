@@ -19,7 +19,8 @@ public class UserMapper {
             user.getSocialLink(),
             user.getGender(),
             user.getBirthday() != null ? user.getBirthday().toString() : null,
-            user.getLocation()
+            user.getLocation(),
+            user.getRole() != null ? user.getRole().name() : "USER"
         );
     }
 }
