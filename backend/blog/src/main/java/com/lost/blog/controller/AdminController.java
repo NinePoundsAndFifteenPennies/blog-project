@@ -1,17 +1,19 @@
 package com.lost.blog.controller;
 
-import com.lost.blog.dto.JwtAuthenticationResponse;
-import com.lost.blog.dto.LoginRequest;
-import com.lost.blog.dto.UserResponse;
+import com.lost.blog.dto.*;
 import com.lost.blog.mapper.UserMapper;
 import com.lost.blog.model.Role;
 import com.lost.blog.model.User;
 import com.lost.blog.security.JwtTokenProvider;
+import com.lost.blog.service.AdminUserService;
 import com.lost.blog.service.UserService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,7 +27,7 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * 管理员控制器
- * 处理管理员登录、获取管理员信息等请求
+ * 处理管理员登录、获取管理员信息、用户管理等请求
  * 
  * 注意：管理员的token刷新请使用 /api/users/refresh-token 接口，
  * 该接口对所有已认证用户通用。
@@ -37,14 +39,17 @@ public class AdminController {
     private static final Logger logger = LoggerFactory.getLogger(AdminController.class);
 
     private final UserService userService;
+    private final AdminUserService adminUserService;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
 
     @Autowired
     public AdminController(UserService userService,
+                          AdminUserService adminUserService,
                           AuthenticationManager authenticationManager,
                           JwtTokenProvider tokenProvider) {
         this.userService = userService;
+        this.adminUserService = adminUserService;
         this.authenticationManager = authenticationManager;
         this.tokenProvider = tokenProvider;
     }
@@ -106,5 +111,110 @@ public class AdminController {
             "message", "欢迎进入管理后台",
             "admin", currentUser.getUsername()
         ));
+    }
+
+    // ======================= 用户管理接口 =======================
+
+    /**
+     * 获取用户列表（支持分页和多条件搜索）
+     * 
+     * @param page 页码（从0开始）
+     * @param size 每页数量
+     * @param username 用户名搜索（模糊匹配）
+     * @param email 邮箱搜索（模糊匹配）
+     * @param role 角色过滤（USER/ADMIN）
+     * @param enabled 状态过滤（true/false）
+     * @param startDate 注册开始日期（yyyy-MM-dd）
+     * @param endDate 注册结束日期（yyyy-MM-dd）
+     */
+    @GetMapping("/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<AdminUserResponse>> getUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) Boolean enabled,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        
+        AdminUserQueryRequest query = new AdminUserQueryRequest();
+        query.setUsername(username);
+        query.setEmail(email);
+        query.setRole(role);
+        query.setEnabled(enabled);
+        query.setStartDate(startDate);
+        query.setEndDate(endDate);
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<AdminUserResponse> users = adminUserService.searchUsers(query, pageable);
+        
+        return ResponseEntity.ok(users);
+    }
+
+    /**
+     * 获取用户详细信息（包含发文数、评论数统计）
+     * 
+     * @param id 用户ID
+     */
+    @GetMapping("/users/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AdminUserResponse> getUserDetail(@PathVariable Long id) {
+        AdminUserResponse user = adminUserService.getUserDetail(id);
+        return ResponseEntity.ok(user);
+    }
+
+    /**
+     * 更新用户状态（启用/禁用）
+     * 
+     * @param id 用户ID
+     * @param request 状态更新请求
+     */
+    @PutMapping("/users/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateUserStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody AdminUserStatusRequest request,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        
+        // 防止管理员禁用自己
+        User targetUser = adminUserService.findById(id);
+        if (targetUser.getUsername().equals(currentUser.getUsername())) {
+            return ResponseEntity.badRequest().body("不能禁用自己的账户");
+        }
+        
+        AdminUserResponse user = adminUserService.updateUserStatus(id, request.getEnabled());
+        logger.info("管理员 {} 将用户 {} 状态更新为: {}", 
+                currentUser.getUsername(), id, request.getEnabled() ? "启用" : "禁用");
+        
+        return ResponseEntity.ok(user);
+    }
+
+    /**
+     * 更新用户角色
+     * 
+     * @param id 用户ID
+     * @param request 角色更新请求
+     */
+    @PutMapping("/users/{id}/role")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateUserRole(
+            @PathVariable Long id,
+            @Valid @RequestBody AdminUserRoleRequest request,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        
+        // 防止管理员修改自己的角色
+        User targetUser = adminUserService.findById(id);
+        if (targetUser.getUsername().equals(currentUser.getUsername())) {
+            return ResponseEntity.badRequest().body("不能修改自己的角色");
+        }
+        
+        Role role = Role.valueOf(request.getRole());
+        AdminUserResponse user = adminUserService.updateUserRole(id, role);
+        logger.info("管理员 {} 将用户 {} 角色更新为: {}", 
+                currentUser.getUsername(), id, request.getRole());
+        
+        return ResponseEntity.ok(user);
     }
 }

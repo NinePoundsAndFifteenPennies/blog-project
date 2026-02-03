@@ -10,16 +10,27 @@
       </div>
       
       <nav class="nav-menu">
-        <a 
-          v-for="item in menuItems" 
-          :key="item.id"
-          href="#"
-          :class="['nav-item', { active: currentView === item.id }]"
-          @click.prevent="currentView = item.id"
-        >
-          <span class="nav-icon" v-html="item.icon"></span>
-          <span class="nav-text">{{ item.label }}</span>
-        </a>
+        <template v-for="item in menuItems" :key="item.id">
+          <!-- Users link uses router-link -->
+          <router-link 
+            v-if="item.id === 'users'"
+            to="/admin/users"
+            :class="['nav-item']"
+          >
+            <span class="nav-icon" v-html="item.icon"></span>
+            <span class="nav-text">{{ item.label }}</span>
+          </router-link>
+          <!-- Other items use local navigation -->
+          <a 
+            v-else
+            href="#"
+            :class="['nav-item', { active: currentView === item.id }]"
+            @click.prevent="currentView = item.id"
+          >
+            <span class="nav-icon" v-html="item.icon"></span>
+            <span class="nav-text">{{ item.label }}</span>
+          </a>
+        </template>
       </nav>
     </aside>
 
@@ -35,19 +46,50 @@
             </svg>
             <input type="text" placeholder="搜索..." class="search-input" />
           </div>
-          <button class="notification-btn">
+          <!-- Notification Bell - Links to notifications page -->
+          <router-link to="/notifications" class="notification-btn">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
-          </button>
-          <div class="user-avatar">{{ userInitial }}</div>
+            <span v-if="unreadNotificationCount > 0" class="notification-badge">
+              {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
+            </span>
+          </router-link>
+          <!-- User Avatar - Shows actual avatar -->
+          <div class="user-avatar">
+            <img 
+              v-if="userAvatarUrl && !avatarLoadError" 
+              :src="userAvatarUrl" 
+              :alt="adminName"
+              @error="handleAvatarError"
+              class="avatar-img"
+            />
+            <span v-else class="avatar-initial">{{ userInitial }}</span>
+          </div>
         </div>
       </header>
 
       <!-- Content Area -->
       <div class="content-area">
-        <!-- Dashboard View -->
+        <!-- Dashboard View with Welcome Animation -->
         <div v-if="currentView === 'dashboard'" class="view-dashboard">
+          <!-- Welcome Banner with Animation -->
+          <transition name="welcome-fade" appear>
+            <div v-if="showWelcome" class="welcome-banner">
+              <div class="welcome-content">
+                <div class="welcome-icon">👋</div>
+                <div class="welcome-text">
+                  <h2 class="welcome-title">
+                    <span class="typing-text">{{ typedWelcome }}</span>
+                    <span class="cursor">|</span>
+                  </h2>
+                  <p class="welcome-subtitle">欢迎回到管理后台，祝您工作愉快！</p>
+                </div>
+              </div>
+              <button class="welcome-close" @click="showWelcome = false">×</button>
+            </div>
+          </transition>
+
           <!-- Stats Grid -->
           <div class="stats-grid">
             <div class="stat-card" v-for="stat in statsData" :key="stat.label">
@@ -248,49 +290,6 @@
           </div>
         </div>
 
-        <!-- Users View -->
-        <div v-if="currentView === 'users'" class="view-users">
-          <div class="card">
-            <div class="card-header">
-              <h3>用户管理</h3>
-              <button class="btn btn-primary">+ 添加用户</button>
-            </div>
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>用户名</th>
-                  <th>邮箱</th>
-                  <th>角色</th>
-                  <th>状态</th>
-                  <th>注册日期</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="user in users" :key="user.id">
-                  <td>{{ user.username }}</td>
-                  <td>{{ user.email }}</td>
-                  <td>
-                    <span :class="['badge', user.role === 'ADMIN' ? 'badge-info' : 'badge-default']">
-                      {{ user.role === 'ADMIN' ? '管理员' : '用户' }}
-                    </span>
-                  </td>
-                  <td>
-                    <span :class="['badge', getBadgeClass(user.status)]">
-                      {{ user.statusText }}
-                    </span>
-                  </td>
-                  <td>{{ user.date }}</td>
-                  <td class="actions">
-                    <button class="action-btn">编辑</button>
-                    <button class="action-btn danger">禁用</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
         <!-- Settings View -->
         <div v-if="currentView === 'settings'" class="view-settings">
           <div class="settings-section">
@@ -369,9 +368,10 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
+import { getUnreadCount } from '@/api/notifications'
 
 export default {
   name: 'AdminDashboard',
@@ -382,6 +382,18 @@ export default {
     const currentFilter = ref('all')
     const currentCommentFilter = ref('all')
 
+    // ======================= Welcome Animation State =======================
+    const showWelcome = ref(true)
+    const typedWelcome = ref('')
+    const welcomeText = ref('')
+    let typingInterval = null
+
+    // ======================= Notification State =======================
+    const unreadNotificationCount = ref(0)
+
+    // ======================= Avatar State =======================
+    const avatarLoadError = ref(false)
+
     const adminName = computed(() => {
       const user = store.getters.currentUser
       return user?.nickname || user?.username || '管理员'
@@ -390,6 +402,17 @@ export default {
     const userInitial = computed(() => {
       return adminName.value.charAt(0).toUpperCase()
     })
+
+    const userAvatarUrl = computed(() => {
+      const user = store.getters.currentUser
+      if (!user?.avatarUrl) return null
+      const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
+      return user.avatarUrl.startsWith('http') ? user.avatarUrl : `${baseUrl}${user.avatarUrl}`
+    })
+
+    const handleAvatarError = () => {
+      avatarLoadError.value = true
+    }
 
     const currentPageTitle = computed(() => {
       const titles = {
@@ -471,12 +494,6 @@ export default {
       { id: 3, content: '文章内容很实用，感谢分享', author: '用户C', article: 'Docker 部署指南', status: 'approved', statusText: '已通过', date: '2024-01-13' }
     ]
 
-    const users = [
-      { id: 1, username: 'admin', email: 'admin@example.com', role: 'ADMIN', status: 'active', statusText: '启用', date: '2024-01-01' },
-      { id: 2, username: 'user1', email: 'user1@example.com', role: 'USER', status: 'active', statusText: '启用', date: '2024-01-05' },
-      { id: 3, username: 'user2', email: 'user2@example.com', role: 'USER', status: 'inactive', statusText: '禁用', date: '2024-01-10' }
-    ]
-
     const getBadgeClass = (status) => {
       const classes = {
         published: 'badge-success',
@@ -495,12 +512,54 @@ export default {
       router.push('/login')
     }
 
+    // ======================= Welcome Animation Methods =======================
+    const startTypingAnimation = () => {
+      const fullText = `您好，${adminName.value}！`
+      welcomeText.value = fullText
+      typedWelcome.value = ''
+      let index = 0
+      
+      typingInterval = setInterval(() => {
+        if (index < fullText.length) {
+          typedWelcome.value += fullText[index]
+          index++
+        } else {
+          clearInterval(typingInterval)
+        }
+      }, 100)
+    }
+
+    // Load notification count
+    const loadNotificationCount = async () => {
+      try {
+        const response = await getUnreadCount()
+        unreadNotificationCount.value = response.count || 0
+      } catch (error) {
+        console.error('Failed to load notification count:', error)
+      }
+    }
+
+    onMounted(() => {
+      startTypingAnimation()
+      loadNotificationCount()
+    })
+
+    onUnmounted(() => {
+      if (typingInterval) {
+        clearInterval(typingInterval)
+      }
+    })
+
     return {
       currentView,
       currentFilter,
       currentCommentFilter,
       adminName,
       userInitial,
+      userAvatarUrl,
+      avatarLoadError,
+      handleAvatarError,
+      unreadNotificationCount,
       currentPageTitle,
       menuItems,
       statsData,
@@ -510,9 +569,11 @@ export default {
       categories,
       tags,
       comments,
-      users,
       getBadgeClass,
-      handleLogout
+      handleLogout,
+      // Welcome animation
+      showWelcome,
+      typedWelcome
     }
   }
 }
@@ -1160,5 +1221,418 @@ export default {
 .quick-link svg {
   width: 18px;
   height: 18px;
+}
+
+/* ======================= User Management Styles ======================= */
+
+/* Search Form */
+.search-card {
+  margin-bottom: 20px;
+}
+
+.search-form {
+  padding: 16px 0;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.form-row .form-group {
+  flex: 1;
+  min-width: 180px;
+  margin-bottom: 0;
+}
+
+.search-btn-group {
+  display: flex;
+  align-items: flex-end;
+}
+
+/* Loading Container */
+.loading-container {
+  padding: 40px;
+  text-align: center;
+}
+
+.loading-spinner {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Empty Row */
+.empty-row {
+  text-align: center;
+  color: #999;
+  padding: 40px !important;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  border-top: 1px solid #e8e8e8;
+}
+
+.page-btn {
+  padding: 8px 16px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  color: #333;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.page-btn:disabled {
+  background: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Action Button Variants */
+.action-btn.success {
+  color: #52c41a;
+}
+
+.action-btn.success:hover {
+  background: #f6ffed;
+}
+
+.action-btn.info {
+  color: #1890ff;
+}
+
+.action-btn.info:hover {
+  background: #e6f7ff;
+}
+
+.action-btn.warning {
+  color: #faad14;
+}
+
+.action-btn.warning:hover {
+  background: #fffbe6;
+}
+
+/* Button secondary variant */
+.btn-secondary {
+  background: #fff;
+  color: #666;
+  border: 1px solid #d9d9d9;
+}
+
+.btn-secondary:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 8px;
+  width: 500px;
+  max-width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #e8e8e8;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* User Detail Row */
+.user-detail-row {
+  display: flex;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.user-detail-row:last-child {
+  border-bottom: none;
+}
+
+.user-detail-row .label {
+  width: 100px;
+  flex-shrink: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.user-detail-row .value {
+  flex: 1;
+  color: #333;
+  font-size: 14px;
+}
+
+/* Actions column - make it wider for more buttons */
+.data-table td.actions {
+  white-space: nowrap;
+}
+
+.data-table .actions .action-btn {
+  margin-right: 4px;
+}
+
+/* ======================= Welcome Banner Styles ======================= */
+.welcome-banner {
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 50%, #69c0ff 100%);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-banner::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 300px;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+.welcome-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  z-index: 1;
+}
+
+.welcome-icon {
+  font-size: 48px;
+  animation: wave 1.5s ease-in-out infinite;
+}
+
+@keyframes wave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(20deg); }
+  75% { transform: rotate(-10deg); }
+}
+
+.welcome-text {
+  color: #fff;
+}
+
+.welcome-title {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+}
+
+.typing-text {
+  display: inline-block;
+}
+
+.cursor {
+  display: inline-block;
+  width: 3px;
+  margin-left: 2px;
+  animation: blink 0.8s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.welcome-subtitle {
+  font-size: 16px;
+  margin: 0;
+  opacity: 0.9;
+}
+
+.welcome-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 1;
+}
+
+.welcome-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.welcome-fade-enter-active {
+  animation: slideDown 0.5s ease-out;
+}
+
+.welcome-fade-leave-active {
+  animation: slideUp 0.3s ease-in;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+/* ======================= Avatar & Notification Styles ======================= */
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  background: #1890ff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-initial {
+  text-transform: uppercase;
+}
+
+.notification-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #f5f7fa;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #666;
+  text-decoration: none;
+}
+
+.notification-btn:hover {
+  background: #e8e8e8;
+  color: #1890ff;
+}
+
+.notification-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #f5222d;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

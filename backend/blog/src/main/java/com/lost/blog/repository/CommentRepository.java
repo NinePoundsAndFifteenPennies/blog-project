@@ -32,6 +32,9 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     // 获取用户的所有评论（分页）
     Page<Comment> findByUser(User user, Pageable pageable);
 
+    // 统计用户的评论数量
+    long countByUser(User user);
+
     // 统计文章的评论数
     long countByPost(Post post);
 
