@@ -50,11 +50,11 @@ public class AdminController {
     }
 
     /**
-     * 管理员登录接口（可选）
+     * 管理员登录接口
      * 验证用户凭证并检查是否具有管理员角色
      * 
-     * 注意：也可以使用普通登录接口 /api/users/login，
-     * 登录后前端根据用户角色决定跳转目标。
+     * 此接口会在登录时验证用户是否为管理员，非管理员会返回403错误。
+     * 前端也可以使用普通登录接口 /api/users/login，登录后根据用户角色决定跳转目标。
      */
     @PostMapping("/login")
     public ResponseEntity<?> adminLogin(@Valid @RequestBody LoginRequest loginRequest) {
