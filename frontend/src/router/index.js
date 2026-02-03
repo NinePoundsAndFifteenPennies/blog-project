@@ -166,6 +166,12 @@ const routes = [
         meta: { title: "用户管理 - 管理后台", requiresAdmin: true },
     },
     {
+        path: "/admin/posts",
+        name: "AdminPostManagement",
+        component: () => import("@/views/admin/AdminPostManagement.vue"),
+        meta: { title: "文章管理 - 管理后台", requiresAdmin: true },
+    },
+    {
         path: "/:pathMatch(.*)*",
         name: "NotFound",
         component: () => import("@/views/NotFound.vue"),

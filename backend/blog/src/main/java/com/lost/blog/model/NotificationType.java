@@ -32,5 +32,20 @@ public enum NotificationType {
     /**
      * 收到私信
      */
-    MESSAGE_RECEIVED
+    MESSAGE_RECEIVED,
+    
+    /**
+     * 文章审核通过
+     */
+    POST_APPROVED,
+    
+    /**
+     * 文章审核拒绝
+     */
+    POST_REJECTED,
+    
+    /**
+     * 文章被删除（违规）
+     */
+    POST_DELETED
 }

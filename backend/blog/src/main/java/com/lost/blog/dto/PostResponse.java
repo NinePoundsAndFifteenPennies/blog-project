@@ -3,6 +3,7 @@ package com.lost.blog.dto;
 import java.time.LocalDateTime;
 import java.util.List;
 import com.lost.blog.model.ContentType;
+import com.lost.blog.model.PostStatus;
 
 public class PostResponse {
     private Long id;
@@ -16,6 +17,7 @@ public class PostResponse {
     private LocalDateTime publishedAt;  // 新增
     private ContentType contentType;
     private Boolean draft;  // 新增
+    private PostStatus status;  // 文章状态
     private Long likeCount;  // 点赞数
     private Boolean isLiked;  // 当前用户是否已点赞
     private Long commentCount;  // 评论数
@@ -57,6 +59,9 @@ public class PostResponse {
 
     public Boolean getDraft() { return draft; }
     public void setDraft(Boolean draft) { this.draft = draft; }
+
+    public PostStatus getStatus() { return status; }
+    public void setStatus(PostStatus status) { this.status = status; }
 
     public Long getLikeCount() { return likeCount; }
     public void setLikeCount(Long likeCount) { this.likeCount = likeCount; }

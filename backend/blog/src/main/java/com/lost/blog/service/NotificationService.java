@@ -84,4 +84,19 @@ public interface NotificationService {
      * 创建收到私信的通知
      */
     void createMessageReceivedNotification(User sender, User receiver);
+
+    /**
+     * 创建文章审核通过的通知
+     */
+    void createPostApprovedNotification(User admin, Post post);
+
+    /**
+     * 创建文章审核拒绝的通知
+     */
+    void createPostRejectedNotification(User admin, Post post, String reason);
+
+    /**
+     * 创建文章被删除的通知
+     */
+    void createPostDeletedNotification(User admin, User author, String postTitle, String reason);
 }
