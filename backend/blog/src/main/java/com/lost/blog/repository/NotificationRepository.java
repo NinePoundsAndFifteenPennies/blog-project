@@ -70,4 +70,11 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Modifying
     @Query("UPDATE Notification n SET n.post = NULL WHERE n.post = :post")
     int nullifyPostReferences(@Param("post") Post post);
+
+    /**
+     * 将指定文章相关的所有通知中的评论和文章引用置空（用于删除文章及其评论前解除外键约束）
+     */
+    @Modifying
+    @Query("UPDATE Notification n SET n.post = NULL, n.comment = NULL WHERE n.post = :post")
+    int nullifyAllReferencesForPost(@Param("post") Post post);
 }

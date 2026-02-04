@@ -76,13 +76,23 @@
               >
                 <div class="px-4 py-2 border-b border-gray-100 flex items-center justify-between">
                   <h3 class="font-semibold text-gray-900">通知</h3>
-                  <router-link 
-                    to="/notifications" 
-                    class="text-sm text-primary-600 hover:text-primary-700"
-                    @click="showNotificationDropdown = false"
-                  >
-                    查看全部
-                  </router-link>
+                  <div class="flex items-center space-x-3">
+                    <button
+                      v-if="unreadNotificationCount > 0"
+                      @click.stop="handleMarkAllAsRead"
+                      :disabled="markingAllRead"
+                      class="text-sm text-gray-500 hover:text-primary-600 transition-colors"
+                    >
+                      {{ markingAllRead ? '处理中...' : '全部已读' }}
+                    </button>
+                    <router-link 
+                      to="/notifications" 
+                      class="text-sm text-primary-600 hover:text-primary-700"
+                      @click="showNotificationDropdown = false"
+                    >
+                      查看全部
+                    </router-link>
+                  </div>
                 </div>
                 
                 <div v-if="loadingNotifications" class="p-4 text-center">
@@ -110,7 +120,7 @@
                     
                     <div class="flex-1 min-w-0">
                       <p class="text-sm text-gray-900 line-clamp-2">
-                        <span class="font-medium">{{ notification.actorNickname || notification.actorUsername }}</span>
+                        <span class="font-medium">{{ getNotificationActorName(notification) }}</span>
                         <span class="text-gray-600"> {{ getNotificationText(notification) }}</span>
                       </p>
                       <p class="text-xs text-gray-400 mt-1">{{ formatNotificationTime(notification.createdAt) }}</p>
@@ -354,7 +364,7 @@ import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import SearchPreview from '@/components/SearchPreview.vue'
 import { searchPosts } from '@/api/posts'
 import { getUnreadCount, getUnreadCountFromUser } from '@/api/messages'
-import { getNotificationUnreadCount, getRecentNotifications, markNotificationAsRead } from '@/api/notifications'
+import { getNotificationUnreadCount, getRecentNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '@/api/notifications'
 
 export default {
   name: 'Header',
@@ -598,6 +608,12 @@ export default {
           return 'bg-green-100'
         case 'MESSAGE_RECEIVED':
           return 'bg-purple-100'
+        case 'POST_APPROVED':
+          return 'bg-green-100'
+        case 'POST_REJECTED':
+          return 'bg-yellow-100'
+        case 'POST_DELETED':
+          return 'bg-red-100'
         default:
           return 'bg-gray-100'
       }
@@ -615,6 +631,12 @@ export default {
           return '<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>'
         case 'MESSAGE_RECEIVED':
           return '<svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>'
+        case 'POST_APPROVED':
+          return '<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+        case 'POST_REJECTED':
+          return '<svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>'
+        case 'POST_DELETED':
+          return '<svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>'
         default:
           return '<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>'
       }
@@ -634,8 +656,44 @@ export default {
           return '关注了你'
         case 'MESSAGE_RECEIVED':
           return '给你发送了私信'
+        case 'POST_APPROVED':
+          return '您的文章已通过审核'
+        case 'POST_REJECTED':
+          return '您的文章未通过审核'
+        case 'POST_DELETED':
+          return '您的文章因违规被删除'
         default:
           return ''
+      }
+    }
+    
+    // 判断是否为系统通知
+    const isSystemNotification = (notification) => {
+      return ['POST_APPROVED', 'POST_REJECTED', 'POST_DELETED'].includes(notification.type)
+    }
+    
+    // 获取通知显示的名称
+    const getNotificationActorName = (notification) => {
+      if (isSystemNotification(notification)) {
+        return '系统管理员'
+      }
+      return notification.actorNickname || notification.actorUsername
+    }
+    
+    // 一键已读
+    const markingAllRead = ref(false)
+    const handleMarkAllAsRead = async () => {
+      if (markingAllRead.value) return
+      markingAllRead.value = true
+      try {
+        await markAllNotificationsAsRead('all')
+        // 更新所有本地通知为已读
+        recentNotifications.value = recentNotifications.value.map(n => ({ ...n, read: true }))
+        unreadNotificationCount.value = 0
+      } catch (error) {
+        console.error('Failed to mark all as read:', error)
+      } finally {
+        markingAllRead.value = false
       }
     }
     
@@ -771,6 +829,10 @@ export default {
       getNotificationTypeColor,
       getNotificationTypeIcon,
       getNotificationText,
+      getNotificationActorName,
+      isSystemNotification,
+      markingAllRead,
+      handleMarkAllAsRead,
       formatNotificationTime,
       handleNotificationClick
     }

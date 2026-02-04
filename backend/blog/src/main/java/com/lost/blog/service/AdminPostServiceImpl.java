@@ -4,9 +4,7 @@ import com.lost.blog.dto.*;
 import com.lost.blog.exception.ResourceNotFoundException;
 import com.lost.blog.mapper.AdminPostMapper;
 import com.lost.blog.model.*;
-import com.lost.blog.repository.AdminFormRepository;
-import com.lost.blog.repository.NotificationRepository;
-import com.lost.blog.repository.PostRepository;
+import com.lost.blog.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,18 +34,27 @@ public class AdminPostServiceImpl implements AdminPostService {
     private final AdminPostMapper adminPostMapper;
     private final NotificationService notificationService;
     private final NotificationRepository notificationRepository;
+    private final CommentRepository commentRepository;
+    private final LikeRepository likeRepository;
+    private final PostViewLogRepository postViewLogRepository;
 
     @Autowired
     public AdminPostServiceImpl(PostRepository postRepository,
                                AdminFormRepository adminFormRepository,
                                AdminPostMapper adminPostMapper,
                                NotificationService notificationService,
-                               NotificationRepository notificationRepository) {
+                               NotificationRepository notificationRepository,
+                               CommentRepository commentRepository,
+                               LikeRepository likeRepository,
+                               PostViewLogRepository postViewLogRepository) {
         this.postRepository = postRepository;
         this.adminFormRepository = adminFormRepository;
         this.adminPostMapper = adminPostMapper;
         this.notificationService = notificationService;
         this.notificationRepository = notificationRepository;
+        this.commentRepository = commentRepository;
+        this.likeRepository = likeRepository;
+        this.postViewLogRepository = postViewLogRepository;
     }
 
     @Override
@@ -271,10 +278,19 @@ public class AdminPostServiceImpl implements AdminPostService {
                 // 发送删除通知（在删除文章之前，这样通知中不会引用即将被删除的文章）
                 notificationService.createPostDeletedNotification(admin, postAuthor, postTitle, reason);
                 
-                // 解除通知表对文章的外键约束
-                notificationRepository.nullifyPostReferences(post);
+                // 解除通知表对文章和评论的外键约束（必须在删除评论和文章之前）
+                notificationRepository.nullifyAllReferencesForPost(post);
                 
-                // 删除文章
+                // 删除文章的浏览日志
+                postViewLogRepository.deleteByPost(post);
+                
+                // 删除文章的点赞（文章直接点赞）
+                likeRepository.deleteByPost(post);
+                
+                // 删除文章的评论（会级联删除评论的点赞和子评论）
+                commentRepository.deleteByPost(post);
+                
+                // 删除文章（会级联删除 post_tags）
                 postRepository.delete(post);
                 successIds.add(postId);
                 
