@@ -1,196 +1,145 @@
 <template>
-  <div class="admin-layout">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <div class="logo">
-          <div class="logo-icon">📝</div>
-          <span class="logo-text">博客管理</span>
+  <AdminLayout
+    :menu-items="menuItems"
+    page-title="文章管理"
+    :is-active-route="isActiveRoute"
+  >
+    <!-- Search Form -->
+    <div class="card search-card">
+      <div class="card-header">
+        <h3>搜索条件</h3>
+        <div class="header-actions">
+          <button class="btn btn-secondary" @click="resetPostSearch">重置</button>
         </div>
       </div>
-      
-      <nav class="nav-menu">
-        <router-link 
-          v-for="item in menuItems" 
-          :key="item.id"
-          :to="item.path"
-          :class="['nav-item', { active: isActiveRoute(item.id) }]"
-        >
-          <span class="nav-icon" v-html="item.icon"></span>
-          <span class="nav-text">{{ item.label }}</span>
-        </router-link>
-      </nav>
-    </aside>
+      <div class="search-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label>文章标题</label>
+            <input type="text" v-model="postSearchForm.title" class="form-input" placeholder="搜索标题">
+          </div>
+          <div class="form-group">
+            <label>作者</label>
+            <input type="text" v-model="postSearchForm.author" class="form-input" placeholder="用户名或昵称">
+          </div>
+          <div class="form-group">
+            <label>状态</label>
+            <select v-model="postSearchForm.status" class="form-input">
+              <option value="">全部</option>
+              <option value="DRAFT">草稿</option>
+              <option value="PENDING_REVIEW">待审核</option>
+              <option value="PUBLISHED">已发布</option>
+              <option value="REJECTED">已拒绝</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>标签</label>
+            <input type="text" v-model="postSearchForm.tag" class="form-input" placeholder="标签名称">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>创建开始日期</label>
+            <input type="date" v-model="postSearchForm.startDate" class="form-input">
+          </div>
+          <div class="form-group">
+            <label>创建结束日期</label>
+            <input type="date" v-model="postSearchForm.endDate" class="form-input">
+          </div>
+          <div class="form-group search-btn-group">
+            <button class="btn btn-primary" @click="searchPosts">搜索</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    <!-- Main Content -->
-    <div class="main-content">
-      <!-- Topbar -->
-      <header class="topbar">
-        <h1 class="page-title">文章管理</h1>
-        <div class="topbar-right">
-          <!-- Notification Bell -->
-          <div class="relative">
-            <router-link to="/notifications" class="notification-btn">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-              <span v-if="unreadNotificationCount > 0" class="notification-badge">
-                {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
+    <!-- Post List -->
+    <div class="card">
+      <div class="card-header">
+        <h3>文章列表 <span v-if="postPagination.total > 0">({{ postPagination.total }})</span></h3>
+        <div class="header-actions" v-if="selectedPostIds.length > 0">
+          <span class="selected-count">已选择 {{ selectedPostIds.length }} 项</span>
+          <button class="btn btn-success btn-sm" @click="batchApprove">批量通过</button>
+          <button class="btn btn-warning btn-sm" @click="openBatchRejectModal">批量拒绝</button>
+          <button class="btn btn-danger btn-sm" @click="openBatchDeleteModal">批量删除</button>
+        </div>
+      </div>
+      <div v-if="postsLoading" class="loading-container">
+        <div class="loading-spinner">加载中...</div>
+      </div>
+      <table v-else class="data-table">
+        <thead>
+          <tr>
+            <th class="checkbox-col">
+              <input
+                type="checkbox"
+                :checked="isAllSelected"
+                @change="toggleSelectAll"
+                :indeterminate="isPartialSelected"
+              >
+            </th>
+            <th>ID</th>
+            <th>标题</th>
+            <th>作者</th>
+            <th>状态</th>
+            <th>浏览量</th>
+            <th>点赞数</th>
+            <th>评论数</th>
+            <th>创建时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="postList.length === 0">
+            <td colspan="10" class="empty-row">暂无文章数据</td>
+          </tr>
+          <tr v-for="post in postList" :key="post.id" :class="{ 'selected-row': isPostSelected(post.id) }">
+            <td class="checkbox-col">
+              <input
+                type="checkbox"
+                :checked="isPostSelected(post.id)"
+                @change="togglePostSelection(post.id)"
+              >
+            </td>
+            <td>{{ post.id }}</td>
+            <td class="title-col">
+              <span class="post-title" @click="viewPostDetail(post)">{{ truncateText(post.title, 30) }}</span>
+            </td>
+            <td>
+              <span class="author-info">
+                <span class="author-name">{{ post.authorNickname || post.authorUsername }}</span>
+                <span v-if="!post.authorEnabled" class="badge badge-danger ml-1">已禁用</span>
               </span>
-            </router-link>
-          </div>
-          <!-- User Avatar -->
-          <div class="user-avatar" :style="userAvatarStyle">
-            <img 
-              v-if="userAvatarUrl && !avatarLoadError" 
-              :src="userAvatarUrl" 
-              :alt="adminName"
-              @error="handleAvatarError"
-              class="avatar-img"
-            />
-            <span v-else class="avatar-initial">{{ userInitial }}</span>
-          </div>
-        </div>
-      </header>
-
-      <!-- Content Area -->
-      <div class="content-area">
-        <!-- Search Form -->
-        <div class="card search-card">
-          <div class="card-header">
-            <h3>搜索条件</h3>
-            <div class="header-actions">
-              <button class="btn btn-secondary" @click="resetPostSearch">重置</button>
-            </div>
-          </div>
-          <div class="search-form">
-            <div class="form-row">
-              <div class="form-group">
-                <label>文章标题</label>
-                <input type="text" v-model="postSearchForm.title" class="form-input" placeholder="搜索标题">
-              </div>
-              <div class="form-group">
-                <label>作者</label>
-                <input type="text" v-model="postSearchForm.author" class="form-input" placeholder="用户名或昵称">
-              </div>
-              <div class="form-group">
-                <label>状态</label>
-                <select v-model="postSearchForm.status" class="form-input">
-                  <option value="">全部</option>
-                  <option value="DRAFT">草稿</option>
-                  <option value="PENDING_REVIEW">待审核</option>
-                  <option value="PUBLISHED">已发布</option>
-                  <option value="REJECTED">已拒绝</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>标签</label>
-                <input type="text" v-model="postSearchForm.tag" class="form-input" placeholder="标签名称">
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>创建开始日期</label>
-                <input type="date" v-model="postSearchForm.startDate" class="form-input">
-              </div>
-              <div class="form-group">
-                <label>创建结束日期</label>
-                <input type="date" v-model="postSearchForm.endDate" class="form-input">
-              </div>
-              <div class="form-group search-btn-group">
-                <button class="btn btn-primary" @click="searchPosts">搜索</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Post List -->
-        <div class="card">
-          <div class="card-header">
-            <h3>文章列表 <span v-if="postPagination.total > 0">({{ postPagination.total }})</span></h3>
-            <div class="header-actions" v-if="selectedPostIds.length > 0">
-              <span class="selected-count">已选择 {{ selectedPostIds.length }} 项</span>
-              <button class="btn btn-success btn-sm" @click="batchApprove">批量通过</button>
-              <button class="btn btn-warning btn-sm" @click="openBatchRejectModal">批量拒绝</button>
-              <button class="btn btn-danger btn-sm" @click="openBatchDeleteModal">批量删除</button>
-            </div>
-          </div>
-          <div v-if="postsLoading" class="loading-container">
-            <div class="loading-spinner">加载中...</div>
-          </div>
-          <table v-else class="data-table">
-            <thead>
-              <tr>
-                <th class="checkbox-col">
-                  <input 
-                    type="checkbox" 
-                    :checked="isAllSelected" 
-                    @change="toggleSelectAll"
-                    :indeterminate="isPartialSelected"
-                  >
-                </th>
-                <th>ID</th>
-                <th>标题</th>
-                <th>作者</th>
-                <th>状态</th>
-                <th>浏览量</th>
-                <th>点赞数</th>
-                <th>评论数</th>
-                <th>创建时间</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="postList.length === 0">
-                <td colspan="10" class="empty-row">暂无文章数据</td>
-              </tr>
-              <tr v-for="post in postList" :key="post.id" :class="{ 'selected-row': isPostSelected(post.id) }">
-                <td class="checkbox-col">
-                  <input 
-                    type="checkbox" 
-                    :checked="isPostSelected(post.id)" 
-                    @change="togglePostSelection(post.id)"
-                  >
-                </td>
-                <td>{{ post.id }}</td>
-                <td class="title-col">
-                  <span class="post-title" @click="viewPostDetail(post)">{{ truncateText(post.title, 30) }}</span>
-                </td>
-                <td>
-                  <span class="author-info">
-                    <span class="author-name">{{ post.authorNickname || post.authorUsername }}</span>
-                    <span v-if="!post.authorEnabled" class="badge badge-danger ml-1">已禁用</span>
-                  </span>
-                </td>
-                <td>
-                  <span :class="['badge', getStatusBadgeClass(post.status)]">
-                    {{ getStatusLabel(post.status) }}
-                  </span>
-                </td>
-                <td>{{ post.viewCount }}</td>
-                <td>{{ post.likeCount }}</td>
-                <td>{{ post.commentCount }}</td>
-                <td>{{ formatDate(post.createdAt) }}</td>
-                <td class="actions">
-                  <button class="action-btn" @click="viewPostDetail(post)">详情</button>
-                  <button 
-                    v-if="canApprove(post)" 
-                    class="action-btn success" 
-                    @click="approvePost(post)"
-                  >通过</button>
-                  <button 
-                    v-if="canReject(post)" 
-                    class="action-btn warning" 
-                    @click="openRejectModal(post)"
-                  >拒绝</button>
-                  <button 
-                    class="action-btn danger" 
-                    @click="openDeleteModal(post)"
-                  >删除</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+            </td>
+            <td>
+              <span :class="['badge', getStatusBadgeClass(post.status)]">
+                {{ getStatusLabel(post.status) }}
+              </span>
+            </td>
+            <td>{{ post.viewCount }}</td>
+            <td>{{ post.likeCount }}</td>
+            <td>{{ post.commentCount }}</td>
+            <td>{{ formatDate(post.createdAt) }}</td>
+            <td class="actions">
+              <button class="action-btn" @click="viewPostDetail(post)">详情</button>
+              <button
+                v-if="canApprove(post)"
+                class="action-btn success"
+                @click="approvePost(post)"
+              >通过</button>
+              <button
+                v-if="canReject(post)"
+                class="action-btn warning"
+                @click="openRejectModal(post)"
+              >拒绝</button>
+              <button
+                class="action-btn danger"
+                @click="openDeleteModal(post)"
+              >删除</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
           <!-- Pagination -->
           <div v-if="postPagination.totalPages > 1" class="pagination">
             <button 
@@ -377,9 +326,7 @@
             退出登录
           </button>
         </div>
-      </div>
-    </div>
-  </div>
+  </AdminLayout>
 </template>
 
 <script>
@@ -387,19 +334,16 @@ import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { getPosts, getPostDetail, executePostAction } from '@/api/admin'
-import { getUnreadCount } from '@/api/notifications'
+import AdminLayout from '@/layouts/AdminLayout.vue'
 
 export default {
   name: 'AdminPostManagement',
+  components: {
+    AdminLayout
+  },
   setup() {
     const store = useStore()
     const router = useRouter()
-
-    // ======================= Notification State =======================
-    const unreadNotificationCount = ref(0)
-
-    // ======================= User Avatar State =======================
-    const avatarLoadError = ref(false)
 
     // ======================= Post Management State =======================
     const postList = ref([])
@@ -432,26 +376,6 @@ export default {
       extraFieldsList: []
     })
 
-    const adminName = computed(() => {
-      const user = store.getters.currentUser
-      return user?.nickname || user?.username || '管理员'
-    })
-
-    const userInitial = computed(() => {
-      return adminName.value.charAt(0).toUpperCase()
-    })
-
-    const userAvatarUrl = computed(() => {
-      const user = store.getters.currentUser
-      if (!user?.avatarUrl) return null
-      const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
-      return user.avatarUrl.startsWith('http') ? user.avatarUrl : `${baseUrl}${user.avatarUrl}`
-    })
-
-    const userAvatarStyle = computed(() => {
-      return {}
-    })
-
     const menuItems = [
       { id: 'dashboard', path: '/admin', label: '仪表盘', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
       { id: 'articles', path: '/admin/posts', label: '文章管理', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>' },
@@ -465,10 +389,6 @@ export default {
 
     const isActiveRoute = (id) => {
       return id === 'articles'
-    }
-
-    const handleAvatarError = () => {
-      avatarLoadError.value = true
     }
 
     const handleLogout = () => {
@@ -760,28 +680,12 @@ export default {
       }
     }
 
-    // ======================= Notification Methods =======================
-
-    const loadUnreadCount = async () => {
-      try {
-        const count = await getUnreadCount()
-        unreadNotificationCount.value = count
-      } catch (error) {
-        console.error('Failed to load unread count:', error)
-      }
-    }
-
-    // ======================= Lifecycle =======================
-
     onMounted(() => {
       loadPosts()
-      loadUnreadCount()
     })
 
     return {
       // State
-      unreadNotificationCount,
-      avatarLoadError,
       postList,
       postsLoading,
       postPagination,
@@ -795,10 +699,6 @@ export default {
       actionForm,
       
       // Computed
-      adminName,
-      userInitial,
-      userAvatarUrl,
-      userAvatarStyle,
       menuItems,
       isAllSelected,
       isPartialSelected,
@@ -806,7 +706,6 @@ export default {
       
       // Methods
       isActiveRoute,
-      handleAvatarError,
       handleLogout,
       isPostSelected,
       toggleSelectAll,
@@ -841,194 +740,6 @@ export default {
 </script>
 
 <style scoped>
-/* Using the same styles from AdminUserManagement.vue */
-.admin-layout {
-  display: flex;
-  min-height: 100vh;
-  background-color: #f0f2f5;
-}
-
-/* Sidebar Styles */
-.sidebar {
-  width: 240px;
-  background: linear-gradient(180deg, #1e3a5f 0%, #0f1f33 100%);
-  color: white;
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-}
-
-.sidebar-header {
-  padding: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.logo-icon {
-  width: 40px;
-  height: 40px;
-  background: #1890ff;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-}
-
-.logo-text {
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.nav-menu {
-  flex: 1;
-  padding: 16px 0;
-  overflow-y: auto;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 12px 20px;
-  color: rgba(255, 255, 255, 0.7);
-  text-decoration: none;
-  transition: all 0.2s;
-  cursor: pointer;
-}
-
-.nav-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-}
-
-.nav-item.active {
-  background: #1890ff;
-  color: #fff;
-}
-
-.nav-icon {
-  width: 20px;
-  height: 20px;
-  margin-right: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nav-icon svg {
-  width: 100%;
-  height: 100%;
-}
-
-.nav-text {
-  font-size: 14px;
-}
-
-/* Main Content Styles */
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* Topbar Styles */
-.topbar {
-  height: 64px;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  flex-shrink: 0;
-}
-
-.page-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.notification-btn {
-  position: relative;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  color: #6b7280;
-  transition: all 0.2s;
-}
-
-.notification-btn:hover {
-  background: #f3f4f6;
-  color: #1f2937;
-}
-
-.notification-btn svg {
-  width: 24px;
-  height: 24px;
-}
-
-.notification-badge {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  min-width: 18px;
-  height: 18px;
-  background: #ef4444;
-  color: white;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-}
-
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-initial {
-  color: white;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-/* Content Area */
-.content-area {
-  flex: 1;
-  padding: 24px;
-  overflow-y: auto;
-}
 
 /* Card Styles */
 .card {
