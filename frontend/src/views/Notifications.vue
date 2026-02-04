@@ -362,7 +362,7 @@
 
 <script>
 import { ref, computed, watch, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import Header from '@/components/Header.vue'
 import UserProfileHoverCard from '@/components/UserProfileHoverCard.vue'
 import { 
@@ -370,7 +370,8 @@ import {
   getNotificationUnreadCount,
   markNotificationAsRead,
   markAllNotificationsAsRead,
-  getFormByPostId
+  getFormByPostId,
+  getFormByNotificationId
 } from '@/api/notifications'
 import { likeComment, unlikeComment, deleteComment } from '@/api/comments'
 import { getFullAvatarUrl } from '@/utils/avatar'
@@ -380,6 +381,7 @@ export default {
   components: { Header, UserProfileHoverCard },
   setup() {
     const router = useRouter()
+    const route = useRoute()
     
     const loading = ref(true)
     const loadingMore = ref(false)
@@ -815,25 +817,53 @@ export default {
       }
     }
 
-    // 打开详情弹窗（拒绝/删除通知）
+    // 打开详情弹窗（拒绝/删除/待修订通知）
     const openDetailModal = async (notification) => {
       showDetailModal.value = true
       loadingDetailModal.value = true
+      
+      // 尝试从通知内容中提取文章标题
+      let extractedTitle = notification.postTitle || ''
+      if (!extractedTitle && notification.content) {
+        // 从内容 "您的文章「xxx」未通过审核" 中提取标题
+        const match = notification.content.match(/「(.+?)」/)
+        if (match) {
+          extractedTitle = match[1]
+        }
+      }
       
       // 设置基本信息
       detailModalData.value = {
         formType: notification.type === 'POST_DELETED' ? 'DELETION' : 'REJECTION',
         postId: notification.postId,
-        postTitle: notification.postTitle || '',
+        postTitle: extractedTitle,
         reason: '',
         extraFields: '',
         createdAt: notification.createdAt
       }
 
-      // 尝试获取详细表单信息
-      if (notification.postId) {
-        try {
-          const form = await getFormByPostId(notification.postId)
+      try {
+        let form = null
+        
+        // 首先尝试通过postId获取表单信息
+        if (notification.postId) {
+          try {
+            form = await getFormByPostId(notification.postId)
+          } catch (e) {
+            // postId不存在或找不到表单，继续尝试其他方式
+          }
+        }
+        
+        // 如果还没找到表单，通过通知ID查找
+        if (!form && notification.id) {
+          try {
+            form = await getFormByNotificationId(notification.id)
+          } catch (e) {
+            // 找不到表单
+          }
+        }
+        
+        if (form) {
           detailModalData.value = {
             ...detailModalData.value,
             postTitle: form.postTitle || detailModalData.value.postTitle,
@@ -841,10 +871,10 @@ export default {
             extraFields: form.extraFields || '',
             createdAt: form.createdAt || notification.createdAt
           }
-        } catch (error) {
-          console.error('获取表单详情失败:', error)
-          // 即使失败也显示基本信息
         }
+      } catch (error) {
+        console.error('获取表单详情失败:', error)
+        // 即使失败也显示基本信息
       }
       
       loadingDetailModal.value = false
@@ -879,8 +909,40 @@ export default {
       loadNotifications()
     })
 
-    onMounted(() => {
-      loadNotifications()
+    onMounted(async () => {
+      // 处理路由参数
+      if (route.query.tab) {
+        currentFilter.value = route.query.tab
+      }
+      
+      await loadNotifications()
+      
+      // 如果有通知ID参数，查找并打开详情弹窗
+      if (route.query.notificationId) {
+        const notificationId = parseInt(route.query.notificationId)
+        const targetNotification = notifications.value.find(n => n.id === notificationId)
+        if (targetNotification && (targetNotification.type === 'POST_REJECTED' || targetNotification.type === 'POST_DELETED')) {
+          openDetailModal(targetNotification)
+        } else {
+          // 通知不在当前列表中，尝试通过ID直接获取表单
+          try {
+            const form = await getFormByNotificationId(notificationId)
+            showDetailModal.value = true
+            detailModalData.value = {
+              formType: form.formType || 'REJECTION',
+              postId: form.postId,
+              postTitle: form.postTitle || '',
+              reason: form.reason || '',
+              extraFields: form.extraFields || '',
+              createdAt: form.createdAt || ''
+            }
+          } catch (e) {
+            console.error('无法获取通知详情:', e)
+          }
+        }
+        // 清除URL参数但不触发导航
+        router.replace({ path: '/notifications', query: { tab: currentFilter.value } })
+      }
     })
 
     return {

@@ -784,6 +784,23 @@ export default {
             }
           })
           break
+        case 'POST_APPROVED':
+          // 审核通过，直接跳转文章详情
+          if (notification.postId) {
+            router.push(`/post/${notification.postId}`)
+          }
+          break
+        case 'POST_REJECTED':
+        case 'POST_DELETED':
+          // 审核拒绝或删除，跳转到通知页面的系统标签（在那里可以查看详情弹窗）
+          router.push({
+            path: '/notifications',
+            query: { 
+              tab: 'system',
+              notificationId: notification.id
+            }
+          })
+          break
       }
     }
 

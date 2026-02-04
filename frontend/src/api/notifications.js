@@ -71,3 +71,15 @@ export function getFormByPostId(postId) {
         method: 'get'
     })
 }
+
+/**
+ * 根据通知ID获取关联的表单详情（用于文章被删除后仍能查看原因）
+ * @param {Number} notificationId - 通知ID
+ * @returns {Promise<Object>} - 表单详情
+ */
+export function getFormByNotificationId(notificationId) {
+    return request({
+        url: `/notifications/${notificationId}/form`,
+        method: 'get'
+    })
+}

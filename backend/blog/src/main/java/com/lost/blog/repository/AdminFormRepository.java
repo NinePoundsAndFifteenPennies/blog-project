@@ -22,6 +22,12 @@ public interface AdminFormRepository extends JpaRepository<AdminForm, Long> {
     List<AdminForm> findByPostId(Long postId);
 
     /**
+     * 根据目标用户和时间范围查找表单（用于通知详情查找）
+     */
+    List<AdminForm> findByTargetUserAndCreatedAtBetweenOrderByCreatedAtDesc(
+            User targetUser, LocalDateTime startTime, LocalDateTime endTime);
+
+    /**
      * 根据目标用户查找表单
      */
     Page<AdminForm> findByTargetUserOrderByCreatedAtDesc(User targetUser, Pageable pageable);
