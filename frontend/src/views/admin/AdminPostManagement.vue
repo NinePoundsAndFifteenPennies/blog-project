@@ -81,7 +81,6 @@
                   <option value="PENDING_REVIEW">待审核</option>
                   <option value="PUBLISHED">已发布</option>
                   <option value="REJECTED">已拒绝</option>
-                  <option value="PENDING_REVISION">修改待审核</option>
                 </select>
               </div>
               <div class="form-group">

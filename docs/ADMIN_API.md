@@ -369,14 +369,265 @@ Content-Type: application/json
 
 ---
 
+## 文章管理
+
+### 文章状态说明
+
+| 状态 | 说明 |
+|------|------|
+| DRAFT | 草稿 - 作者创建但未提交发布的文章 |
+| PENDING_REVIEW | 待审核 - 作者提交发布申请，等待管理员审核（包括被拒绝后重新提交的文章） |
+| PUBLISHED | 已发布 - 审核通过并对外展示的文章 |
+| REJECTED | 已拒绝 - 审核不通过的文章 |
+| PENDING_REVISION | 发布后修改待审 - 已发布文章被修改后等待重新审核，审核期间前台展示旧版本 |
+
+### 获取文章列表
+
+获取文章列表，支持分页和多条件搜索过滤。
+
+```http
+GET /api/admin/posts
+Authorization: Bearer {admin-token}
+```
+
+**查询参数:**
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| page | int | 否 | 页码（从0开始），默认0 |
+| size | int | 否 | 每页数量，默认10 |
+| title | string | 否 | 标题搜索（模糊匹配） |
+| author | string | 否 | 作者用户名或昵称搜索（模糊匹配） |
+| status | string | 否 | 状态过滤：DRAFT/PENDING_REVIEW/PUBLISHED/REJECTED |
+| tag | string | 否 | 标签名称搜索 |
+| startDate | string | 否 | 创建开始日期（yyyy-MM-dd） |
+| endDate | string | 否 | 创建结束日期（yyyy-MM-dd） |
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "title": "文章标题",
+      "contentPreview": "文章内容预览...",
+      "authorId": 1,
+      "authorUsername": "user1",
+      "authorNickname": "用户1",
+      "authorAvatarUrl": "/uploads/1/avatars/avatar.jpg",
+      "status": "PUBLISHED",
+      "isDraft": false,
+      "viewCount": 100,
+      "likeCount": 10,
+      "commentCount": 5,
+      "tags": ["技术", "Java"],
+      "categoryId": 1,
+      "categoryName": "技术",
+      "createdAt": "2024-01-01T00:00:00",
+      "updatedAt": "2024-01-15T12:00:00",
+      "publishedAt": "2024-01-01T10:00:00",
+      "rejectionFormId": null,
+      "rejectionFormTitle": null
+    }
+  ],
+  "totalElements": 100,
+  "totalPages": 10,
+  "size": 10,
+  "number": 0
+}
+```
+
+---
+
+### 获取文章详情
+
+获取指定文章的详细信息，包括拒绝表单信息（如有）。
+
+```http
+GET /api/admin/posts/{id}
+Authorization: Bearer {admin-token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 1,
+  "title": "文章标题",
+  "content": "完整文章内容...",
+  "contentPreview": "文章内容预览...",
+  "authorId": 1,
+  "authorUsername": "user1",
+  "authorNickname": "用户1",
+  "status": "REJECTED",
+  "rejectionFormId": 5,
+  "rejectionFormTitle": "审核拒绝通知",
+  "previousTitle": "修改前的标题",
+  "previousContent": "修改前的内容..."
+}
+```
+
+**错误响应:**
+- `404 Not Found` - 文章不存在
+
+---
+
+### 批量操作文章
+
+对一个或多个文章执行审核/拒绝/删除操作。
+
+```http
+POST /api/admin/posts/action
+Authorization: Bearer {admin-token}
+Content-Type: application/json
+```
+
+**请求体:**
+```json
+{
+  "action": "REJECT",
+  "postIds": [1, 2, 3],
+  "formTitle": "审核拒绝通知",
+  "reason": "文章内容违规，包含广告信息",
+  "extraFields": "[{\"fieldName\":\"违规类型\",\"fieldValue\":\"广告营销\"},{\"fieldName\":\"涉及规则\",\"fieldValue\":\"社区规范3.2\"}]"
+}
+```
+
+**参数说明:**
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| action | string | 是 | 操作类型：APPROVE/REJECT/DELETE |
+| postIds | array | 是 | 文章ID列表（支持批量操作） |
+| formTitle | string | 拒绝/删除时必填 | 表单标题（作为提示字段保存在后台） |
+| reason | string | 拒绝/删除时必填 | 拒绝/删除原因 |
+| extraFields | string | 否 | 扩展字段JSON数组，格式：`[{"fieldName":"字段名","fieldValue":"字段值"}]` |
+
+**操作说明:**
+- **APPROVE**: 审核通过，将文章状态改为 PUBLISHED，并向作者发送通知
+- **REJECT**: 审核拒绝，将文章状态改为 REJECTED，保存拒绝表单并向作者发送通知
+- **DELETE**: 删除文章，保存删除表单并向作者发送通知
+
+**成功响应:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "成功拒绝 3 篇文章",
+  "processedCount": 3,
+  "failedIds": []
+}
+```
+
+**错误响应:**
+- `400 Bad Request` - 参数验证失败
+
+---
+
+### 获取表单详情
+
+获取拒绝/删除表单的详细信息。
+
+```http
+GET /api/admin/forms/{id}
+Authorization: Bearer {admin-token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 5,
+  "formType": "REJECTION",
+  "title": "审核拒绝通知",
+  "reason": "文章内容违规",
+  "extraFields": "[{\"fieldName\":\"违规类型\",\"fieldValue\":\"广告营销\"}]",
+  "postId": 1,
+  "postTitle": "文章标题",
+  "targetUserId": 2,
+  "adminId": 1,
+  "adminUsername": "admin",
+  "createdAt": "2024-01-15T12:00:00",
+  "isSent": true,
+  "sentAt": "2024-01-15T12:00:00"
+}
+```
+
+---
+
+### 获取文章的表单历史
+
+获取指定文章的所有拒绝/删除表单记录。
+
+```http
+GET /api/admin/posts/{postId}/forms
+Authorization: Bearer {admin-token}
+```
+
+**成功响应:** `200 OK`
+```json
+[
+  {
+    "id": 5,
+    "formType": "REJECTION",
+    "title": "审核拒绝通知",
+    "reason": "文章内容违规",
+    "createdAt": "2024-01-15T12:00:00"
+  }
+]
+```
+
+---
+
+## 用户端系统通知
+
+用户可以通过以下接口获取系统通知相关的表单详情。
+
+### 通过文章ID获取表单
+
+```http
+GET /api/notifications/forms/post/{postId}
+Authorization: Bearer {user-token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 5,
+  "formType": "REJECTION",
+  "title": "审核拒绝通知",
+  "reason": "文章内容违规",
+  "extraFields": "[{\"fieldName\":\"违规类型\",\"fieldValue\":\"广告营销\"}]",
+  "postId": 1,
+  "postTitle": "文章标题",
+  "createdAt": "2024-01-15T12:00:00"
+}
+```
+
+> 注：此接口只返回针对当前用户的表单信息，且隐藏管理员信息。
+
+### 通过通知ID获取表单
+
+用于文章已被删除的情况，通过通知ID查找关联的表单。
+
+```http
+GET /api/notifications/{notificationId}/form
+Authorization: Bearer {user-token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 5,
+  "formType": "DELETION",
+  "title": "文章删除通知",
+  "reason": "文章违规已删除",
+  "extraFields": "[{\"fieldName\":\"违规类型\",\"fieldValue\":\"广告\"}]",
+  "postTitle": "文章标题",
+  "createdAt": "2024-01-15T12:00:00"
+}
+```
+
+---
+
 ## 后续规划
 
 管理后台 API 将陆续增加以下功能：
-
-### 内容管理
-- `GET /api/admin/posts` - 获取文章列表（含审核状态）
-- `PUT /api/admin/posts/{id}/status` - 修改文章状态
-- `DELETE /api/admin/posts/{id}` - 删除文章
 
 ### 评论管理
 - `GET /api/admin/comments` - 获取评论列表
