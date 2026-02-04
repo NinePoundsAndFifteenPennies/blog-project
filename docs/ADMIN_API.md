@@ -397,7 +397,7 @@ Authorization: Bearer {admin-token}
 | size | int | 否 | 每页数量，默认10 |
 | title | string | 否 | 标题搜索（模糊匹配） |
 | author | string | 否 | 作者用户名或昵称搜索（模糊匹配） |
-| status | string | 否 | 状态过滤：DRAFT/PENDING_REVIEW/PUBLISHED/REJECTED |
+| status | string | 否 | 状态过滤：DRAFT/PENDING_REVIEW/PUBLISHED/REJECTED（注：PENDING_REVISION 为内部状态，用于已发布文章修改后的审核，不作为常规筛选项） |
 | tag | string | 否 | 标签名称搜索 |
 | startDate | string | 否 | 创建开始日期（yyyy-MM-dd） |
 | endDate | string | 否 | 创建结束日期（yyyy-MM-dd） |
