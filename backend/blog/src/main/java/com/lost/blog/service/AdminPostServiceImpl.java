@@ -5,6 +5,7 @@ import com.lost.blog.exception.ResourceNotFoundException;
 import com.lost.blog.mapper.AdminPostMapper;
 import com.lost.blog.model.*;
 import com.lost.blog.repository.AdminFormRepository;
+import com.lost.blog.repository.NotificationRepository;
 import com.lost.blog.repository.PostRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,16 +35,19 @@ public class AdminPostServiceImpl implements AdminPostService {
     private final AdminFormRepository adminFormRepository;
     private final AdminPostMapper adminPostMapper;
     private final NotificationService notificationService;
+    private final NotificationRepository notificationRepository;
 
     @Autowired
     public AdminPostServiceImpl(PostRepository postRepository,
                                AdminFormRepository adminFormRepository,
                                AdminPostMapper adminPostMapper,
-                               NotificationService notificationService) {
+                               NotificationService notificationService,
+                               NotificationRepository notificationRepository) {
         this.postRepository = postRepository;
         this.adminFormRepository = adminFormRepository;
         this.adminPostMapper = adminPostMapper;
         this.notificationService = notificationService;
+        this.notificationRepository = notificationRepository;
     }
 
     @Override
@@ -264,12 +268,15 @@ public class AdminPostServiceImpl implements AdminPostService {
                 User postAuthor = post.getUser();
                 String postTitle = post.getTitle();
                 
+                // 发送删除通知（在删除文章之前，这样通知中不会引用即将被删除的文章）
+                notificationService.createPostDeletedNotification(admin, postAuthor, postTitle, reason);
+                
+                // 解除通知表对文章的外键约束
+                notificationRepository.nullifyPostReferences(post);
+                
                 // 删除文章
                 postRepository.delete(post);
                 successIds.add(postId);
-                
-                // 发送删除通知
-                notificationService.createPostDeletedNotification(admin, postAuthor, postTitle, reason);
                 
                 logger.info("管理员 {} 删除文章 {}, 理由: {}", admin.getUsername(), postId, reason);
                 

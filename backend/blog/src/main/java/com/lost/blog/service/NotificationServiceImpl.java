@@ -48,6 +48,8 @@ public class NotificationServiceImpl implements NotificationService {
                 return List.of(NotificationType.FOLLOWED);
             case "messages":
                 return List.of(NotificationType.MESSAGE_RECEIVED);
+            case "system":
+                return List.of(NotificationType.POST_APPROVED, NotificationType.POST_REJECTED, NotificationType.POST_DELETED);
             default:
                 return null; // all types
         }

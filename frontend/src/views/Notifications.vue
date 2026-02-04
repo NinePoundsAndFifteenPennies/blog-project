@@ -79,9 +79,9 @@
                   <span v-html="getTypeStyle(notification.type).icon"></span>
                 </div>
 
-                <!-- Avatar with Hover Card -->
+                <!-- Avatar with Hover Card (for non-system notifications) -->
                 <UserProfileHoverCard 
-                  v-if="notification.actorUsername"
+                  v-if="notification.actorUsername && !isSystemNotification(notification)"
                   :username="notification.actorUsername"
                   :user-data="getActorData(notification)"
                   @click.stop
@@ -98,6 +98,18 @@
                     <span v-else>{{ getInitial(notification.actorNickname || notification.actorUsername) }}</span>
                   </div>
                 </UserProfileHoverCard>
+                
+                <!-- System notification avatar (gear icon) -->
+                <div
+                  v-else-if="isSystemNotification(notification)"
+                  class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-gray-600 flex-shrink-0"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                
+                <!-- Fallback avatar -->
                 <div
                   v-else
                   class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600 flex-shrink-0"
@@ -109,7 +121,7 @@
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center justify-between mb-1">
                     <p class="text-sm text-gray-900">
-                      <span class="font-semibold">{{ notification.actorNickname || notification.actorUsername }}</span>
+                      <span class="font-semibold">{{ getNotificationActorName(notification) }}</span>
                       <span class="text-gray-600"> {{ getNotificationText(notification) }}</span>
                     </p>
                     <div class="flex items-center space-x-2 flex-shrink-0 ml-4">
@@ -254,6 +266,11 @@ export default {
         value: 'messages', 
         label: '私信',
         icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>'
+      },
+      { 
+        value: 'system', 
+        label: '系统',
+        icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>'
       }
     ]
 
@@ -311,6 +328,21 @@ export default {
             bgColor: 'bg-purple-100', 
             icon: '<svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>'
           }
+        case 'POST_APPROVED':
+          return { 
+            bgColor: 'bg-green-100', 
+            icon: '<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+          }
+        case 'POST_REJECTED':
+          return { 
+            bgColor: 'bg-yellow-100', 
+            icon: '<svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>'
+          }
+        case 'POST_DELETED':
+          return { 
+            bgColor: 'bg-red-100', 
+            icon: '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>'
+          }
         default:
           return { 
             bgColor: 'bg-gray-100', 
@@ -333,9 +365,28 @@ export default {
           return '关注了你'
         case 'MESSAGE_RECEIVED':
           return '给你发送了一条私信'
+        case 'POST_APPROVED':
+          return '您的文章已通过审核'
+        case 'POST_REJECTED':
+          return '您的文章未通过审核'
+        case 'POST_DELETED':
+          return '您的文章因违规被删除'
         default:
           return ''
       }
+    }
+
+    // 判断是否为系统通知
+    const isSystemNotification = (notification) => {
+      return ['POST_APPROVED', 'POST_REJECTED', 'POST_DELETED'].includes(notification.type)
+    }
+
+    // 获取通知显示的名称
+    const getNotificationActorName = (notification) => {
+      if (isSystemNotification(notification)) {
+        return '系统管理员'
+      }
+      return notification.actorNickname || notification.actorUsername
     }
 
     const getEmptyMessage = () => {
@@ -348,6 +399,8 @@ export default {
           return '暂无关注相关的通知'
         case 'messages':
           return '暂无私信相关的通知'
+        case 'system':
+          return '暂无系统相关的通知'
         default:
           return '当有人与你互动时，通知将会显示在这里'
       }
@@ -601,6 +654,8 @@ export default {
       formatTime,
       getTypeStyle,
       getNotificationText,
+      getNotificationActorName,
+      isSystemNotification,
       getEmptyMessage,
       isCommentNotification,
       loadMore,

@@ -297,6 +297,14 @@ public class PostServiceImpl implements PostService {
             post.setStatus(PostStatus.PENDING_REVISION);
             logger.info("已发布文章 {} 被修改，状态变更为 PENDING_REVISION", id);
         }
+        
+        // 处理被拒绝文章的修改重审逻辑
+        if (currentStatus == PostStatus.REJECTED && contentChanged && !willBeDraft) {
+            // 被拒绝的文章修改后，重新提交审核
+            post.setStatus(PostStatus.PENDING_REVIEW);
+            post.setRejectionFormId(null);  // 清除之前的拒绝表单关联
+            logger.info("被拒绝文章 {} 被修改，状态变更为 PENDING_REVIEW", id);
+        }
 
         // 更新字段
         post.setTitle(postRequest.getTitle());

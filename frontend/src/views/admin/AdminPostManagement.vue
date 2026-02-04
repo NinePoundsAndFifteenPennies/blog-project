@@ -738,8 +738,11 @@ export default {
       const extraFields = actionForm.value.extraFieldsList.filter(f => f.fieldName && f.fieldValue)
       
       try {
+        // 保存操作类型，因为closeActionModal会清空它
+        const currentActionType = actionType.value
+        
         const result = await executePostAction({
-          action: actionType.value,
+          action: currentActionType,
           postIds: actionTargetPosts.value.map(p => p.id),
           formTitle: actionForm.value.formTitle || undefined,
           reason: actionForm.value.reason,
@@ -749,7 +752,7 @@ export default {
         closeActionModal()
         await loadPosts()
         
-        const actionLabel = actionType.value === 'DELETE' ? '删除' : '拒绝'
+        const actionLabel = currentActionType === 'DELETE' ? '删除' : '拒绝'
         alert(`成功${actionLabel} ${result.successCount} 篇文章` + 
               (result.failureCount > 0 ? `，${result.failureCount} 篇失败` : ''))
       } catch (error) {
@@ -868,7 +871,14 @@ export default {
 }
 
 .logo-icon {
-  font-size: 28px;
+  width: 40px;
+  height: 40px;
+  background: #1890ff;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
 }
 
 .logo-text {
@@ -889,23 +899,26 @@ export default {
   color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
   transition: all 0.2s;
-  gap: 12px;
+  cursor: pointer;
 }
 
 .nav-item:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: white;
+  color: #fff;
 }
 
 .nav-item.active {
-  background: rgba(59, 130, 246, 0.3);
-  color: white;
-  border-left: 3px solid #3b82f6;
+  background: #1890ff;
+  color: #fff;
 }
 
 .nav-icon {
   width: 20px;
   height: 20px;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .nav-icon svg {
