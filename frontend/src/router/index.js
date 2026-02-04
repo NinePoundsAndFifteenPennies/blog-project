@@ -32,149 +32,16 @@ function getScrollPosition(key) {
     return positions[key] || null;
 }
 
+import adminRoutes from "@/modules/admin/router";
+import portalRoutes from "@/modules/portal/router";
+
 const routes = [
-    {
-        path: "/",
-        name: "Home",
-        component: () => import("@/views/Home.vue"),
-        meta: { title: "首页" },
-    },
-    {
-        path: "/login",
-        name: "Login",
-        component: () => import("@/views/Login.vue"),
-        meta: { title: "登录", guest: true },
-    },
-    {
-        path: "/register",
-        name: "Register",
-        component: () => import("@/views/Register.vue"),
-        meta: { title: "注册", guest: true },
-    },
-    {
-        path: "/post/:id",
-        name: "PostDetail",
-        component: () => import("@/views/PostDetail.vue"),
-        meta: { title: "文章详情" },
-    },
-    {
-        path: "/post/create",
-        name: "PostCreate",
-        component: () => import("@/views/PostEdit.vue"),
-        meta: { title: "创建文章", requiresAuth: true },
-    },
-    {
-        path: "/post/:id/edit",
-        name: "PostEdit",
-        component: () => import("@/views/PostEdit.vue"),
-        meta: { title: "编辑文章", requiresAuth: true },
-    },
-    {
-        path: "/profile",
-        name: "Profile",
-        component: () => import("@/views/Profile.vue"),
-        meta: { title: "个人中心", requiresAuth: true },
-    },
-    {
-        path: "/profile/edit",
-        name: "ProfileEdit",
-        component: () => import("@/views/ProfileEdit.vue"),
-        meta: { title: "编辑个人资料", requiresAuth: true },
-    },
-    {
-        path: "/my-comments",
-        name: "MyComments",
-        component: () => import("@/views/MyComments.vue"),
-        meta: { title: "我的评论", requiresAuth: true },
-    },
-    {
-        path: "/user/:username",
-        name: "UserProfile",
-        component: () => import("@/views/UserProfile.vue"),
-        meta: { title: "用户主页" },
-    },
-    {
-        path: "/comment/:id/edit",
-        name: "CommentEdit",
-        component: () => import("@/views/CommentEdit.vue"),
-        meta: { title: "编辑评论", requiresAuth: true },
-    },
-    {
-        path: "/comment/:id/reply",
-        name: "ReplyCreate",
-        component: () => import("@/views/ReplyCreate.vue"),
-        meta: { title: "写回复", requiresAuth: true },
-    },
-    {
-        path: "/tags/:tagName",
-        name: "TagPosts",
-        component: () => import("@/views/TagPosts.vue"),
-        meta: { title: "标签文章" },
-    },
-    {
-        path: "/search",
-        name: "Search",
-        component: () => import("@/views/Search.vue"),
-        meta: { title: "搜索结果" },
-    },
-    {
-        path: "/user/:userId/follow/:type",
-        name: "FollowList",
-        component: () => import("@/views/FollowList.vue"),
-        meta: { title: "关注列表" },
-    },
-    {
-        path: "/settings",
-        name: "Settings",
-        component: () => import("@/views/Settings.vue"),
-        meta: { title: "设置", requiresAuth: true },
-    },
-    {
-        path: "/settings/visibility",
-        name: "VisibilitySettings",
-        component: () => import("@/views/VisibilitySettings.vue"),
-        meta: { title: "隐私设置", requiresAuth: true },
-    },
-    {
-        path: "/messages",
-        name: "Messages",
-        component: () => import("@/views/Messages.vue"),
-        meta: { title: "私信", requiresAuth: true },
-    },
-    {
-        path: "/notifications",
-        name: "Notifications",
-        component: () => import("@/views/Notifications.vue"),
-        meta: { title: "通知", requiresAuth: true },
-    },
-    // -------- 管理后台路由 --------
-    {
-        path: "/admin/login",
-        name: "AdminLogin",
-        redirect: { name: "Login", query: { redirect: "/admin" } },
-    },
-    {
-        path: "/admin",
-        name: "AdminDashboard",
-        component: () => import("@/views/admin/AdminDashboard.vue"),
-        meta: { title: "管理后台", requiresAdmin: true },
-    },
-    {
-        path: "/admin/users",
-        name: "AdminUserManagement",
-        component: () => import("@/views/admin/AdminUserManagement.vue"),
-        meta: { title: "用户管理 - 管理后台", requiresAdmin: true },
-    },
-    {
-        path: "/admin/posts",
-        name: "AdminPostManagement",
-        component: () => import("@/views/admin/AdminPostManagement.vue"),
-        meta: { title: "文章管理 - 管理后台", requiresAdmin: true },
-    },
+    ...portalRoutes,
+    ...adminRoutes,
     {
         path: "/:pathMatch(.*)*",
         name: "NotFound",
-        component: () => import("@/views/NotFound.vue"),
+        component: () => import("@/modules/portal/views/NotFound.vue"),
         meta: { title: "页面不存在" },
     },
 ];
