@@ -574,57 +574,6 @@ Authorization: Bearer {admin-token}
 
 ---
 
-## 用户端系统通知
-
-用户可以通过以下接口获取系统通知相关的表单详情。
-
-### 通过文章ID获取表单
-
-```http
-GET /api/notifications/forms/post/{postId}
-Authorization: Bearer {user-token}
-```
-
-**成功响应:** `200 OK`
-```json
-{
-  "id": 5,
-  "formType": "REJECTION",
-  "title": "审核拒绝通知",
-  "reason": "文章内容违规",
-  "extraFields": "[{\"fieldName\":\"违规类型\",\"fieldValue\":\"广告营销\"}]",
-  "postId": 1,
-  "postTitle": "文章标题",
-  "createdAt": "2024-01-15T12:00:00"
-}
-```
-
-> 注：此接口只返回针对当前用户的表单信息，且隐藏管理员信息。
-
-### 通过通知ID获取表单
-
-用于文章已被删除的情况，通过通知ID查找关联的表单。
-
-```http
-GET /api/notifications/{notificationId}/form
-Authorization: Bearer {user-token}
-```
-
-**成功响应:** `200 OK`
-```json
-{
-  "id": 5,
-  "formType": "DELETION",
-  "title": "文章删除通知",
-  "reason": "文章违规已删除",
-  "extraFields": "[{\"fieldName\":\"违规类型\",\"fieldValue\":\"广告\"}]",
-  "postTitle": "文章标题",
-  "createdAt": "2024-01-15T12:00:00"
-}
-```
-
----
-
 ## 后续规划
 
 管理后台 API 将陆续增加以下功能：

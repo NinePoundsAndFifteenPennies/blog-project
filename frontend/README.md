@@ -75,7 +75,8 @@ frontend/
 │   │   ├── VisibilitySettings.vue # 隐私设置
 │   │   └── admin/          # 管理后台视图
 │   │       ├── AdminDashboard.vue # 管理后台主页(侧边栏+多视图)
-│   │       └── AdminUserManagement.vue # 用户管理页面(列表+搜索+批量操作)
+│   │       ├── AdminUserManagement.vue # 用户管理页面(列表+搜索+批量操作)
+│   │       └── AdminPostManagement.vue # 文章管理页面(审核+批量操作+表单)
 │   ├── App.vue             # 根组件
 │   └── main.js             # 入口文件
 ├── tailwind.config.js      # Tailwind配置
@@ -110,7 +111,7 @@ npm run build
 | 模块 | 功能 |
 |------|------|
 | 仪表盘 | 统计卡片、趋势指标、最新文章、动态欢迎动画 |
-| 文章管理 | 文章列表、筛选、编辑、删除 |
+| 文章管理 | 文章列表、多条件筛选（状态/作者/标签/日期）、批量审核/拒绝/删除、状态管理 |
 | 分类管理 | 分类卡片网格、新建分类 |
 | 标签管理 | 标签列表、使用统计 |
 | 评论管理 | 评论审核、删除 |
