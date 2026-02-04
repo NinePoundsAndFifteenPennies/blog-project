@@ -45,4 +45,14 @@ public interface AdminFormRepository extends JpaRepository<AdminForm, Long> {
      * 根据文章ID和表单类型查找最新表单
      */
     AdminForm findFirstByPostIdAndFormTypeOrderByCreatedAtDesc(Long postId, AdminFormType formType);
+
+    /**
+     * 根据目标用户和文章ID查找最新表单（用于用户查看拒绝/删除原因）
+     */
+    AdminForm findFirstByTargetUserAndPostIdOrderByCreatedAtDesc(User targetUser, Long postId);
+
+    /**
+     * 根据目标用户和表单类型查找表单列表
+     */
+    List<AdminForm> findByTargetUserAndFormTypeOrderByCreatedAtDesc(User targetUser, AdminFormType formType);
 }

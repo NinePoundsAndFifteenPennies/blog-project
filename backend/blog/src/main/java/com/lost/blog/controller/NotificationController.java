@@ -1,7 +1,13 @@
 package com.lost.blog.controller;
 
+import com.lost.blog.dto.AdminFormResponse;
 import com.lost.blog.dto.NotificationResponse;
+import com.lost.blog.model.AdminForm;
+import com.lost.blog.model.User;
+import com.lost.blog.repository.AdminFormRepository;
+import com.lost.blog.repository.UserRepository;
 import com.lost.blog.service.NotificationService;
+import com.lost.blog.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,10 +28,16 @@ import java.util.Map;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final AdminFormRepository adminFormRepository;
+    private final UserRepository userRepository;
 
     @Autowired
-    public NotificationController(NotificationService notificationService) {
+    public NotificationController(NotificationService notificationService,
+                                  AdminFormRepository adminFormRepository,
+                                  UserRepository userRepository) {
         this.notificationService = notificationService;
+        this.adminFormRepository = adminFormRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -85,5 +97,31 @@ public class NotificationController {
             @AuthenticationPrincipal UserDetails currentUser) {
         int count = notificationService.markAllAsRead(filter, currentUser);
         return ResponseEntity.ok(Map.of("markedCount", count));
+    }
+
+    /**
+     * 获取用户文章的拒绝/删除表单详情
+     * 用于用户查看自己文章被拒绝或删除的原因
+     * GET /api/notifications/forms/post/{postId}
+     */
+    @GetMapping("/forms/post/{postId}")
+    public ResponseEntity<AdminFormResponse> getFormByPostId(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        User user = userRepository.findByUsername(currentUser.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("未找到用户"));
+        
+        AdminForm form = adminFormRepository.findFirstByTargetUserAndPostIdOrderByCreatedAtDesc(user, postId);
+        if (form == null) {
+            throw new ResourceNotFoundException("未找到该文章的表单记录");
+        }
+        
+        AdminFormResponse response = AdminFormResponse.fromEntity(form);
+        // 隐藏管理员具体信息
+        response.setAdminId(null);
+        response.setAdminUsername(null);
+        response.setAdminNickname(null);
+        
+        return ResponseEntity.ok(response);
     }
 }

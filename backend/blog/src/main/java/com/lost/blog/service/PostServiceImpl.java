@@ -41,6 +41,7 @@ public class PostServiceImpl implements PostService {
     private final com.lost.blog.repository.CommentRepository commentRepository;
     private final com.lost.blog.repository.LikeRepository likeRepository;
     private final com.lost.blog.repository.CategoryRepository categoryRepository;
+    private final com.lost.blog.repository.NotificationRepository notificationRepository;
     private final FileService fileService;
 
     @Autowired
@@ -52,6 +53,7 @@ public class PostServiceImpl implements PostService {
                            com.lost.blog.repository.CommentRepository commentRepository,
                            com.lost.blog.repository.LikeRepository likeRepository,
                            com.lost.blog.repository.CategoryRepository categoryRepository,
+                           com.lost.blog.repository.NotificationRepository notificationRepository,
                            FileService fileService) {
         this.postRepository = postRepository;
         this.postViewLogRepository = postViewLogRepository;
@@ -61,6 +63,7 @@ public class PostServiceImpl implements PostService {
         this.commentRepository = commentRepository;
         this.likeRepository = likeRepository;
         this.categoryRepository = categoryRepository;
+        this.notificationRepository = notificationRepository;
         this.fileService = fileService;
     }
 
@@ -367,6 +370,10 @@ public class PostServiceImpl implements PostService {
             logger.warn("用户 {} 尝试删除他人文章，ID: {}", currentUser.getUsername(), id);
             throw new AccessDeniedException("无权删除该文章");
         }
+
+        // 解除所有通知对该文章及其评论的引用（防止外键约束错误）
+        notificationRepository.nullifyAllReferencesForPost(post);
+        logger.info("解除文章ID: {} 相关通知的外键引用", id);
 
         // 先删除该文章的所有点赞（级联删除）
         likeRepository.deleteByPost(post);
