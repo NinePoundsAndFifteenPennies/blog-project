@@ -287,9 +287,10 @@ public class PostServiceImpl implements PostService {
         // 检查是否有实质内容变化（用于已发布文章的重审逻辑）
         boolean contentChanged = !java.util.Objects.equals(post.getTitle(), postRequest.getTitle()) ||
                                  !java.util.Objects.equals(post.getContent(), postRequest.getContent());
+        boolean shouldResubmitForReview = contentChanged && !willBeDraft;
 
         // 处理已发布文章的修改重审逻辑
-        if (currentStatus == PostStatus.PUBLISHED && contentChanged && !willBeDraft) {
+        if (currentStatus == PostStatus.PUBLISHED && shouldResubmitForReview) {
             // 保存旧版本内容，用于审核期间展示
             post.setPreviousTitle(post.getTitle());
             post.setPreviousContent(post.getContent());
@@ -299,7 +300,7 @@ public class PostServiceImpl implements PostService {
         }
         
         // 处理被拒绝文章的修改重审逻辑
-        if (currentStatus == PostStatus.REJECTED && contentChanged && !willBeDraft) {
+        if (currentStatus == PostStatus.REJECTED && shouldResubmitForReview) {
             // 被拒绝的文章修改后，重新提交审核
             post.setStatus(PostStatus.PENDING_REVIEW);
             post.setRejectionFormId(null);  // 清除之前的拒绝表单关联
