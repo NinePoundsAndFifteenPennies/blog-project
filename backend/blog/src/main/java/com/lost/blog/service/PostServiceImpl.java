@@ -7,6 +7,10 @@ import com.lost.blog.model.PostStatus;
 import com.lost.blog.model.PostViewLog;
 import com.lost.blog.model.Tag;
 import com.lost.blog.model.User;
+import com.lost.blog.repository.CommentRepository;
+import com.lost.blog.repository.CategoryRepository;
+import com.lost.blog.repository.LikeRepository;
+import com.lost.blog.repository.NotificationRepository;
 import com.lost.blog.repository.PostRepository;
 import com.lost.blog.repository.PostViewLogRepository;
 import com.lost.blog.repository.TagRepository;
@@ -38,10 +42,10 @@ public class PostServiceImpl implements PostService {
     private final UserRepository userRepository;
     private final TagRepository tagRepository;
     private final PostMapper postMapper;
-    private final com.lost.blog.repository.CommentRepository commentRepository;
-    private final com.lost.blog.repository.LikeRepository likeRepository;
-    private final com.lost.blog.repository.CategoryRepository categoryRepository;
-    private final com.lost.blog.repository.NotificationRepository notificationRepository;
+    private final CommentRepository commentRepository;
+    private final LikeRepository likeRepository;
+    private final CategoryRepository categoryRepository;
+    private final NotificationRepository notificationRepository;
     private final FileService fileService;
 
     @Autowired
@@ -50,10 +54,10 @@ public class PostServiceImpl implements PostService {
                            UserRepository userRepository,
                            TagRepository tagRepository,
                            PostMapper postMapper,
-                           com.lost.blog.repository.CommentRepository commentRepository,
-                           com.lost.blog.repository.LikeRepository likeRepository,
-                           com.lost.blog.repository.CategoryRepository categoryRepository,
-                           com.lost.blog.repository.NotificationRepository notificationRepository,
+                           CommentRepository commentRepository,
+                           LikeRepository likeRepository,
+                           CategoryRepository categoryRepository,
+                           NotificationRepository notificationRepository,
                            FileService fileService) {
         this.postRepository = postRepository;
         this.postViewLogRepository = postViewLogRepository;
