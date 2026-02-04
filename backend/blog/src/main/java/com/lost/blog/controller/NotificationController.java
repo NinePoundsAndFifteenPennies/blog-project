@@ -31,6 +31,9 @@ import java.util.Map;
 @RequestMapping("/api/notifications")
 public class NotificationController {
 
+    /** 表单查找时间窗口（分钟） - 用于在通知附近时间范围内查找关联的管理表单 */
+    private static final int FORM_LOOKUP_WINDOW_MINUTES = 1;
+
     private final NotificationService notificationService;
     private final AdminFormRepository adminFormRepository;
     private final UserRepository userRepository;
@@ -169,9 +172,9 @@ public class NotificationController {
         // 如果找不到，通过通知时间范围查找（文章已被删除的情况）
         if (form == null) {
             LocalDateTime notificationTime = notification.getCreatedAt();
-            // 在通知创建前后1分钟内查找匹配的表单
-            LocalDateTime startTime = notificationTime.minusMinutes(1);
-            LocalDateTime endTime = notificationTime.plusMinutes(1);
+            // 在通知创建前后指定时间窗口内查找匹配的表单
+            LocalDateTime startTime = notificationTime.minusMinutes(FORM_LOOKUP_WINDOW_MINUTES);
+            LocalDateTime endTime = notificationTime.plusMinutes(FORM_LOOKUP_WINDOW_MINUTES);
             
             List<AdminForm> forms = adminFormRepository
                     .findByTargetUserAndCreatedAtBetweenOrderByCreatedAtDesc(user, startTime, endTime);
