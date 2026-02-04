@@ -79,9 +79,9 @@
                   <span v-html="getTypeStyle(notification.type).icon"></span>
                 </div>
 
-                <!-- Avatar with Hover Card -->
+                <!-- Avatar with Hover Card (for non-system notifications) -->
                 <UserProfileHoverCard 
-                  v-if="notification.actorUsername"
+                  v-if="notification.actorUsername && !isSystemNotification(notification)"
                   :username="notification.actorUsername"
                   :user-data="getActorData(notification)"
                   @click.stop
@@ -98,6 +98,18 @@
                     <span v-else>{{ getInitial(notification.actorNickname || notification.actorUsername) }}</span>
                   </div>
                 </UserProfileHoverCard>
+                
+                <!-- System notification avatar (person icon) -->
+                <div
+                  v-else-if="isSystemNotification(notification)"
+                  class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-indigo-400 flex-shrink-0"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                
+                <!-- Fallback avatar -->
                 <div
                   v-else
                   class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ring-2 ring-white overflow-hidden bg-primary-600 flex-shrink-0"
@@ -109,7 +121,7 @@
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center justify-between mb-1">
                     <p class="text-sm text-gray-900">
-                      <span class="font-semibold">{{ notification.actorNickname || notification.actorUsername }}</span>
+                      <span class="font-semibold">{{ getNotificationActorName(notification) }}</span>
                       <span class="text-gray-600"> {{ getNotificationText(notification) }}</span>
                     </p>
                     <div class="flex items-center space-x-2 flex-shrink-0 ml-4">
@@ -194,19 +206,172 @@
         </div>
       </div>
     </div>
+
+    <!-- 审核/删除详情弹窗 -->
+    <Teleport to="body">
+      <transition name="fade">
+        <div
+          v-if="showDetailModal"
+          class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          @click.self="closeDetailModal"
+        >
+          <div class="bg-white rounded-2xl shadow-xl max-w-xl w-full max-h-[90vh] overflow-hidden">
+            <!-- 弹窗头部 -->
+            <div
+              :class="[
+                'px-6 py-4 border-b',
+                detailModalData.formType === 'DELETION' ? 'bg-red-50' : 'bg-yellow-50'
+              ]"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <!-- 图标 -->
+                  <div
+                    :class="[
+                      'w-10 h-10 rounded-full flex items-center justify-center',
+                      detailModalData.formType === 'DELETION' ? 'bg-red-100' : 'bg-yellow-100'
+                    ]"
+                  >
+                    <svg
+                      v-if="detailModalData.formType === 'DELETION'"
+                      class="w-5 h-5 text-red-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <svg
+                      v-else
+                      class="w-5 h-5 text-yellow-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h3 class="text-lg font-semibold text-gray-900">
+                    {{ detailModalData.formType === 'DELETION' ? '文章已被删除' : '文章未通过审核' }}
+                  </h3>
+                </div>
+                <button
+                  @click="closeDetailModal"
+                  class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- 弹窗内容 -->
+            <div class="p-6 space-y-6 overflow-y-auto max-h-[60vh]">
+              <!-- 加载中 -->
+              <div v-if="loadingDetailModal" class="text-center py-8">
+                <div class="spinner w-8 h-8 mx-auto"></div>
+                <p class="text-gray-500 mt-2">加载中...</p>
+              </div>
+
+              <template v-else>
+                <!-- 文章信息 -->
+                <div class="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide">文章信息</h4>
+                  <div class="space-y-2">
+                    <div class="flex items-start">
+                      <span class="text-gray-500 w-20 flex-shrink-0">文章标题</span>
+                      <span class="text-gray-900 font-medium">{{ detailModalData.postTitle || '未知文章' }}</span>
+                    </div>
+                    <div class="flex items-start">
+                      <span class="text-gray-500 w-20 flex-shrink-0">状态</span>
+                      <span
+                        :class="[
+                          'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+                          detailModalData.formType === 'DELETION' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                        ]"
+                      >
+                        {{ detailModalData.formType === 'DELETION' ? '已删除' : '已拒绝' }}
+                      </span>
+                    </div>
+                    <div class="flex items-start">
+                      <span class="text-gray-500 w-20 flex-shrink-0">处理时间</span>
+                      <span class="text-gray-900">{{ formatDetailTime(detailModalData.createdAt) }}</span>
+                    </div>
+                  </div>
+                  <!-- 查看文章按钮（如果文章还存在） -->
+                  <button
+                    v-if="detailModalData.postId && detailModalData.formType !== 'DELETION'"
+                    @click="goToPost(detailModalData.postId)"
+                    class="mt-2 text-sm text-primary-600 hover:text-primary-700 font-medium inline-flex items-center"
+                  >
+                    查看文章详情
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- 处理原因 -->
+                <div class="space-y-3">
+                  <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide">处理原因</h4>
+                  <div class="bg-gray-50 rounded-xl p-4">
+                    <p class="text-gray-700 whitespace-pre-wrap">{{ detailModalData.reason || '未填写原因' }}</p>
+                  </div>
+                </div>
+
+                <!-- 扩展信息 -->
+                <div v-if="parsedExtraFields.length > 0" class="space-y-3">
+                  <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide">扩展信息</h4>
+                  <div class="bg-gray-50 rounded-xl p-4 space-y-2">
+                    <div
+                      v-for="(field, index) in parsedExtraFields"
+                      :key="index"
+                      class="flex items-start"
+                    >
+                      <span class="text-gray-500 min-w-[100px] flex-shrink-0">{{ field.fieldName }}</span>
+                      <span class="text-gray-900">{{ field.fieldValue }}</span>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <!-- 弹窗底部 -->
+            <div class="px-6 py-4 border-t bg-gray-50 flex justify-end space-x-3">
+              <button
+                v-if="detailModalData.postId && detailModalData.formType !== 'DELETION'"
+                @click="goToPost(detailModalData.postId)"
+                class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                查看文章详情
+              </button>
+              <button
+                @click="closeDetailModal"
+                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
   </div>
 </template>
 
 <script>
 import { ref, computed, watch, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import Header from '@/components/Header.vue'
 import UserProfileHoverCard from '@/components/UserProfileHoverCard.vue'
 import { 
   getNotifications, 
   getNotificationUnreadCount,
   markNotificationAsRead,
-  markAllNotificationsAsRead
+  markAllNotificationsAsRead,
+  getFormByPostId,
+  getFormByNotificationId
 } from '@/api/notifications'
 import { likeComment, unlikeComment, deleteComment } from '@/api/comments'
 import { getFullAvatarUrl } from '@/utils/avatar'
@@ -216,6 +381,7 @@ export default {
   components: { Header, UserProfileHoverCard },
   setup() {
     const router = useRouter()
+    const route = useRoute()
     
     const loading = ref(true)
     const loadingMore = ref(false)
@@ -227,7 +393,29 @@ export default {
     const currentFilter = ref('all')
     const PAGE_SIZE = 20
 
+    // 详情弹窗状态
+    const showDetailModal = ref(false)
+    const loadingDetailModal = ref(false)
+    const detailModalData = ref({
+      formType: '',
+      postId: null,
+      postTitle: '',
+      reason: '',
+      extraFields: '',
+      createdAt: ''
+    })
+
     const hasMore = computed(() => currentPage.value < totalPages.value - 1)
+    
+    // 解析扩展字段
+    const parsedExtraFields = computed(() => {
+      try {
+        if (!detailModalData.value.extraFields) return []
+        return JSON.parse(detailModalData.value.extraFields)
+      } catch (e) {
+        return []
+      }
+    })
 
     const tabs = [
       { 
@@ -254,6 +442,11 @@ export default {
         value: 'messages', 
         label: '私信',
         icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>'
+      },
+      { 
+        value: 'system', 
+        label: '系统',
+        icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>'
       }
     ]
 
@@ -311,6 +504,21 @@ export default {
             bgColor: 'bg-purple-100', 
             icon: '<svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>'
           }
+        case 'POST_APPROVED':
+          return { 
+            bgColor: 'bg-green-100', 
+            icon: '<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+          }
+        case 'POST_REJECTED':
+          return { 
+            bgColor: 'bg-yellow-100', 
+            icon: '<svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>'
+          }
+        case 'POST_DELETED':
+          return { 
+            bgColor: 'bg-red-100', 
+            icon: '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>'
+          }
         default:
           return { 
             bgColor: 'bg-gray-100', 
@@ -333,9 +541,28 @@ export default {
           return '关注了你'
         case 'MESSAGE_RECEIVED':
           return '给你发送了一条私信'
+        case 'POST_APPROVED':
+          return '您的文章已通过审核'
+        case 'POST_REJECTED':
+          return '您的文章未通过审核'
+        case 'POST_DELETED':
+          return '您的文章因违规被删除'
         default:
           return ''
       }
+    }
+
+    // 判断是否为系统通知
+    const isSystemNotification = (notification) => {
+      return ['POST_APPROVED', 'POST_REJECTED', 'POST_DELETED'].includes(notification.type)
+    }
+
+    // 获取通知显示的名称
+    const getNotificationActorName = (notification) => {
+      if (isSystemNotification(notification)) {
+        return '系统管理员'
+      }
+      return notification.actorNickname || notification.actorUsername
     }
 
     const getEmptyMessage = () => {
@@ -348,6 +575,8 @@ export default {
           return '暂无关注相关的通知'
         case 'messages':
           return '暂无私信相关的通知'
+        case 'system':
+          return '暂无系统相关的通知'
         default:
           return '当有人与你互动时，通知将会显示在这里'
       }
@@ -459,6 +688,17 @@ export default {
               avatar: notification.actorAvatarUrl
             }
           })
+          break
+        case 'POST_APPROVED':
+          // 审核通过，直接跳转文章详情
+          if (notification.postId) {
+            router.push(`/post/${notification.postId}`)
+          }
+          break
+        case 'POST_REJECTED':
+        case 'POST_DELETED':
+          // 审核拒绝或删除，打开详情弹窗
+          openDetailModal(notification)
           break
       }
     }
@@ -577,13 +817,132 @@ export default {
       }
     }
 
+    // 打开详情弹窗（拒绝/删除/待修订通知）
+    const openDetailModal = async (notification) => {
+      showDetailModal.value = true
+      loadingDetailModal.value = true
+      
+      // 尝试从通知内容中提取文章标题
+      let extractedTitle = notification.postTitle || ''
+      if (!extractedTitle && notification.content) {
+        // 从内容 "您的文章「xxx」未通过审核" 中提取标题
+        const match = notification.content.match(/「(.+?)」/)
+        if (match) {
+          extractedTitle = match[1]
+        }
+      }
+      
+      // 设置基本信息
+      detailModalData.value = {
+        formType: notification.type === 'POST_DELETED' ? 'DELETION' : 'REJECTION',
+        postId: notification.postId,
+        postTitle: extractedTitle,
+        reason: '',
+        extraFields: '',
+        createdAt: notification.createdAt
+      }
+
+      try {
+        let form = null
+        
+        // 首先尝试通过postId获取表单信息
+        if (notification.postId) {
+          try {
+            form = await getFormByPostId(notification.postId)
+          } catch (e) {
+            // postId不存在或找不到表单，继续尝试其他方式
+          }
+        }
+        
+        // 如果还没找到表单，通过通知ID查找
+        if (!form && notification.id) {
+          try {
+            form = await getFormByNotificationId(notification.id)
+          } catch (e) {
+            // 找不到表单
+          }
+        }
+        
+        if (form) {
+          detailModalData.value = {
+            ...detailModalData.value,
+            postTitle: form.postTitle || detailModalData.value.postTitle,
+            reason: form.reason || '',
+            extraFields: form.extraFields || '',
+            createdAt: form.createdAt || notification.createdAt
+          }
+        }
+      } catch (error) {
+        console.error('获取表单详情失败:', error)
+        // 即使失败也显示基本信息
+      }
+      
+      loadingDetailModal.value = false
+    }
+
+    // 关闭详情弹窗
+    const closeDetailModal = () => {
+      showDetailModal.value = false
+    }
+
+    // 跳转到文章详情
+    const goToPost = (postId) => {
+      closeDetailModal()
+      router.push(`/post/${postId}`)
+    }
+
+    // 格式化详情时间
+    const formatDetailTime = (timeStr) => {
+      if (!timeStr) return '未知时间'
+      const date = new Date(timeStr)
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+
     // Watch for filter changes
     watch(currentFilter, () => {
       loadNotifications()
     })
 
-    onMounted(() => {
-      loadNotifications()
+    onMounted(async () => {
+      // 处理路由参数
+      if (route.query.tab) {
+        currentFilter.value = route.query.tab
+      }
+      
+      await loadNotifications()
+      
+      // 如果有通知ID参数，查找并打开详情弹窗
+      if (route.query.notificationId) {
+        const notificationId = parseInt(route.query.notificationId)
+        const targetNotification = notifications.value.find(n => n.id === notificationId)
+        if (targetNotification && (targetNotification.type === 'POST_REJECTED' || targetNotification.type === 'POST_DELETED')) {
+          openDetailModal(targetNotification)
+        } else {
+          // 通知不在当前列表中，尝试通过ID直接获取表单
+          try {
+            const form = await getFormByNotificationId(notificationId)
+            showDetailModal.value = true
+            detailModalData.value = {
+              formType: form.formType || 'REJECTION',
+              postId: form.postId,
+              postTitle: form.postTitle || '',
+              reason: form.reason || '',
+              extraFields: form.extraFields || '',
+              createdAt: form.createdAt || ''
+            }
+          } catch (e) {
+            console.error('无法获取通知详情:', e)
+          }
+        }
+        // 清除URL参数但不触发导航
+        router.replace({ path: '/notifications', query: { tab: currentFilter.value } })
+      }
     })
 
     return {
@@ -601,6 +960,8 @@ export default {
       formatTime,
       getTypeStyle,
       getNotificationText,
+      getNotificationActorName,
+      isSystemNotification,
       getEmptyMessage,
       isCommentNotification,
       loadMore,
@@ -608,7 +969,15 @@ export default {
       handleMarkAllAsRead,
       handleQuickReply,
       handleQuickLike,
-      handleQuickDelete
+      handleQuickDelete,
+      // 详情弹窗
+      showDetailModal,
+      loadingDetailModal,
+      detailModalData,
+      parsedExtraFields,
+      closeDetailModal,
+      goToPost,
+      formatDetailTime
     }
   }
 }

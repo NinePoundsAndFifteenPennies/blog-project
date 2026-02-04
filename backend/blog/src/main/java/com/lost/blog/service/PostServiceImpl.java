@@ -3,9 +3,14 @@ package com.lost.blog.service;
 import com.lost.blog.dto.PostRequest;
 import com.lost.blog.dto.PostResponse;
 import com.lost.blog.model.Post;
+import com.lost.blog.model.PostStatus;
 import com.lost.blog.model.PostViewLog;
 import com.lost.blog.model.Tag;
 import com.lost.blog.model.User;
+import com.lost.blog.repository.CommentRepository;
+import com.lost.blog.repository.CategoryRepository;
+import com.lost.blog.repository.LikeRepository;
+import com.lost.blog.repository.NotificationRepository;
 import com.lost.blog.repository.PostRepository;
 import com.lost.blog.repository.PostViewLogRepository;
 import com.lost.blog.repository.TagRepository;
@@ -37,9 +42,10 @@ public class PostServiceImpl implements PostService {
     private final UserRepository userRepository;
     private final TagRepository tagRepository;
     private final PostMapper postMapper;
-    private final com.lost.blog.repository.CommentRepository commentRepository;
-    private final com.lost.blog.repository.LikeRepository likeRepository;
-    private final com.lost.blog.repository.CategoryRepository categoryRepository;
+    private final CommentRepository commentRepository;
+    private final LikeRepository likeRepository;
+    private final CategoryRepository categoryRepository;
+    private final NotificationRepository notificationRepository;
     private final FileService fileService;
 
     @Autowired
@@ -48,9 +54,10 @@ public class PostServiceImpl implements PostService {
                            UserRepository userRepository,
                            TagRepository tagRepository,
                            PostMapper postMapper,
-                           com.lost.blog.repository.CommentRepository commentRepository,
-                           com.lost.blog.repository.LikeRepository likeRepository,
-                           com.lost.blog.repository.CategoryRepository categoryRepository,
+                           CommentRepository commentRepository,
+                           LikeRepository likeRepository,
+                           CategoryRepository categoryRepository,
+                           NotificationRepository notificationRepository,
                            FileService fileService) {
         this.postRepository = postRepository;
         this.postViewLogRepository = postViewLogRepository;
@@ -60,6 +67,7 @@ public class PostServiceImpl implements PostService {
         this.commentRepository = commentRepository;
         this.likeRepository = likeRepository;
         this.categoryRepository = categoryRepository;
+        this.notificationRepository = notificationRepository;
         this.fileService = fileService;
     }
 
@@ -79,9 +87,18 @@ public class PostServiceImpl implements PostService {
         post.setTitle(postRequest.getTitle());
         post.setContent(postRequest.getContent());
         post.setContentType(postRequest.getContentType());
-        post.setDraft(postRequest.getDraft() != null ? postRequest.getDraft() : false);
+        boolean isDraft = postRequest.getDraft() != null ? postRequest.getDraft() : false;
+        post.setDraft(isDraft);
         post.setCoverImageUrl(postRequest.getCoverImageUrl());
         post.setUser(user);
+        
+        // 设置初始状态
+        if (isDraft) {
+            post.setStatus(PostStatus.DRAFT);
+        } else {
+            // 非草稿则提交审核
+            post.setStatus(PostStatus.PENDING_REVIEW);
+        }
 
         // 处理标签
         if (postRequest.getTags() != null && !postRequest.getTags().isEmpty()) {
@@ -120,6 +137,10 @@ public class PostServiceImpl implements PostService {
             }
         }
 
+        // 检查是否为作者本人
+        boolean isAuthor = currentUser != null && 
+                author.getUsername().equals(currentUser.getUsername());
+
         // 草稿文章权限检查
         if (post.getDraft()) {
             // 如果是草稿，必须是作者本人才能查看
@@ -127,9 +148,29 @@ public class PostServiceImpl implements PostService {
                 logger.warn("匿名用户尝试访问草稿文章，ID: {}", id);
                 throw new AccessDeniedException("草稿文章需要登录查看");
             }
-            if (!post.getUser().getUsername().equals(currentUser.getUsername())) {
+            if (!isAuthor) {
                 logger.warn("用户 {} 尝试访问他人草稿，文章ID: {}", currentUser.getUsername(), id);
                 throw new AccessDeniedException("无权查看该草稿");
+            }
+        }
+
+        // 非作者查看待审核或被拒绝的文章时的处理
+        PostStatus currentStatus = post.getStatus();
+        if (!isAuthor) {
+            // PENDING_REVIEW、REJECTED 状态的文章对外不可见
+            if (currentStatus == PostStatus.PENDING_REVIEW || currentStatus == PostStatus.REJECTED) {
+                throw new ResourceNotFoundException("未找到ID为: " + id + " 的文章");
+            }
+            
+            // PENDING_REVISION 状态 - 对外展示旧版本内容
+            if (currentStatus == PostStatus.PENDING_REVISION) {
+                // 使用旧版本内容创建响应（不修改实体）
+                String displayTitle = post.getPreviousTitle() != null ? post.getPreviousTitle() : post.getTitle();
+                String displayContent = post.getPreviousContent() != null ? post.getPreviousContent() : post.getContent();
+                PostResponse response = postMapper.toResponse(post, currentUser);
+                response.setTitle(displayTitle);
+                response.setContent(displayContent);
+                return response;
             }
         }
 
@@ -232,6 +273,7 @@ public class PostServiceImpl implements PostService {
         // 记录草稿状态变化
         boolean wasDraft = post.getDraft();
         boolean willBeDraft = postRequest.getDraft() != null ? postRequest.getDraft() : false;
+        PostStatus currentStatus = post.getStatus();
 
         // 处理封面图片更新 - 删除旧的封面图片（如果有变化）
         String oldCoverImageUrl = post.getCoverImageUrl();
@@ -249,12 +291,51 @@ public class PostServiceImpl implements PostService {
             }
         }
 
+        // 检查是否有实质内容变化（用于已发布文章的重审逻辑）
+        boolean contentChanged = !java.util.Objects.equals(post.getTitle(), postRequest.getTitle()) ||
+                                 !java.util.Objects.equals(post.getContent(), postRequest.getContent());
+        boolean shouldResubmitForReview = contentChanged && !willBeDraft;
+
+        // 处理已发布文章的修改重审逻辑
+        if (currentStatus == PostStatus.PUBLISHED && shouldResubmitForReview) {
+            // 保存旧版本内容，用于审核期间展示
+            post.setPreviousTitle(post.getTitle());
+            post.setPreviousContent(post.getContent());
+            // 更新状态为"发布后修改待审核"
+            post.setStatus(PostStatus.PENDING_REVISION);
+            logger.info("已发布文章 {} 被修改，状态变更为 PENDING_REVISION", id);
+        }
+        
+        // 处理被拒绝文章的修改重审逻辑
+        if (currentStatus == PostStatus.REJECTED && shouldResubmitForReview) {
+            // 被拒绝的文章修改后，重新提交审核
+            post.setStatus(PostStatus.PENDING_REVIEW);
+            post.setRejectionFormId(null);  // 清除之前的拒绝表单关联
+            logger.info("被拒绝文章 {} 被修改，状态变更为 PENDING_REVIEW", id);
+        }
+
         // 更新字段
         post.setTitle(postRequest.getTitle());
         post.setContent(postRequest.getContent());
         post.setContentType(postRequest.getContentType());
         post.setDraft(willBeDraft);
         post.setCoverImageUrl(newCoverImageUrl);
+
+        // 处理草稿状态变化时的状态更新
+        if (wasDraft && !willBeDraft) {
+            // 从草稿变为非草稿，提交审核
+            if (post.getStatus() == PostStatus.DRAFT) {
+                post.setStatus(PostStatus.PENDING_REVIEW);
+                logger.info("文章 {} 从草稿提交审核，状态变更为 PENDING_REVIEW", id);
+            }
+        } else if (!wasDraft && willBeDraft) {
+            // 从已发布变为草稿
+            post.setStatus(PostStatus.DRAFT);
+            // 清除之前的内容备份
+            post.setPreviousTitle(null);
+            post.setPreviousContent(null);
+            logger.info("文章 {} 变为草稿，状态变更为 DRAFT", id);
+        }
 
         // 更新标签
         if (postRequest.getTags() != null) {
@@ -293,6 +374,10 @@ public class PostServiceImpl implements PostService {
             logger.warn("用户 {} 尝试删除他人文章，ID: {}", currentUser.getUsername(), id);
             throw new AccessDeniedException("无权删除该文章");
         }
+
+        // 解除所有通知对该文章及其评论的引用（防止外键约束错误）
+        notificationRepository.nullifyAllReferencesForPost(post);
+        logger.info("解除文章ID: {} 相关通知的外键引用", id);
 
         // 先删除该文章的所有点赞（级联删除）
         likeRepository.deleteByPost(post);

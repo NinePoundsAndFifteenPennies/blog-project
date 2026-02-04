@@ -3,6 +3,7 @@ package com.lost.blog.repository;
 import com.lost.blog.model.Notification;
 import com.lost.blog.model.NotificationType;
 import com.lost.blog.model.User;
+import com.lost.blog.model.Post;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -61,5 +62,19 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
      */
     boolean existsByRecipientAndActorAndTypeAndPostAndComment(
             User recipient, User actor, NotificationType type, 
-            com.lost.blog.model.Post post, com.lost.blog.model.Comment comment);
+            Post post, com.lost.blog.model.Comment comment);
+
+    /**
+     * 将指定文章的通知中的文章引用置空（用于删除文章前解除外键约束）
+     */
+    @Modifying
+    @Query("UPDATE Notification n SET n.post = NULL WHERE n.post = :post")
+    int nullifyPostReferences(@Param("post") Post post);
+
+    /**
+     * 将指定文章相关的所有通知中的评论和文章引用置空（用于删除文章及其评论前解除外键约束）
+     */
+    @Modifying
+    @Query("UPDATE Notification n SET n.post = NULL, n.comment = NULL WHERE n.post = :post")
+    int nullifyAllReferencesForPost(@Param("post") Post post);
 }

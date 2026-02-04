@@ -48,6 +48,8 @@ public class NotificationServiceImpl implements NotificationService {
                 return List.of(NotificationType.FOLLOWED);
             case "messages":
                 return List.of(NotificationType.MESSAGE_RECEIVED);
+            case "system":
+                return List.of(NotificationType.POST_APPROVED, NotificationType.POST_REJECTED, NotificationType.POST_DELETED);
             default:
                 return null; // all types
         }
@@ -245,6 +247,66 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.save(notification);
 
         logger.info("创建通知: {} 给 {} 发送了私信", sender.getUsername(), receiver.getUsername());
+    }
+
+    @Override
+    @Transactional
+    public void createPostApprovedNotification(User admin, Post post) {
+        User recipient = post.getUser();
+        
+        // 不需要给管理员自己发通知
+        if (admin.getId().equals(recipient.getId())) {
+            return;
+        }
+
+        Notification notification = new Notification();
+        notification.setType(NotificationType.POST_APPROVED);
+        notification.setRecipient(recipient);
+        notification.setActor(admin);
+        notification.setPost(post);
+        notification.setContent("您的文章「" + truncateContent(post.getTitle(), 50) + "」已通过审核");
+        notificationRepository.save(notification);
+
+        logger.info("创建通知: 管理员 {} 审核通过了 {} 的文章 {}", admin.getUsername(), recipient.getUsername(), post.getId());
+    }
+
+    @Override
+    @Transactional
+    public void createPostRejectedNotification(User admin, Post post, String reason) {
+        User recipient = post.getUser();
+        
+        // 不需要给管理员自己发通知
+        if (admin.getId().equals(recipient.getId())) {
+            return;
+        }
+
+        Notification notification = new Notification();
+        notification.setType(NotificationType.POST_REJECTED);
+        notification.setRecipient(recipient);
+        notification.setActor(admin);
+        notification.setPost(post);
+        notification.setContent("您的文章「" + truncateContent(post.getTitle(), 30) + "」未通过审核: " + truncateContent(reason, 50));
+        notificationRepository.save(notification);
+
+        logger.info("创建通知: 管理员 {} 拒绝了 {} 的文章 {}", admin.getUsername(), recipient.getUsername(), post.getId());
+    }
+
+    @Override
+    @Transactional
+    public void createPostDeletedNotification(User admin, User author, String postTitle, String reason) {
+        // 不需要给管理员自己发通知
+        if (admin.getId().equals(author.getId())) {
+            return;
+        }
+
+        Notification notification = new Notification();
+        notification.setType(NotificationType.POST_DELETED);
+        notification.setRecipient(author);
+        notification.setActor(admin);
+        notification.setContent("您的文章「" + truncateContent(postTitle, 30) + "」因违规被删除: " + truncateContent(reason, 50));
+        notificationRepository.save(notification);
+
+        logger.info("创建通知: 管理员 {} 删除了 {} 的文章「{}」", admin.getUsername(), author.getUsername(), postTitle);
     }
 
     private String truncateContent(String content, int maxLength) {

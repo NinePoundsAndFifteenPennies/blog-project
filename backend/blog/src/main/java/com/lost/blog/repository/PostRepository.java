@@ -314,4 +314,68 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             @Param("title") String title,
             @Param("tag") String tag,
             Pageable pageable);
+
+    // ======================= 管理员文章搜索方法 =======================
+
+    /**
+     * 管理员搜索文章（支持按状态、作者、标题、分类、标签、时间范围过滤）
+     * 包含所有文章（草稿、待审核、已发布、已拒绝、修改待审核）
+     */
+    @Query(value = """
+        SELECT DISTINCT p.* FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN post_tags pt ON p.id = pt.post_id
+        LEFT JOIN tags t ON pt.tag_id = t.id
+        WHERE (:title IS NULL OR :title = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :title, '%')))
+          AND (:author IS NULL OR :author = '' 
+               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
+               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
+          AND (:status IS NULL OR :status = '' OR p.status = :status)
+          AND (:categoryId IS NULL OR p.category_id = :categoryId)
+          AND (:tag IS NULL OR :tag = '' 
+               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :tag, '%')))
+          AND (:startDate IS NULL OR p.created_at >= :startDate)
+          AND (:endDate IS NULL OR p.created_at <= :endDate)
+        ORDER BY p.created_at DESC
+        """,
+        countQuery = """
+        SELECT COUNT(DISTINCT p.id) FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN post_tags pt ON p.id = pt.post_id
+        LEFT JOIN tags t ON pt.tag_id = t.id
+        WHERE (:title IS NULL OR :title = '' 
+               OR LOWER(p.title) LIKE LOWER(CONCAT('%', :title, '%')))
+          AND (:author IS NULL OR :author = '' 
+               OR LOWER(u.username) LIKE LOWER(CONCAT('%', :author, '%'))
+               OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :author, '%')))
+          AND (:status IS NULL OR :status = '' OR p.status = :status)
+          AND (:categoryId IS NULL OR p.category_id = :categoryId)
+          AND (:tag IS NULL OR :tag = '' 
+               OR LOWER(t.name) LIKE LOWER(CONCAT('%', :tag, '%')))
+          AND (:startDate IS NULL OR p.created_at >= :startDate)
+          AND (:endDate IS NULL OR p.created_at <= :endDate)
+        """,
+        nativeQuery = true)
+    Page<Post> adminSearchPosts(
+            @Param("title") String title,
+            @Param("author") String author,
+            @Param("status") String status,
+            @Param("categoryId") Long categoryId,
+            @Param("tag") String tag,
+            @Param("startDate") java.time.LocalDateTime startDate,
+            @Param("endDate") java.time.LocalDateTime endDate,
+            Pageable pageable);
+
+    /**
+     * 根据状态查找文章
+     */
+    Page<Post> findByStatusOrderByCreatedAtDesc(com.lost.blog.model.PostStatus status, Pageable pageable);
+
+    /**
+     * 统计各状态文章数量
+     */
+    long countByStatus(com.lost.blog.model.PostStatus status);
 }

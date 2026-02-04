@@ -2866,6 +2866,9 @@ Authorization: Bearer {token}
 | COMMENT_REPLIED | 评论收到回复 |
 | FOLLOWED | 被关注 |
 | MESSAGE_RECEIVED | 收到私信 |
+| POST_APPROVED | 文章审核通过（系统通知） |
+| POST_REJECTED | 文章审核拒绝（系统通知） |
+| POST_DELETED | 文章被删除（系统通知） |
 
 ---
 
@@ -2953,3 +2956,63 @@ Authorization: Bearer {token}
 - 当 `filter=all` 时，标记所有未读通知为已读
 - 当 `filter=comments` 时，仅标记评论相关通知（POST_COMMENTED, COMMENT_REPLIED）为已读
 - 其他 filter 类型同理
+
+---
+
+### 获取系统通知表单详情（通过文章ID）
+
+获取指定文章的审核拒绝/删除表单详情，用于显示拒绝原因和扩展信息。
+
+```http
+GET /api/notifications/forms/post/{postId}
+Authorization: Bearer {token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 5,
+  "formType": "REJECTION",
+  "title": "审核拒绝通知",
+  "reason": "文章内容违规",
+  "extraFields": "[{\"fieldName\":\"违规类型\",\"fieldValue\":\"广告营销\"}]",
+  "postId": 1,
+  "postTitle": "文章标题",
+  "createdAt": "2024-01-15T12:00:00"
+}
+```
+
+**错误响应:**
+- `404 Not Found` - 表单不存在或文章不属于当前用户
+
+> 注：此接口只返回针对当前用户的表单信息，且隐藏管理员信息。
+
+---
+
+### 获取系统通知表单详情（通过通知ID）
+
+通过通知ID获取关联的表单详情，用于文章已被删除的情况。
+
+```http
+GET /api/notifications/{notificationId}/form
+Authorization: Bearer {token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 5,
+  "formType": "DELETION",
+  "title": "文章删除通知",
+  "reason": "文章违规已删除",
+  "extraFields": "[{\"fieldName\":\"违规类型\",\"fieldValue\":\"广告\"}]",
+  "postTitle": "文章标题",
+  "createdAt": "2024-01-15T12:00:00"
+}
+```
+
+**错误响应:**
+- `404 Not Found` - 通知不存在或不属于当前用户
+- `404 Not Found` - 关联的表单不存在
+
+> 注：此接口主要用于文章已被删除后，用户仍需查看删除原因的场景。

@@ -102,3 +102,96 @@ export async function updateUserRole(userId, role) {
     });
     return response;
 }
+
+// ======================= 文章管理 API =======================
+
+/**
+ * 获取文章列表（支持分页和多条件搜索）
+ * @param {Object} params - 查询参数
+ * @param {number} params.page - 页码（从0开始）
+ * @param {number} params.size - 每页数量
+ * @param {string} params.title - 标题搜索（可选）
+ * @param {string} params.author - 作者搜索（可选）
+ * @param {string} params.status - 状态过滤（可选）
+ * @param {string} params.categoryId - 分类ID过滤（可选）
+ * @param {string} params.tag - 标签过滤（可选）
+ * @param {string} params.startDate - 创建开始日期 yyyy-MM-dd（可选）
+ * @param {string} params.endDate - 创建结束日期 yyyy-MM-dd（可选）
+ * @returns {Promise<Object>} - 返回分页文章列表
+ */
+export async function getPosts(params = {}) {
+    const response = await request({
+        url: "/admin/posts",
+        method: "get",
+        params: {
+            page: params.page || 0,
+            size: params.size || 10,
+            title: params.title || undefined,
+            author: params.author || undefined,
+            status: params.status || undefined,
+            categoryId: params.categoryId || undefined,
+            tag: params.tag || undefined,
+            startDate: params.startDate || undefined,
+            endDate: params.endDate || undefined,
+        },
+    });
+    return response;
+}
+
+/**
+ * 获取文章详情
+ * @param {number} postId - 文章ID
+ * @returns {Promise<Object>} - 返回文章详情
+ */
+export async function getPostDetail(postId) {
+    const response = await request({
+        url: `/admin/posts/${postId}`,
+        method: "get",
+    });
+    return response;
+}
+
+/**
+ * 执行文章操作（审核通过/拒绝/删除）
+ * @param {Object} data - 操作数据
+ * @param {string} data.action - 操作类型: APPROVE, REJECT, DELETE
+ * @param {number[]} data.postIds - 文章ID列表
+ * @param {string} data.formTitle - 表单标题（拒绝/删除时可选）
+ * @param {string} data.reason - 理由（拒绝/删除时必填）
+ * @param {string} data.extraFields - 扩展字段JSON（可选）
+ * @returns {Promise<Object>} - 返回批量操作结果
+ */
+export async function executePostAction(data) {
+    const response = await request({
+        url: "/admin/posts/action",
+        method: "post",
+        data,
+    });
+    return response;
+}
+
+/**
+ * 获取表单详情
+ * @param {number} formId - 表单ID
+ * @returns {Promise<Object>} - 返回表单详情
+ */
+export async function getFormDetail(formId) {
+    const response = await request({
+        url: `/admin/forms/${formId}`,
+        method: "get",
+    });
+    return response;
+}
+
+/**
+ * 获取文章关联的表单列表
+ * @param {number} postId - 文章ID
+ * @returns {Promise<Object>} - 返回表单列表
+ */
+export async function getPostForms(postId) {
+    const response = await request({
+        url: `/admin/posts/${postId}/forms`,
+        method: "get",
+    });
+    return response;
+}

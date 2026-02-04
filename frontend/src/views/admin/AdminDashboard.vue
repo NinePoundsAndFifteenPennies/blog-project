@@ -20,6 +20,15 @@
             <span class="nav-icon" v-html="item.icon"></span>
             <span class="nav-text">{{ item.label }}</span>
           </router-link>
+          <!-- Articles link uses router-link -->
+          <router-link 
+            v-else-if="item.id === 'articles'"
+            to="/admin/posts"
+            :class="['nav-item']"
+          >
+            <span class="nav-icon" v-html="item.icon"></span>
+            <span class="nav-text">{{ item.label }}</span>
+          </router-link>
           <!-- Other items use local navigation -->
           <a 
             v-else

@@ -35,6 +35,24 @@ public class Post {
     @Column(name = "is_draft", nullable = false)
     private Boolean draft = false;  // 默认为非草稿（已发布）
 
+    // ===== 新增文章状态字段 =====
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private PostStatus status = PostStatus.DRAFT;  // 默认为草稿状态
+
+    // ===== 用于存储已发布文章修改前的内容（待审核期间前台展示旧版本）=====
+    @Lob
+    @Column(name = "previous_content", columnDefinition = "TEXT")
+    private String previousContent;
+
+    // ===== 用于存储已发布文章修改前的标题 =====
+    @Column(name = "previous_title", length = 100)
+    private String previousTitle;
+
+    // ===== 关联的拒绝/删除表单ID =====
+    @Column(name = "rejection_form_id")
+    private Long rejectionFormId;
+
     @Column(name = "published_at")
     private LocalDateTime publishedAt;  // 首次发布时间
 
@@ -127,6 +145,38 @@ public class Post {
 
     public void setDraft(Boolean draft) {
         this.draft = draft;
+    }
+
+    public PostStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(PostStatus status) {
+        this.status = status;
+    }
+
+    public String getPreviousContent() {
+        return previousContent;
+    }
+
+    public void setPreviousContent(String previousContent) {
+        this.previousContent = previousContent;
+    }
+
+    public String getPreviousTitle() {
+        return previousTitle;
+    }
+
+    public void setPreviousTitle(String previousTitle) {
+        this.previousTitle = previousTitle;
+    }
+
+    public Long getRejectionFormId() {
+        return rejectionFormId;
+    }
+
+    public void setRejectionFormId(Long rejectionFormId) {
+        this.rejectionFormId = rejectionFormId;
     }
 
     public LocalDateTime getPublishedAt() {

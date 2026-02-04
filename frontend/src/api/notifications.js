@@ -59,3 +59,27 @@ export function markAllNotificationsAsRead(filter = 'all') {
         params: { filter }
     })
 }
+
+/**
+ * 获取文章拒绝/删除表单详情（用于用户查看被拒绝或删除的原因）
+ * @param {Number} postId - 文章ID
+ * @returns {Promise<Object>} - 表单详情
+ */
+export function getFormByPostId(postId) {
+    return request({
+        url: `/notifications/forms/post/${postId}`,
+        method: 'get'
+    })
+}
+
+/**
+ * 根据通知ID获取关联的表单详情（用于文章被删除后仍能查看原因）
+ * @param {Number} notificationId - 通知ID
+ * @returns {Promise<Object>} - 表单详情
+ */
+export function getFormByNotificationId(notificationId) {
+    return request({
+        url: `/notifications/${notificationId}/form`,
+        method: 'get'
+    })
+}
