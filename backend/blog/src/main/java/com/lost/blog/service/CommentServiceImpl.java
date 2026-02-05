@@ -190,14 +190,18 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到评论ID: " + commentId));
 
-        // 2. 验证用户权限 (逻辑保持不变)
+        // 2. 验证用户权限
         User user = userRepository.findByUsername(currentUser.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("未找到用户: " + currentUser.getUsername()));
 
         boolean isCommentAuthor = comment.getUser().getId().equals(user.getId());
         boolean isPostAuthor = comment.getPost().getUser().getId().equals(user.getId());
+        // 新增：对于子评论，父评论作者也有权删除
+        boolean isParentCommentAuthor = comment.getParent() != null && 
+                comment.getParent().getUser() != null &&
+                comment.getParent().getUser().getId().equals(user.getId());
 
-        if (!isCommentAuthor && !isPostAuthor) {
+        if (!isCommentAuthor && !isPostAuthor && !isParentCommentAuthor) {
             logger.warn("用户 {} 尝试删除不属于自己的评论ID: {}", user.getUsername(), commentId);
             throw new AccessDeniedException("您没有权限删除此评论");
         }
