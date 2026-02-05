@@ -76,8 +76,8 @@ public class CommentServiceImpl implements CommentService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到文章ID: " + postId));
 
-        // 检查文章是否为草稿
-        if (post.getStatus() == PostStatus.DRAFT || post.getDraft()) {
+        // 检查文章状态
+        if (post.getStatus() == PostStatus.DRAFT) {
             logger.warn("用户 {} 尝试评论草稿文章ID: {}", user.getUsername(), postId);
             throw new AccessDeniedException("不能对草稿文章进行评论");
         }
@@ -116,8 +116,8 @@ public class CommentServiceImpl implements CommentService {
         Comment parentComment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到评论ID: " + commentId));
 
-        // 检查父评论所属文章是否为草稿
-        if (parentComment.getPost().getStatus() == PostStatus.DRAFT || parentComment.getPost().getDraft()) {
+        // 检查父评论所属文章状态
+        if (parentComment.getPost().getStatus() == PostStatus.DRAFT) {
             logger.warn("用户 {} 尝试回复草稿文章的评论ID: {}", user.getUsername(), commentId);
             throw new AccessDeniedException("不能回复草稿文章的评论");
         }
