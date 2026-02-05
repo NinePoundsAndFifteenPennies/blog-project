@@ -1065,7 +1065,7 @@ Content-Type: application/json
 
 **错误响应:**
 - `401 Unauthorized` - 未登录或 token 无效
-- `403 Forbidden` - 尝试评论草稿文章
+- `403 Forbidden` - 文章未审核通过或为草稿，无法评论
 - `404 Not Found` - 文章不存在
 - `400 Bad Request` - 评论内容不符合要求
 
@@ -1119,7 +1119,7 @@ Content-Type: application/json
 
 **错误响应:**
 - `401 Unauthorized` - 未登录或 token 无效
-- `403 Forbidden` - 尝试回复草稿文章的评论
+- `403 Forbidden` - 文章未审核通过或为草稿，无法回复评论
 - `404 Not Found` - 父评论不存在或replyToUserId不存在
 - `400 Bad Request` - 内容长度不符合要求、层级超限
 

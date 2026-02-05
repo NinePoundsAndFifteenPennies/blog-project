@@ -210,6 +210,7 @@ public class AdminPostServiceImpl implements AdminPostService {
                 
                 // 更新为拒绝状态（包括修改待审核的文章）
                 post.setStatus(PostStatus.REJECTED);
+                post.setDraft(false);
                 post.setPreviousContent(null);
                 post.setPreviousTitle(null);
                 
