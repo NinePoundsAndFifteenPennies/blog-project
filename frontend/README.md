@@ -38,49 +38,46 @@
 
 ```
 frontend/
-├── public/                 # 静态资源
+├── public/                     # 静态资源
 ├── src/
-│   ├── api/                # API接口封装
-│   │   ├── auth.js         # 认证相关API
-│   │   ├── posts.js        # 文章相关API
-│   │   ├── comments.js     # 评论相关API
-│   │   ├── follow.js       # 关注功能API
-│   │   ├── messages.js     # 私信功能API
-│   │   ├── authors.js      # 热门作者API
-│   │   └── admin.js        # 管理后台API
-│   ├── assets/             # 全局样式
-│   ├── components/         # 可复用组件
-│   │   ├── Header.vue      # 导航栏(含未读私信提醒,管理后台入口)
-│   │   ├── PostCard.vue    # 文章卡片(支持列表/网格视图)
-│   │   ├── CommentList.vue # 评论列表
-│   │   ├── TagBadge.vue    # 标签徽章
-│   │   ├── PopularTags.vue # 热门标签
-│   │   ├── CommunityStats.vue # 社区统计
+│   ├── api/                    # API接口封装
+│   │   ├── auth.js             # 认证相关API
+│   │   ├── posts.js            # 文章相关API
+│   │   ├── comments.js         # 评论相关API
+│   │   ├── follow.js           # 关注功能API
+│   │   ├── messages.js         # 私信功能API
+│   │   ├── authors.js          # 热门作者API
+│   │   └── admin.js            # 管理后台API
+│   ├── assets/                 # 全局样式
+│   ├── components/             # 公共组件（前后台通用）
+│   │   ├── Header.vue          # 导航栏(含未读私信提醒,管理后台入口)
+│   │   ├── PostCard.vue        # 文章卡片(支持列表/网格视图)
+│   │   ├── CommentList.vue     # 评论列表
+│   │   ├── TagBadge.vue        # 标签徽章
+│   │   ├── PopularTags.vue     # 热门标签
+│   │   ├── CommunityStats.vue  # 社区统计
 │   │   ├── UserProfileHoverCard.vue # 用户悬浮卡片
-│   │   ├── FollowButton.vue # 关注/取消关注按钮
-│   │   ├── FollowStats.vue  # 关注统计(关注数/粉丝数/朋友数)
-│   │   └── HotAuthors.vue   # 热门作者榜单("品"字形布局)
-│   ├── router/             # 路由配置+导航守卫
-│   ├── store/              # Vuex状态(认证、用户)
-│   ├── utils/              # 工具函数(Axios封装等)
-│   ├── views/              # 页面组件
-│   │   ├── Home.vue        # 首页(热门作者+热门文章+最新文章,三栏布局)
-│   │   ├── PostDetail.vue  # 文章详情
-│   │   ├── PostEdit.vue    # 文章编辑
-│   │   ├── Profile.vue     # 个人中心
-│   │   ├── UserProfile.vue # 用户主页
-│   │   ├── Settings.vue    # 设置页面(入口)
-│   │   ├── FollowList.vue  # 关注/粉丝/朋友列表(含私信入口)
-│   │   ├── Messages.vue    # 私信页面(会话列表+聊天界面)
-│   │   ├── VisibilitySettings.vue # 隐私设置
-│   │   └── admin/          # 管理后台视图
-│   │       ├── AdminDashboard.vue # 管理后台主页(侧边栏+多视图)
-│   │       ├── AdminUserManagement.vue # 用户管理页面(列表+搜索+批量操作)
-│   │       └── AdminPostManagement.vue # 文章管理页面(审核+批量操作+表单)
-│   ├── App.vue             # 根组件
-│   └── main.js             # 入口文件
-├── tailwind.config.js      # Tailwind配置
-└── vue.config.js           # Vue CLI配置(API代理)
+│   │   ├── FollowButton.vue    # 关注/取消关注按钮
+│   │   ├── FollowStats.vue     # 关注统计(关注数/粉丝数/朋友数)
+│   │   └── HotAuthors.vue      # 热门作者榜单("品"字形布局)
+│   ├── layouts/                # 布局组件
+│   │   └── AdminLayout.vue     # 管理后台通用布局
+│   ├── modules/                # 模块化目录
+│   │   ├── admin/
+│   │   │   ├── components/     # 后台专用组件
+│   │   │   ├── views/          # 后台页面
+│   │   │   └── router.js       # 后台路由
+│   │   └── portal/
+│   │       ├── components/     # 前台专用组件
+│   │       ├── views/          # 前台页面
+│   │       └── router.js       # 前台路由
+│   ├── router/                 # 主路由入口（合并 portal/admin 路由）
+│   ├── store/                  # Vuex状态(认证、用户)
+│   ├── utils/                  # 工具函数(Axios封装等)
+│   ├── App.vue                 # 根组件
+│   └── main.js                 # 入口文件
+├── tailwind.config.js          # Tailwind配置
+└── vue.config.js               # Vue CLI配置(API代理)
 ```
 
 ## 🚀 快速开始

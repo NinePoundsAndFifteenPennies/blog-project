@@ -178,6 +178,30 @@ Controller ──► Service ──► Repository ──► Database
 | 配置文件 | **resources/** | 存放应用的资源文件 |
 | 配置文件 | └── application.properties | 应用配置（数据库、JWT密钥等） |
 
+## 前端架构
+
+前端采用模块化目录结构，将门户（portal）与后台（admin）分离，公共能力保持在全局目录：
+
+```
+frontend/src/
+├── api/                     # 通用 API
+├── assets/                  # 静态资源
+├── components/              # 公共组件（前后台通用）
+├── layouts/                 # 布局组件（BasicLayout/AdminLayout）
+├── modules/
+│   ├── admin/
+│   │   ├── components/      # 后台专用组件
+│   │   ├── views/           # 后台页面
+│   │   └── router.js        # 后台路由
+│   └── portal/
+│       ├── components/      # 前台专用组件
+│       ├── views/           # 前台页面
+│       └── router.js        # 前台路由
+├── router/                  # 主路由入口（合并 portal/admin 路由）
+├── store/                   # 状态管理
+└── utils/                   # 工具函数
+```
+
 ## 核心设计模式
 
 ### 1. DTO 模式
