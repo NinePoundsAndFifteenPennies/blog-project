@@ -1,85 +1,11 @@
 <template>
-  <div class="admin-layout">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <div class="logo">
-          <div class="logo-icon">📝</div>
-          <span class="logo-text">博客管理</span>
-        </div>
-      </div>
-      
-      <nav class="nav-menu">
-        <template v-for="item in menuItems" :key="item.id">
-          <!-- Users link uses router-link -->
-          <router-link 
-            v-if="item.id === 'users'"
-            to="/admin/users"
-            :class="['nav-item']"
-          >
-            <span class="nav-icon" v-html="item.icon"></span>
-            <span class="nav-text">{{ item.label }}</span>
-          </router-link>
-          <!-- Articles link uses router-link -->
-          <router-link 
-            v-else-if="item.id === 'articles'"
-            to="/admin/posts"
-            :class="['nav-item']"
-          >
-            <span class="nav-icon" v-html="item.icon"></span>
-            <span class="nav-text">{{ item.label }}</span>
-          </router-link>
-          <!-- Other items use local navigation -->
-          <a 
-            v-else
-            href="#"
-            :class="['nav-item', { active: currentView === item.id }]"
-            @click.prevent="currentView = item.id"
-          >
-            <span class="nav-icon" v-html="item.icon"></span>
-            <span class="nav-text">{{ item.label }}</span>
-          </a>
-        </template>
-      </nav>
-    </aside>
-
-    <!-- Main Content -->
-    <div class="main-content">
-      <!-- Topbar -->
-      <header class="topbar">
-        <h1 class="page-title">{{ currentPageTitle }}</h1>
-        <div class="topbar-right">
-          <div class="search-box">
-            <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input type="text" placeholder="搜索..." class="search-input" />
-          </div>
-          <!-- Notification Bell - Links to notifications page -->
-          <router-link to="/notifications" class="notification-btn">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            <span v-if="unreadNotificationCount > 0" class="notification-badge">
-              {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
-            </span>
-          </router-link>
-          <!-- User Avatar - Shows actual avatar -->
-          <div class="user-avatar">
-            <img 
-              v-if="userAvatarUrl && !avatarLoadError" 
-              :src="userAvatarUrl" 
-              :alt="adminName"
-              @error="handleAvatarError"
-              class="avatar-img"
-            />
-            <span v-else class="avatar-initial">{{ userInitial }}</span>
-          </div>
-        </div>
-      </header>
-
-      <!-- Content Area -->
-      <div class="content-area">
+  <AdminLayout
+    :menu-items="menuItems"
+    :page-title="currentPageTitle"
+    :current-view="currentView"
+    :set-current-view="setCurrentView"
+    :show-search="true"
+  >
         <!-- Dashboard View with Welcome Animation -->
         <div v-if="currentView === 'dashboard'" class="view-dashboard">
           <!-- Welcome Banner with Animation -->
@@ -371,19 +297,20 @@
             退出登录
           </button>
         </div>
-      </div>
-    </div>
-  </div>
+  </AdminLayout>
 </template>
 
 <script>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
-import { getUnreadCount } from '@/api/notifications'
+import AdminLayout from '@/layouts/AdminLayout.vue'
 
 export default {
   name: 'AdminDashboard',
+  components: {
+    AdminLayout
+  },
   setup() {
     const store = useStore()
     const router = useRouter()
@@ -397,31 +324,10 @@ export default {
     const welcomeText = ref('')
     let typingInterval = null
 
-    // ======================= Notification State =======================
-    const unreadNotificationCount = ref(0)
-
-    // ======================= Avatar State =======================
-    const avatarLoadError = ref(false)
-
     const adminName = computed(() => {
       const user = store.getters.currentUser
       return user?.nickname || user?.username || '管理员'
     })
-
-    const userInitial = computed(() => {
-      return adminName.value.charAt(0).toUpperCase()
-    })
-
-    const userAvatarUrl = computed(() => {
-      const user = store.getters.currentUser
-      if (!user?.avatarUrl) return null
-      const baseUrl = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8080'
-      return user.avatarUrl.startsWith('http') ? user.avatarUrl : `${baseUrl}${user.avatarUrl}`
-    })
-
-    const handleAvatarError = () => {
-      avatarLoadError.value = true
-    }
 
     const currentPageTitle = computed(() => {
       const titles = {
@@ -439,12 +345,12 @@ export default {
 
     const menuItems = [
       { id: 'dashboard', label: '仪表盘', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
-      { id: 'articles', label: '文章管理', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>' },
+      { id: 'articles', path: '/admin/posts', label: '文章管理', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>' },
       { id: 'categories', label: '分类管理', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>' },
       { id: 'tags', label: '标签管理', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>' },
       { id: 'comments', label: '评论管理', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>' },
       { id: 'media', label: '媒体库', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>' },
-      { id: 'users', label: '用户管理', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>' },
+      { id: 'users', path: '/admin/users', label: '用户管理', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>' },
       { id: 'settings', label: '系统设置', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>' }
     ]
 
@@ -521,6 +427,10 @@ export default {
       router.push('/login')
     }
 
+    const setCurrentView = (viewId) => {
+      currentView.value = viewId
+    }
+
     // ======================= Welcome Animation Methods =======================
     const startTypingAnimation = () => {
       const fullText = `您好，${adminName.value}！`
@@ -538,19 +448,8 @@ export default {
       }, 100)
     }
 
-    // Load notification count
-    const loadNotificationCount = async () => {
-      try {
-        const response = await getUnreadCount()
-        unreadNotificationCount.value = response.count || 0
-      } catch (error) {
-        console.error('Failed to load notification count:', error)
-      }
-    }
-
     onMounted(() => {
       startTypingAnimation()
-      loadNotificationCount()
     })
 
     onUnmounted(() => {
@@ -564,11 +463,6 @@ export default {
       currentFilter,
       currentCommentFilter,
       adminName,
-      userInitial,
-      userAvatarUrl,
-      avatarLoadError,
-      handleAvatarError,
-      unreadNotificationCount,
       currentPageTitle,
       menuItems,
       statsData,
@@ -580,6 +474,7 @@ export default {
       comments,
       getBadgeClass,
       handleLogout,
+      setCurrentView,
       // Welcome animation
       showWelcome,
       typedWelcome
@@ -589,192 +484,6 @@ export default {
 </script>
 
 <style scoped>
-/* Layout */
-.admin-layout {
-  display: flex;
-  min-height: 100vh;
-  background-color: #f5f7fa;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
-}
-
-/* Sidebar */
-.sidebar {
-  width: 240px;
-  background-color: #1a1d2e;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  height: 100vh;
-  z-index: 100;
-}
-
-.sidebar-header {
-  padding: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.logo-icon {
-  width: 40px;
-  height: 40px;
-  background: #1890ff;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-}
-
-.logo-text {
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.nav-menu {
-  padding: 16px 0;
-  flex: 1;
-  overflow-y: auto;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 12px 20px;
-  color: rgba(255, 255, 255, 0.7);
-  text-decoration: none;
-  transition: all 0.2s;
-  cursor: pointer;
-}
-
-.nav-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-}
-
-.nav-item.active {
-  background: #1890ff;
-  color: #fff;
-}
-
-.nav-icon {
-  width: 20px;
-  height: 20px;
-  margin-right: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nav-icon svg {
-  width: 100%;
-  height: 100%;
-}
-
-/* Main Content */
-.main-content {
-  flex: 1;
-  margin-left: 240px;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Topbar */
-.topbar {
-  height: 64px;
-  background: #fff;
-  border-bottom: 1px solid #e8e8e8;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-}
-
-.page-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1a1d2e;
-}
-
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.search-box {
-  display: flex;
-  align-items: center;
-  background: #f5f7fa;
-  border-radius: 8px;
-  padding: 8px 12px;
-  width: 240px;
-}
-
-.search-icon {
-  width: 18px;
-  height: 18px;
-  color: #999;
-  margin-right: 8px;
-}
-
-.search-input {
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 14px;
-  width: 100%;
-}
-
-.notification-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
-}
-
-.notification-btn:hover {
-  background: #f5f7fa;
-}
-
-.notification-btn svg {
-  width: 22px;
-  height: 22px;
-  color: #666;
-}
-
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #1890ff;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 16px;
-}
-
-/* Content Area */
-.content-area {
-  padding: 24px;
-  flex: 1;
-}
 
 /* Stats Grid */
 .stats-grid {
@@ -1577,71 +1286,4 @@ export default {
   }
 }
 
-/* ======================= Avatar & Notification Styles ======================= */
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  background: #1890ff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-weight: 600;
-  font-size: 14px;
-  overflow: hidden;
-}
-
-.avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-initial {
-  text-transform: uppercase;
-}
-
-.notification-btn {
-  position: relative;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: #f5f7fa;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: #666;
-  text-decoration: none;
-}
-
-.notification-btn:hover {
-  background: #e8e8e8;
-  color: #1890ff;
-}
-
-.notification-btn svg {
-  width: 20px;
-  height: 20px;
-}
-
-.notification-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  background: #f5222d;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 </style>
