@@ -186,8 +186,8 @@ public class AdminCommentServiceImpl implements AdminCommentService {
                 // 发送删除通知（在删除评论之前）
                 notificationService.createCommentDeletedNotification(admin, commentAuthor, postTitle, contentPreview, reason);
                 
-                // 解除通知表对评论的外键约束
-                notificationRepository.nullifyCommentReference(comment);
+                // 解除通知表对评论及其所有后代评论的外键约束
+                nullifyNotificationReferencesRecursively(comment);
                 
                 // 删除评论（会级联删除子评论和点赞）
                 commentRepository.delete(comment);
@@ -204,6 +204,21 @@ public class AdminCommentServiceImpl implements AdminCommentService {
         }
         
         return new AdminBatchActionResponse(successIds.size(), failures.size(), successIds, failures);
+    }
+
+    /**
+     * 递归解除通知表对评论及其所有后代评论的外键约束
+     * 必须先处理子评论，再处理父评论，以确保级联删除顺序正确
+     */
+    private void nullifyNotificationReferencesRecursively(Comment comment) {
+        // 先递归处理所有子评论
+        if (comment.getReplies() != null && !comment.getReplies().isEmpty()) {
+            for (Comment child : comment.getReplies()) {
+                nullifyNotificationReferencesRecursively(child);
+            }
+        }
+        // 最后处理当前评论
+        notificationRepository.nullifyCommentReference(comment);
     }
     
     /**

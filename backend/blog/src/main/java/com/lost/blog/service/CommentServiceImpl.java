@@ -12,6 +12,7 @@ import com.lost.blog.model.Post;
 import com.lost.blog.model.User;
 import com.lost.blog.repository.CommentRepository;
 import com.lost.blog.repository.LikeRepository;
+import com.lost.blog.repository.NotificationRepository;
 import com.lost.blog.repository.PostRepository;
 import com.lost.blog.repository.UserRepository;
 import org.slf4j.Logger;
@@ -42,6 +43,7 @@ public class CommentServiceImpl implements CommentService {
     private final LikeService likeService;
     private final LikeRepository likeRepository;
     private final NotificationService notificationService;
+    private final NotificationRepository notificationRepository;
 
     @Autowired
     public CommentServiceImpl(CommentRepository commentRepository,
@@ -50,7 +52,8 @@ public class CommentServiceImpl implements CommentService {
                              CommentMapper commentMapper,
                              LikeService likeService,
                              LikeRepository likeRepository,
-                             NotificationService notificationService) {
+                             NotificationService notificationService,
+                             NotificationRepository notificationRepository) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
         this.userRepository = userRepository;
@@ -58,6 +61,7 @@ public class CommentServiceImpl implements CommentService {
         this.likeService = likeService;
         this.likeRepository = likeRepository;
         this.notificationService = notificationService;
+        this.notificationRepository = notificationRepository;
     }
 
     @Override
@@ -206,7 +210,11 @@ public class CommentServiceImpl implements CommentService {
             throw new AccessDeniedException("您没有权限删除此评论");
         }
 
-        // 3. 直接删除该评论
+        // 3. 解除通知表对该评论及其所有后代评论的外键约束
+        // 递归处理所有层级的子评论，确保级联删除不会违反外键约束
+        nullifyNotificationReferencesRecursively(comment);
+
+        // 4. 删除该评论
         // 因为 Comment 实体中已正确配置了 cascade = CascadeType.ALL,
         // JPA/Hibernate 现在知道当这个 comment 被删除时，
         // 必须先删除所有引用它的 likes 和 replies (子评论)。
@@ -214,6 +222,21 @@ public class CommentServiceImpl implements CommentService {
         commentRepository.delete(comment);
 
         logger.info("用户 {} 成功删除评论ID: {}。JPA将根据实体定义自动处理所有级联删除。", user.getUsername(), commentId);
+    }
+
+    /**
+     * 递归解除通知表对评论及其所有后代评论的外键约束
+     * 必须先处理子评论，再处理父评论，以确保级联删除顺序正确
+     */
+    private void nullifyNotificationReferencesRecursively(Comment comment) {
+        // 先递归处理所有子评论
+        if (comment.getReplies() != null && !comment.getReplies().isEmpty()) {
+            for (Comment child : comment.getReplies()) {
+                nullifyNotificationReferencesRecursively(child);
+            }
+        }
+        // 最后处理当前评论
+        notificationRepository.nullifyCommentReference(comment);
     }
 
     @Override

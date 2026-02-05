@@ -84,4 +84,14 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Modifying
     @Query("UPDATE Notification n SET n.comment = NULL WHERE n.comment = :comment")
     int nullifyCommentReference(@Param("comment") com.lost.blog.model.Comment comment);
+
+    /**
+     * 将指定评论的所有后代评论（各层级子评论）的通知引用置空。
+     * 由于JPQL不支持递归查询，此方法处理直接子评论。
+     * 需要在服务层递归调用以处理所有层级。
+     */
+    @Modifying
+    @Query("UPDATE Notification n SET n.comment = NULL WHERE n.comment.id IN " +
+           "(SELECT c.id FROM Comment c WHERE c.parent = :parentComment)")
+    int nullifyDirectChildCommentReferences(@Param("parentComment") com.lost.blog.model.Comment parentComment);
 }
