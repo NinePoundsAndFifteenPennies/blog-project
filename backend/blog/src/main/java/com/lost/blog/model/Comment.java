@@ -46,6 +46,15 @@ public class Comment {
     @Column(name = "level", nullable = false)
     private Integer level = 0;
 
+    /**
+     * 评论审核状态
+     * PENDING - 待审核（新评论默认状态、修改后重置为此状态）
+     * APPROVED - 已通过
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private CommentStatus status = CommentStatus.APPROVED;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -75,6 +84,8 @@ public class Comment {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public CommentStatus getStatus() { return status; }
+    public void setStatus(CommentStatus status) { this.status = status; }
     public List<Comment> getReplies() { return replies; }
     public void setReplies(List<Comment> replies) { this.replies = replies; }
     public List<Like> getLikes() { return likes; }

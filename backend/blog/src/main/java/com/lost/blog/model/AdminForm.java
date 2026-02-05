@@ -66,7 +66,19 @@ public class AdminForm {
     private String postTitle;
 
     /**
-     * 被通知的用户（文章作者）
+     * 关联的评论ID（用于评论删除表单）
+     */
+    @Column(name = "comment_id")
+    private Long commentId;
+
+    /**
+     * 关联的评论内容预览（冗余存储，用于评论被删除后仍可查看）
+     */
+    @Column(name = "comment_content_preview", length = 200)
+    private String commentContentPreview;
+
+    /**
+     * 被通知的用户（文章作者或评论作者）
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "target_user_id")
@@ -158,6 +170,22 @@ public class AdminForm {
 
     public void setPostTitle(String postTitle) {
         this.postTitle = postTitle;
+    }
+
+    public Long getCommentId() {
+        return commentId;
+    }
+
+    public void setCommentId(Long commentId) {
+        this.commentId = commentId;
+    }
+
+    public String getCommentContentPreview() {
+        return commentContentPreview;
+    }
+
+    public void setCommentContentPreview(String commentContentPreview) {
+        this.commentContentPreview = commentContentPreview;
     }
 
     public User getTargetUser() {

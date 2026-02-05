@@ -12,5 +12,10 @@ public enum AdminFormType {
     /**
      * 删除文章表单
      */
-    DELETION
+    DELETION,
+
+    /**
+     * 删除评论表单
+     */
+    COMMENT_DELETION
 }

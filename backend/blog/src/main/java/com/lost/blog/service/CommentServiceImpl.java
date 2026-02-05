@@ -7,6 +7,7 @@ import com.lost.blog.exception.AccessDeniedException;
 import com.lost.blog.exception.ResourceNotFoundException;
 import com.lost.blog.mapper.CommentMapper;
 import com.lost.blog.model.Comment;
+import com.lost.blog.model.CommentStatus;
 import com.lost.blog.model.Post;
 import com.lost.blog.model.User;
 import com.lost.blog.repository.CommentRepository;
@@ -171,8 +172,10 @@ public class CommentServiceImpl implements CommentService {
 
         // 更新评论内容
         comment.setContent(commentRequest.getContent());
+        // 评论修改后状态重置为待审核
+        comment.setStatus(CommentStatus.PENDING);
         Comment updatedComment = commentRepository.save(comment);
-        logger.info("用户 {} 更新了评论ID: {}", user.getUsername(), commentId);
+        logger.info("用户 {} 更新了评论ID: {}，状态已重置为待审核", user.getUsername(), commentId);
 
         CommentResponse response = commentMapper.toResponse(updatedComment);
         response.setLikeCount(likeService.getCommentLikeCount(commentId));
