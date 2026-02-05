@@ -229,11 +229,11 @@
                   <div
                     :class="[
                       'w-10 h-10 rounded-full flex items-center justify-center',
-                      detailModalData.formType === 'DELETION' ? 'bg-red-100' : 'bg-yellow-100'
+                      (detailModalData.formType === 'DELETION' || detailModalData.formType === 'COMMENT_DELETION') ? 'bg-red-100' : 'bg-yellow-100'
                     ]"
                   >
                     <svg
-                      v-if="detailModalData.formType === 'DELETION'"
+                      v-if="detailModalData.formType === 'DELETION' || detailModalData.formType === 'COMMENT_DELETION'"
                       class="w-5 h-5 text-red-600"
                       fill="none"
                       stroke="currentColor"
@@ -252,7 +252,7 @@
                     </svg>
                   </div>
                   <h3 class="text-lg font-semibold text-gray-900">
-                    {{ detailModalData.formType === 'DELETION' ? '文章已被删除' : '文章未通过审核' }}
+                    {{ detailModalData.formType === 'COMMENT_DELETION' ? '评论处理结果' : (detailModalData.formType === 'DELETION' ? '文章已被删除' : '文章未通过审核') }}
                   </h3>
                 </div>
                 <button
@@ -275,8 +275,44 @@
               </div>
 
               <template v-else>
-                <!-- 文章信息 -->
-                <div class="bg-gray-50 rounded-xl p-4 space-y-3">
+                <!-- 评论信息（评论删除） -->
+                <div v-if="detailModalData.formType === 'COMMENT_DELETION'" class="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide">评论信息</h4>
+                  <div class="space-y-2">
+                    <div class="flex items-start">
+                      <span class="text-gray-500 w-20 flex-shrink-0">评论内容</span>
+                      <span class="text-gray-900 font-medium">{{ detailModalData.commentContentPreview || '无内容预览' }}</span>
+                    </div>
+                    <div class="flex items-start">
+                      <span class="text-gray-500 w-20 flex-shrink-0">所属文章</span>
+                      <span class="text-gray-900">{{ detailModalData.postTitle || '未知文章' }}</span>
+                    </div>
+                    <div class="flex items-start">
+                      <span class="text-gray-500 w-20 flex-shrink-0">状态</span>
+                      <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                        已删除
+                      </span>
+                    </div>
+                    <div class="flex items-start">
+                      <span class="text-gray-500 w-20 flex-shrink-0">处理时间</span>
+                      <span class="text-gray-900">{{ formatDetailTime(detailModalData.createdAt) }}</span>
+                    </div>
+                  </div>
+                  <!-- 查看文章按钮（评论被删除后文章可能还存在） -->
+                  <button
+                    v-if="detailModalData.postId"
+                    @click="goToPost(detailModalData.postId)"
+                    class="mt-2 text-sm text-primary-600 hover:text-primary-700 font-medium inline-flex items-center"
+                  >
+                    查看所属文章
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- 文章信息（文章相关通知） -->
+                <div v-else class="bg-gray-50 rounded-xl p-4 space-y-3">
                   <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide">文章信息</h4>
                   <div class="space-y-2">
                     <div class="flex items-start">
@@ -400,6 +436,7 @@ export default {
       formType: '',
       postId: null,
       postTitle: '',
+      commentContentPreview: '',
       reason: '',
       extraFields: '',
       createdAt: ''
@@ -519,6 +556,11 @@ export default {
             bgColor: 'bg-red-100', 
             icon: '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>'
           }
+        case 'COMMENT_DELETED':
+          return { 
+            bgColor: 'bg-red-100', 
+            icon: '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>'
+          }
         default:
           return { 
             bgColor: 'bg-gray-100', 
@@ -547,6 +589,8 @@ export default {
           return '您的文章未通过审核'
         case 'POST_DELETED':
           return '您的文章因违规被删除'
+        case 'COMMENT_DELETED':
+          return '您的评论因违规被删除'
         default:
           return ''
       }
@@ -554,7 +598,7 @@ export default {
 
     // 判断是否为系统通知
     const isSystemNotification = (notification) => {
-      return ['POST_APPROVED', 'POST_REJECTED', 'POST_DELETED'].includes(notification.type)
+      return ['POST_APPROVED', 'POST_REJECTED', 'POST_DELETED', 'COMMENT_DELETED'].includes(notification.type)
     }
 
     // 获取通知显示的名称
@@ -697,7 +741,8 @@ export default {
           break
         case 'POST_REJECTED':
         case 'POST_DELETED':
-          // 审核拒绝或删除，打开详情弹窗
+        case 'COMMENT_DELETED':
+          // 审核拒绝、文章删除或评论删除，打开详情弹窗
           openDetailModal(notification)
           break
       }
@@ -824,19 +869,34 @@ export default {
       
       // 尝试从通知内容中提取文章标题
       let extractedTitle = notification.postTitle || ''
+      let extractedCommentPreview = ''
       if (!extractedTitle && notification.content) {
-        // 从内容 "您的文章「xxx」未通过审核" 中提取标题
+        // 从内容 "您的文章「xxx」未通过审核" 或 "您在文章「xxx」的评论「yyy」" 中提取
         const match = notification.content.match(/「(.+?)」/)
         if (match) {
           extractedTitle = match[1]
         }
+        // 对于评论删除，尝试提取评论预览
+        const commentMatch = notification.content.match(/评论「(.+?)」/)
+        if (commentMatch) {
+          extractedCommentPreview = commentMatch[1]
+        }
+      }
+      
+      // 根据通知类型确定formType
+      let formType = 'REJECTION'
+      if (notification.type === 'POST_DELETED') {
+        formType = 'DELETION'
+      } else if (notification.type === 'COMMENT_DELETED') {
+        formType = 'COMMENT_DELETION'
       }
       
       // 设置基本信息
       detailModalData.value = {
-        formType: notification.type === 'POST_DELETED' ? 'DELETION' : 'REJECTION',
+        formType: formType,
         postId: notification.postId,
         postTitle: extractedTitle,
+        commentContentPreview: extractedCommentPreview,
         reason: '',
         extraFields: '',
         createdAt: notification.createdAt
@@ -845,8 +905,9 @@ export default {
       try {
         let form = null
         
-        // 首先尝试通过postId获取表单信息
-        if (notification.postId) {
+        // 对于评论删除，直接通过通知ID查找表单
+        // 对于文章相关的通知，首先尝试通过postId获取表单信息
+        if (notification.type !== 'COMMENT_DELETED' && notification.postId) {
           try {
             form = await getFormByPostId(notification.postId)
           } catch (e) {
@@ -867,6 +928,7 @@ export default {
           detailModalData.value = {
             ...detailModalData.value,
             postTitle: form.postTitle || detailModalData.value.postTitle,
+            commentContentPreview: form.commentContentPreview || detailModalData.value.commentContentPreview,
             reason: form.reason || '',
             extraFields: form.extraFields || '',
             createdAt: form.createdAt || notification.createdAt

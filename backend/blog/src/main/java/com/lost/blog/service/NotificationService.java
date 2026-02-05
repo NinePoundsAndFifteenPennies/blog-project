@@ -99,4 +99,9 @@ public interface NotificationService {
      * 创建文章被删除的通知
      */
     void createPostDeletedNotification(User admin, User author, String postTitle, String reason);
+
+    /**
+     * 创建评论被删除的通知
+     */
+    void createCommentDeletedNotification(User admin, User author, String postTitle, String commentPreview, String reason);
 }

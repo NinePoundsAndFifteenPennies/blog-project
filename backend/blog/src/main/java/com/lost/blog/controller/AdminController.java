@@ -5,6 +5,7 @@ import com.lost.blog.mapper.UserMapper;
 import com.lost.blog.model.Role;
 import com.lost.blog.model.User;
 import com.lost.blog.security.JwtTokenProvider;
+import com.lost.blog.service.AdminCommentService;
 import com.lost.blog.service.AdminPostService;
 import com.lost.blog.service.AdminUserService;
 import com.lost.blog.service.UserService;
@@ -30,7 +31,7 @@ import java.util.List;
 
 /**
  * 管理员控制器
- * 处理管理员登录、获取管理员信息、用户管理、文章管理等请求
+ * 处理管理员登录、获取管理员信息、用户管理、文章管理、评论管理等请求
  * 
  * 注意：管理员的token刷新请使用 /api/users/refresh-token 接口，
  * 该接口对所有已认证用户通用。
@@ -44,6 +45,7 @@ public class AdminController {
     private final UserService userService;
     private final AdminUserService adminUserService;
     private final AdminPostService adminPostService;
+    private final AdminCommentService adminCommentService;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
 
@@ -51,11 +53,13 @@ public class AdminController {
     public AdminController(UserService userService,
                           AdminUserService adminUserService,
                           AdminPostService adminPostService,
+                          AdminCommentService adminCommentService,
                           AuthenticationManager authenticationManager,
                           JwtTokenProvider tokenProvider) {
         this.userService = userService;
         this.adminUserService = adminUserService;
         this.adminPostService = adminPostService;
+        this.adminCommentService = adminCommentService;
         this.authenticationManager = authenticationManager;
         this.tokenProvider = tokenProvider;
     }
@@ -358,5 +362,106 @@ public class AdminController {
     public ResponseEntity<List<AdminFormResponse>> getPostForms(@PathVariable Long postId) {
         List<AdminFormResponse> forms = adminPostService.getPostForms(postId);
         return ResponseEntity.ok(forms);
+    }
+
+    // ======================= 评论管理接口 =======================
+
+    /**
+     * 获取评论列表（支持分页和多条件搜索）
+     * 
+     * @param page 页码（从0开始）
+     * @param size 每页数量
+     * @param content 评论内容搜索（模糊匹配）
+     * @param author 作者用户名/昵称搜索（模糊匹配）
+     * @param postTitle 文章标题搜索（模糊匹配）
+     * @param status 状态过滤：PENDING/APPROVED
+     * @param startDate 创建开始日期（yyyy-MM-dd）
+     * @param endDate 创建结束日期（yyyy-MM-dd）
+     * @param includeReplies 是否包含子评论（默认true）
+     */
+    @GetMapping("/comments")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<AdminCommentResponse>> getComments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String content,
+            @RequestParam(required = false) String author,
+            @RequestParam(required = false) String postTitle,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false, defaultValue = "true") Boolean includeReplies) {
+        
+        AdminCommentQueryRequest query = new AdminCommentQueryRequest();
+        query.setContent(content);
+        query.setAuthor(author);
+        query.setPostTitle(postTitle);
+        query.setStatus(status);
+        query.setStartDate(startDate);
+        query.setEndDate(endDate);
+        query.setIncludeReplies(includeReplies);
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<AdminCommentResponse> comments = adminCommentService.searchComments(query, pageable);
+        
+        return ResponseEntity.ok(comments);
+    }
+
+    /**
+     * 获取评论详细信息
+     * 
+     * @param id 评论ID
+     */
+    @GetMapping("/comments/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AdminCommentResponse> getCommentDetail(@PathVariable Long id) {
+        AdminCommentResponse comment = adminCommentService.getCommentDetail(id);
+        return ResponseEntity.ok(comment);
+    }
+
+    /**
+     * 执行评论操作（审核通过/删除）
+     * 支持批量操作
+     * 
+     * @param request 操作请求
+     */
+    @PostMapping("/comments/action")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> executeCommentAction(
+            @Valid @RequestBody AdminCommentActionRequest request,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        
+        User admin = userService.findByUsername(currentUser.getUsername());
+        String action = request.getAction().toUpperCase();
+        
+        // 验证删除操作需要理由
+        if ("DELETE".equals(action) && 
+            (request.getReason() == null || request.getReason().trim().isEmpty())) {
+            return ResponseEntity.badRequest().body("删除操作需要填写理由");
+        }
+        
+        AdminBatchActionResponse result;
+        
+        switch (action) {
+            case "APPROVE":
+                result = adminCommentService.approveComments(request.getCommentIds(), admin);
+                logger.info("管理员 {} 批量审核通过 {} 条评论", currentUser.getUsername(), result.getSuccessCount());
+                break;
+                
+            case "DELETE":
+                result = adminCommentService.deleteComments(
+                        request.getCommentIds(), 
+                        request.getFormTitle(), 
+                        request.getReason(), 
+                        request.getExtraFields(), 
+                        admin);
+                logger.info("管理员 {} 批量删除 {} 条评论", currentUser.getUsername(), result.getSuccessCount());
+                break;
+                
+            default:
+                return ResponseEntity.badRequest().body("不支持的操作类型: " + action);
+        }
+        
+        return ResponseEntity.ok(result);
     }
 }

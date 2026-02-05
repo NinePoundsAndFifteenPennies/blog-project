@@ -1,6 +1,7 @@
 package com.lost.blog.repository;
 
 import com.lost.blog.model.Comment;
+import com.lost.blog.model.CommentStatus;
 import com.lost.blog.model.Post;
 import com.lost.blog.model.User;
 import org.springframework.data.domain.Page;
@@ -10,6 +11,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
 
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Long> {
@@ -86,5 +89,38 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     default Page<Comment> findTopLevelCommentsByPostOrderByHotness(Long postId, boolean ascending, Pageable pageable) {
         return ascending ? findTopLevelCommentsByPostOrderByHotnessAsc(postId, pageable) : findTopLevelCommentsByPostOrderByHotnessDesc(postId, pageable);
     }
+
+    // ======================= 管理后台查询 =======================
+
+    /**
+     * 管理后台搜索评论（支持多条件过滤）
+     * @param content 评论内容关键词（模糊匹配）
+     * @param author 作者用户名或昵称（模糊匹配）
+     * @param postTitle 文章标题（模糊匹配）
+     * @param status 评论状态
+     * @param startDateTime 创建开始时间
+     * @param endDateTime 创建结束时间
+     * @param includeReplies 是否包含子评论
+     * @param pageable 分页参数
+     */
+    @Query("SELECT c FROM Comment c " +
+           "WHERE (:content IS NULL OR c.content LIKE %:content%) " +
+           "AND (:author IS NULL OR c.user.username LIKE %:author% OR c.user.nickname LIKE %:author%) " +
+           "AND (:postTitle IS NULL OR c.post.title LIKE %:postTitle%) " +
+           "AND (:status IS NULL OR c.status = :status) " +
+           "AND (:startDateTime IS NULL OR c.createdAt >= :startDateTime) " +
+           "AND (:endDateTime IS NULL OR c.createdAt <= :endDateTime) " +
+           "AND (:includeReplies = true OR c.parent IS NULL) " +
+           "ORDER BY c.createdAt DESC")
+    Page<Comment> adminSearchComments(
+            @Param("content") String content,
+            @Param("author") String author,
+            @Param("postTitle") String postTitle,
+            @Param("status") CommentStatus status,
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime,
+            @Param("includeReplies") boolean includeReplies,
+            Pageable pageable
+    );
 
 }

@@ -669,7 +669,7 @@ export default {
     
     // 判断是否为系统通知
     const isSystemNotification = (notification) => {
-      return ['POST_APPROVED', 'POST_REJECTED', 'POST_DELETED'].includes(notification.type)
+      return ['POST_APPROVED', 'POST_REJECTED', 'POST_DELETED', 'COMMENT_DELETED'].includes(notification.type)
     }
     
     // 获取通知显示的名称
@@ -792,6 +792,7 @@ export default {
           break
         case 'POST_REJECTED':
         case 'POST_DELETED':
+        case 'COMMENT_DELETED':
           // 审核拒绝或删除，跳转到通知页面的系统标签（在那里可以查看详情弹窗）
           router.push({
             path: '/notifications',

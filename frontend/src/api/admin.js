@@ -195,3 +195,70 @@ export async function getPostForms(postId) {
     });
     return response;
 }
+
+// ======================= 评论管理 API =======================
+
+/**
+ * 获取评论列表（支持分页和多条件搜索）
+ * @param {Object} params - 查询参数
+ * @param {number} params.page - 页码（从0开始）
+ * @param {number} params.size - 每页数量
+ * @param {string} params.content - 评论内容搜索（可选）
+ * @param {string} params.author - 作者搜索（可选）
+ * @param {string} params.postTitle - 文章标题搜索（可选）
+ * @param {string} params.status - 状态过滤 PENDING/APPROVED（可选）
+ * @param {string} params.startDate - 创建开始日期 yyyy-MM-dd（可选）
+ * @param {string} params.endDate - 创建结束日期 yyyy-MM-dd（可选）
+ * @param {boolean} params.includeReplies - 是否包含子评论（默认true）
+ * @returns {Promise<Object>} - 返回分页评论列表
+ */
+export async function getComments(params = {}) {
+    const response = await request({
+        url: "/admin/comments",
+        method: "get",
+        params: {
+            page: params.page || 0,
+            size: params.size || 10,
+            content: params.content || undefined,
+            author: params.author || undefined,
+            postTitle: params.postTitle || undefined,
+            status: params.status || undefined,
+            startDate: params.startDate || undefined,
+            endDate: params.endDate || undefined,
+            includeReplies: params.includeReplies !== undefined ? params.includeReplies : true,
+        },
+    });
+    return response;
+}
+
+/**
+ * 获取评论详细信息
+ * @param {number} commentId - 评论ID
+ * @returns {Promise<Object>} - 返回评论详细信息
+ */
+export async function getCommentDetail(commentId) {
+    const response = await request({
+        url: `/admin/comments/${commentId}`,
+        method: "get",
+    });
+    return response;
+}
+
+/**
+ * 执行评论操作（审核通过/删除）
+ * @param {Object} data - 操作数据
+ * @param {string} data.action - 操作类型: APPROVE, DELETE
+ * @param {number[]} data.commentIds - 评论ID列表
+ * @param {string} data.formTitle - 通知标题（删除时可选，用于发送给评论作者的通知）
+ * @param {string} data.reason - 删除理由（删除时必填）
+ * @param {string} data.extraFields - 扩展字段JSON（可选）
+ * @returns {Promise<Object>} - 返回批量操作结果
+ */
+export async function executeCommentAction(data) {
+    const response = await request({
+        url: "/admin/comments/action",
+        method: "post",
+        data,
+    });
+    return response;
+}

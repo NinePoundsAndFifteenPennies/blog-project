@@ -49,7 +49,7 @@ public class NotificationServiceImpl implements NotificationService {
             case "messages":
                 return List.of(NotificationType.MESSAGE_RECEIVED);
             case "system":
-                return List.of(NotificationType.POST_APPROVED, NotificationType.POST_REJECTED, NotificationType.POST_DELETED);
+                return List.of(NotificationType.POST_APPROVED, NotificationType.POST_REJECTED, NotificationType.POST_DELETED, NotificationType.COMMENT_DELETED);
             default:
                 return null; // all types
         }
@@ -307,6 +307,24 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.save(notification);
 
         logger.info("创建通知: 管理员 {} 删除了 {} 的文章「{}」", admin.getUsername(), author.getUsername(), postTitle);
+    }
+
+    @Override
+    @Transactional
+    public void createCommentDeletedNotification(User admin, User author, String postTitle, String commentPreview, String reason) {
+        // 不需要给管理员自己发通知
+        if (admin.getId().equals(author.getId())) {
+            return;
+        }
+
+        Notification notification = new Notification();
+        notification.setType(NotificationType.COMMENT_DELETED);
+        notification.setRecipient(author);
+        notification.setActor(admin);
+        notification.setContent("您在文章「" + truncateContent(postTitle, 20) + "」的评论「" + truncateContent(commentPreview, 20) + "」因违规被删除: " + truncateContent(reason, 30));
+        notificationRepository.save(notification);
+
+        logger.info("创建通知: 管理员 {} 删除了 {} 的评论「{}」", admin.getUsername(), author.getUsername(), commentPreview);
     }
 
     private String truncateContent(String content, int maxLength) {

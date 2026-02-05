@@ -574,14 +574,168 @@ Authorization: Bearer {admin-token}
 
 ---
 
+## 评论管理
+
+### 评论状态说明
+
+| 状态 | 说明 |
+|------|------|
+| PENDING | 待审核 - 新发布的评论或修改后的评论 |
+| APPROVED | 已通过 - 审核通过的评论（默认状态） |
+
+### 获取评论列表
+
+获取评论列表，支持分页和多条件搜索过滤。
+
+```http
+GET /api/admin/comments
+Authorization: Bearer {admin-token}
+```
+
+**查询参数:**
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| page | int | 否 | 页码（从0开始），默认0 |
+| size | int | 否 | 每页数量，默认10 |
+| content | string | 否 | 评论内容搜索（模糊匹配） |
+| author | string | 否 | 作者用户名或昵称搜索（模糊匹配） |
+| postTitle | string | 否 | 文章标题搜索（模糊匹配） |
+| status | string | 否 | 状态过滤：PENDING/APPROVED |
+| startDate | string | 否 | 创建开始日期（yyyy-MM-dd） |
+| endDate | string | 否 | 创建结束日期（yyyy-MM-dd） |
+| includeReplies | boolean | 否 | 是否包含子评论（默认true） |
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "content": "这是一条评论内容",
+      "contentPreview": "这是一条评论内容...",
+      "authorId": 2,
+      "authorUsername": "user1",
+      "authorNickname": "用户1",
+      "authorAvatarUrl": "/uploads/2/avatars/avatar.jpg",
+      "authorEnabled": true,
+      "postId": 1,
+      "postTitle": "文章标题",
+      "parentId": null,
+      "parentContentPreview": null,
+      "replyToUserId": null,
+      "replyToUsername": null,
+      "level": 0,
+      "status": "APPROVED",
+      "likeCount": 5,
+      "replyCount": 3,
+      "createdAt": "2024-01-01T00:00:00",
+      "updatedAt": null
+    }
+  ],
+  "totalElements": 100,
+  "totalPages": 10,
+  "size": 10,
+  "number": 0
+}
+```
+
+---
+
+### 获取评论详情
+
+获取指定评论的详细信息。
+
+```http
+GET /api/admin/comments/{id}
+Authorization: Bearer {admin-token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 1,
+  "content": "完整评论内容...",
+  "contentPreview": "完整评论内容...",
+  "authorId": 2,
+  "authorUsername": "user1",
+  "authorNickname": "用户1",
+  "postId": 1,
+  "postTitle": "文章标题",
+  "parentId": null,
+  "level": 0,
+  "status": "PENDING",
+  "likeCount": 5,
+  "replyCount": 3,
+  "createdAt": "2024-01-01T00:00:00",
+  "updatedAt": "2024-01-15T12:00:00"
+}
+```
+
+**错误响应:**
+- `404 Not Found` - 评论不存在
+
+---
+
+### 批量操作评论
+
+对一个或多个评论执行审核通过/删除操作。
+
+```http
+POST /api/admin/comments/action
+Authorization: Bearer {admin-token}
+Content-Type: application/json
+```
+
+**请求体:**
+```json
+{
+  "action": "DELETE",
+  "commentIds": [1, 2, 3],
+  "formTitle": "评论删除通知",
+  "reason": "评论内容违规，包含不当言论",
+  "extraFields": "[{\"fieldName\":\"违规类型\",\"fieldValue\":\"不当言论\"}]"
+}
+```
+
+**参数说明:**
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| action | string | 是 | 操作类型：APPROVE/DELETE |
+| commentIds | array | 是 | 评论ID列表（支持批量操作） |
+| formTitle | string | 删除时可选 | 表单标题（作为提示字段保存在后台） |
+| reason | string | 删除时必填 | 删除原因 |
+| extraFields | string | 否 | 扩展字段JSON数组，格式：`[{"fieldName":"字段名","fieldValue":"字段值"}]` |
+
+**操作说明:**
+- **APPROVE**: 审核通过，将评论状态改为 APPROVED
+- **DELETE**: 删除评论（级联删除子评论），保存删除表单并向作者发送通知
+
+**成功响应:** `200 OK`
+```json
+{
+  "successCount": 3,
+  "failureCount": 0,
+  "successIds": [1, 2, 3],
+  "failures": []
+}
+```
+
+**错误响应:**
+- `400 Bad Request` - 参数验证失败（如删除操作未填写理由）
+
+---
+
+### 评论审核机制
+
+1. **新评论**: 默认状态为 APPROVED（已通过），免审核直接发布
+2. **修改评论**: 用户修改评论后，状态自动重置为 PENDING（待审核）
+3. **删除通知**: 管理员删除评论时会向作者发送通知，包含删除理由
+
+---
+
 ## 后续规划
 
 管理后台 API 将陆续增加以下功能：
-
-### 评论管理
-- `GET /api/admin/comments` - 获取评论列表
-- `PUT /api/admin/comments/{id}/status` - 审核评论
-- `DELETE /api/admin/comments/{id}` - 删除评论
 
 ### 系统设置
 - `GET /api/admin/settings` - 获取系统设置
