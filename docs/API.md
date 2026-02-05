@@ -337,7 +337,7 @@ GET /api/authors/hot
 
 **说明:**
 - 此接口为公开接口，无需认证
-- 只统计已发布文章（非草稿）的作者
+- 只统计状态为 `PUBLISHED` 的文章（待审核/被拒绝/修改待审不会贡献热度）
 - 结果按热度值降序排列
 
 ---
@@ -401,7 +401,7 @@ Content-Type: application/json
 
 ### 获取文章列表
 
-分页获取所有已发布的文章，支持按时间或热度排序。
+分页获取所有已发布的文章，支持按时间或热度排序（`PENDING_REVISION` 文章仅在时间排序下可见，热度排序仅统计 `PUBLISHED`）。
 
 ```http
 GET /api/posts?page=0&size=10&sortBy=time&order=desc
@@ -578,6 +578,8 @@ Authorization: Bearer {token}
 - 访问文章详情时，系统会自动记录浏览量
 - 同一IP在1小时内重复访问不会重复计数
 - `viewCount` 字段表示文章的总浏览次数
+- `likeCount` = likes 表中该文章点赞记录数，`commentCount` = comments 表中该文章评论记录数（包含子评论）
+- 文章未处于 `PUBLISHED` 状态时，`likeCount`/`commentCount`/`viewCount` 返回 0
 
 **错误响应:**
 - `404 Not Found` - 文章不存在
@@ -634,7 +636,7 @@ GET /api/posts/user/{username}?page=0&size=10
 
 **说明:**
 - 无需认证即可访问
-- 仅返回该用户已发布的文章（draft = false）
+- 仅返回该用户已发布的文章（状态为 `PUBLISHED` 或 `PENDING_REVISION`）
 - 如果携带JWT token，响应中会包含当前用户的点赞状态（isLiked）
 
 **错误响应:**
@@ -749,7 +751,7 @@ GET /api/posts/search?keyword=spring&page=0&size=20
 
 **说明:**
 - 无需认证即可访问
-- 仅返回已发布的文章（draft = false）
+- 仅返回已发布的文章（状态为 `PUBLISHED` 或 `PENDING_REVISION`，热度排序仅统计 `PUBLISHED`）
 - 如果携带JWT token，响应中会包含当前用户的点赞状态（isLiked）
 - 至少需要提供一个搜索条件（keyword、author、title、tag中的一个）
 

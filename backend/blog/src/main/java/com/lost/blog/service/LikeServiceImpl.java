@@ -1,8 +1,10 @@
 package com.lost.blog.service;
 
+import com.lost.blog.exception.AccessDeniedException;
 import com.lost.blog.model.Comment;
 import com.lost.blog.model.Like;
 import com.lost.blog.model.Post;
+import com.lost.blog.model.PostStatus;
 import com.lost.blog.model.User;
 import com.lost.blog.repository.CommentRepository;
 import com.lost.blog.repository.LikeRepository;
@@ -50,6 +52,11 @@ public class LikeServiceImpl implements LikeService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + postId + " 的文章"));
 
+        if (!isHeatEligible(post)) {
+            logger.warn("用户 {} 尝试点赞未审核通过的文章 {}", user.getUsername(), postId);
+            throw new AccessDeniedException("文章未审核通过，无法点赞");
+        }
+
         // Check if user has already liked this post
         if (likeRepository.existsByUserAndPost(user, post)) {
             logger.info("用户 {} 已经点赞过文章 {}", user.getUsername(), postId);
@@ -80,6 +87,11 @@ public class LikeServiceImpl implements LikeService {
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + postId + " 的文章"));
+
+        if (!isHeatEligible(post)) {
+            logger.warn("用户 {} 尝试取消点赞未审核通过的文章 {}", user.getUsername(), postId);
+            throw new AccessDeniedException("文章未审核通过，无法取消点赞");
+        }
 
         // Check if user has liked this post
         if (!likeRepository.existsByUserAndPost(user, post)) {
@@ -123,6 +135,10 @@ public class LikeServiceImpl implements LikeService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + postId + " 的文章"));
 
+        if (!isHeatEligible(post)) {
+            return false;
+        }
+
         return likeRepository.existsByUserAndPost(user, post);
     }
 
@@ -134,6 +150,11 @@ public class LikeServiceImpl implements LikeService {
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + commentId + " 的评论"));
+
+        if (!isHeatEligible(comment.getPost())) {
+            logger.warn("用户 {} 尝试点赞未审核通过文章的评论 {}", user.getUsername(), commentId);
+            throw new AccessDeniedException("文章未审核通过，无法点赞评论");
+        }
 
         // Check if user has already liked this comment
         if (likeRepository.existsByUserAndComment(user, comment)) {
@@ -165,6 +186,11 @@ public class LikeServiceImpl implements LikeService {
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + commentId + " 的评论"));
+
+        if (!isHeatEligible(comment.getPost())) {
+            logger.warn("用户 {} 尝试取消点赞未审核通过文章的评论 {}", user.getUsername(), commentId);
+            throw new AccessDeniedException("文章未审核通过，无法取消点赞评论");
+        }
 
         // Check if user has liked this comment
         if (!likeRepository.existsByUserAndComment(user, comment)) {
@@ -208,6 +234,14 @@ public class LikeServiceImpl implements LikeService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到ID为: " + commentId + " 的评论"));
 
+        if (!isHeatEligible(comment.getPost())) {
+            return false;
+        }
+
         return likeRepository.existsByUserAndComment(user, comment);
+    }
+
+    private boolean isHeatEligible(Post post) {
+        return post.getStatus() == PostStatus.PUBLISHED;
     }
 }

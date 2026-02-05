@@ -1,6 +1,7 @@
 package com.lost.blog.repository;
 
 import com.lost.blog.model.Post;
+import com.lost.blog.model.PostStatus;
 import com.lost.blog.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,13 +23,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     boolean existsByTitleAndUserAndIdNot(String title, User user, Long id);
 
     // 获取所有已发布的文章（分页）
-    Page<Post> findByDraftFalse(Pageable pageable);
+    Page<Post> findByStatusIn(java.util.Collection<PostStatus> statuses, Pageable pageable);
 
     // 获取用户的所有文章（包括草稿）
     Page<Post> findByUser(User user, Pageable pageable);
 
     // 获取用户的已发布文章（不包括草稿）
-    Page<Post> findByUserAndDraftFalse(User user, Pageable pageable);
+    Page<Post> findByUserAndStatusIn(User user, java.util.Collection<PostStatus> statuses, Pageable pageable);
 
     // 获取用户的草稿
     Page<Post> findByUserAndDraftTrue(User user, Pageable pageable);
@@ -37,7 +38,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     long countByCategory(com.lost.blog.model.Category category);
 
     // 统计已发布文章总数（用于社区统计）
-    long countByDraftFalse();
+    long countByStatusIn(java.util.Collection<PostStatus> statuses);
 
     // 统计用户的文章数量
     long countByUser(User user);
@@ -46,16 +47,21 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     java.util.List<Post> findByCategory(com.lost.blog.model.Category category);
 
     // 按创建时间排序获取已发布文章（升序）
-    @Query("SELECT p FROM Post p WHERE p.draft = false ORDER BY p.createdAt ASC")
-    Page<Post> findByDraftFalseOrderByCreatedAtAsc(Pageable pageable);
+    @Query("SELECT p FROM Post p WHERE p.status IN :statuses ORDER BY p.createdAt ASC")
+    Page<Post> findByStatusInOrderByCreatedAtAsc(@Param("statuses") java.util.Collection<PostStatus> statuses,
+                                                 Pageable pageable);
 
     // 按创建时间排序获取已发布文章（降序）
-    @Query("SELECT p FROM Post p WHERE p.draft = false ORDER BY p.createdAt DESC")
-    Page<Post> findByDraftFalseOrderByCreatedAtDesc(Pageable pageable);
+    @Query("SELECT p FROM Post p WHERE p.status IN :statuses ORDER BY p.createdAt DESC")
+    Page<Post> findByStatusInOrderByCreatedAtDesc(@Param("statuses") java.util.Collection<PostStatus> statuses,
+                                                  Pageable pageable);
 
     // 按创建时间排序获取已发布文章（动态方向）
-    default Page<Post> findByDraftFalseOrderByCreatedAt(boolean ascending, Pageable pageable) {
-        return ascending ? findByDraftFalseOrderByCreatedAtAsc(pageable) : findByDraftFalseOrderByCreatedAtDesc(pageable);
+    default Page<Post> findByStatusInOrderByCreatedAt(boolean ascending,
+                                                      java.util.Collection<PostStatus> statuses,
+                                                      Pageable pageable) {
+        return ascending ? findByStatusInOrderByCreatedAtAsc(statuses, pageable)
+            : findByStatusInOrderByCreatedAtDesc(statuses, pageable);
     }
 
     // 按热度排序获取已发布文章（升序）
@@ -65,10 +71,11 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM likes WHERE post_id IS NOT NULL GROUP BY post_id) l ON p.id = l.post_id
         LEFT JOIN (SELECT post_id, COUNT(*) as comment_count FROM comments GROUP BY post_id) c ON p.id = c.post_id
         WHERE p.is_draft = false
+          AND p.status = 'PUBLISHED'
         ORDER BY (p.view_count * 0.1 + COALESCE(l.like_count, 0) * 5 + COALESCE(c.comment_count, 0) * 10) / 
                  POW(TIMESTAMPDIFF(HOUR, p.created_at, NOW()) + 2, 1.2) ASC
         """, 
-        countQuery = "SELECT COUNT(*) FROM posts WHERE is_draft = false",
+        countQuery = "SELECT COUNT(*) FROM posts WHERE is_draft = false AND status = 'PUBLISHED'",
         nativeQuery = true)
     Page<Post> findByDraftFalseOrderByHotnessAsc(Pageable pageable);
 
@@ -78,10 +85,11 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM likes WHERE post_id IS NOT NULL GROUP BY post_id) l ON p.id = l.post_id
         LEFT JOIN (SELECT post_id, COUNT(*) as comment_count FROM comments GROUP BY post_id) c ON p.id = c.post_id
         WHERE p.is_draft = false
+          AND p.status = 'PUBLISHED'
         ORDER BY (p.view_count * 0.1 + COALESCE(l.like_count, 0) * 5 + COALESCE(c.comment_count, 0) * 10) / 
                  POW(TIMESTAMPDIFF(HOUR, p.created_at, NOW()) + 2, 1.2) DESC
         """, 
-        countQuery = "SELECT COUNT(*) FROM posts WHERE is_draft = false",
+        countQuery = "SELECT COUNT(*) FROM posts WHERE is_draft = false AND status = 'PUBLISHED'",
         nativeQuery = true)
     Page<Post> findByDraftFalseOrderByHotnessDesc(Pageable pageable);
 
@@ -102,6 +110,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         LEFT JOIN post_tags pt ON p.id = pt.post_id
         LEFT JOIN tags t ON pt.tag_id = t.id
         WHERE p.is_draft = false
+          AND p.status IN ('PUBLISHED', 'PENDING_REVISION')
           AND (:keyword IS NULL OR :keyword = '' 
                OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
                OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -123,6 +132,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         LEFT JOIN post_tags pt ON p.id = pt.post_id
         LEFT JOIN tags t ON pt.tag_id = t.id
         WHERE p.is_draft = false
+          AND p.status IN ('PUBLISHED', 'PENDING_REVISION')
           AND (:keyword IS NULL OR :keyword = '' 
                OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
                OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -154,6 +164,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         LEFT JOIN post_tags pt ON p.id = pt.post_id
         LEFT JOIN tags t ON pt.tag_id = t.id
         WHERE p.is_draft = false
+          AND p.status IN ('PUBLISHED', 'PENDING_REVISION')
           AND (:keyword IS NULL OR :keyword = '' 
                OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
                OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -175,6 +186,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         LEFT JOIN post_tags pt ON p.id = pt.post_id
         LEFT JOIN tags t ON pt.tag_id = t.id
         WHERE p.is_draft = false
+          AND p.status IN ('PUBLISHED', 'PENDING_REVISION')
           AND (:keyword IS NULL OR :keyword = '' 
                OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
                OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -211,6 +223,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             LEFT JOIN post_tags pt ON p2.id = pt.post_id
             LEFT JOIN tags t ON pt.tag_id = t.id
             WHERE p2.is_draft = false
+              AND p2.status = 'PUBLISHED'
               AND (:keyword IS NULL OR :keyword = '' 
                    OR LOWER(p2.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
                    OR LOWER(p2.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -234,6 +247,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         LEFT JOIN post_tags pt ON p.id = pt.post_id
         LEFT JOIN tags t ON pt.tag_id = t.id
         WHERE p.is_draft = false
+          AND p.status = 'PUBLISHED'
           AND (:keyword IS NULL OR :keyword = '' 
                OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
                OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -270,6 +284,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             LEFT JOIN post_tags pt ON p2.id = pt.post_id
             LEFT JOIN tags t ON pt.tag_id = t.id
             WHERE p2.is_draft = false
+              AND p2.status = 'PUBLISHED'
               AND (:keyword IS NULL OR :keyword = '' 
                    OR LOWER(p2.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
                    OR LOWER(p2.content) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -293,6 +308,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         LEFT JOIN post_tags pt ON p.id = pt.post_id
         LEFT JOIN tags t ON pt.tag_id = t.id
         WHERE p.is_draft = false
+          AND p.status = 'PUBLISHED'
           AND (:keyword IS NULL OR :keyword = '' 
                OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
                OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%'))

@@ -29,6 +29,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.time.LocalDateTime;
 
@@ -36,6 +37,10 @@ import java.time.LocalDateTime;
 public class PostServiceImpl implements PostService {
 
     private static final Logger logger = LoggerFactory.getLogger(PostServiceImpl.class);
+    private static final List<PostStatus> VISIBLE_STATUSES = List.of(
+            PostStatus.PUBLISHED,
+            PostStatus.PENDING_REVISION
+    );
 
     private final PostRepository postRepository;
     private final PostViewLogRepository postViewLogRepository;
@@ -179,7 +184,7 @@ public class PostServiceImpl implements PostService {
         // 注意：存在极小的竞态条件可能性（两个并发请求同时通过检查），
         // 但对于浏览量统计而言，偶尔的轻微过计数是可接受的，
         // 使用悲观锁会显著影响性能，不值得权衡。
-        if (!post.getDraft() && ip != null && !ip.isEmpty()) {
+        if (post.getStatus() == PostStatus.PUBLISHED && ip != null && !ip.isEmpty()) {
             // 定义防刷时间：1小时 (也就是过去一小时内，同一个IP看同一篇文章不重复计数)
             LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
 
@@ -225,7 +230,7 @@ public class PostServiceImpl implements PostService {
         } else {
             // 按时间排序（默认）
             boolean ascending = "asc".equalsIgnoreCase(order);
-            postsPage = postRepository.findByDraftFalseOrderByCreatedAt(ascending, pageable);
+            postsPage = postRepository.findByStatusInOrderByCreatedAt(ascending, VISIBLE_STATUSES, pageable);
             logger.debug("查询已发布文章列表（按时间{}），页码: {}，数量: {}",
                     ascending ? "升序" : "降序", pageable.getPageNumber(), postsPage.getTotalElements());
         }
@@ -551,7 +556,7 @@ public class PostServiceImpl implements PostService {
         }
         
         // 只返回该用户已发布的文章（不包括草稿）
-        Page<Post> postsPage = postRepository.findByUserAndDraftFalse(user, pageable);
+        Page<Post> postsPage = postRepository.findByUserAndStatusIn(user, VISIBLE_STATUSES, pageable);
         logger.debug("查询用户 {} 的已发布文章，总数: {}",
                 username, postsPage.getTotalElements());
         

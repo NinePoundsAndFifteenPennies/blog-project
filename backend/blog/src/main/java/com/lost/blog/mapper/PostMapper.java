@@ -3,6 +3,7 @@ package com.lost.blog.mapper;
 import com.lost.blog.dto.PostResponse;
 import com.lost.blog.dto.TagResponse;
 import com.lost.blog.model.Post;
+import com.lost.blog.model.PostStatus;
 import com.lost.blog.service.LikeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -48,15 +49,24 @@ public class PostMapper {
         postResponse.setAuthorNickname(post.getUser().getNickname());  // 新增：作者昵称
         postResponse.setAuthorAvatarUrl(post.getUser().getAvatarUrl());  // 新增：作者头像URL
         
-        // 添加点赞信息
-        postResponse.setLikeCount(likeService.getLikeCount(post.getId()));
-        postResponse.setIsLiked(likeService.isPostLikedByUser(post.getId(), currentUser));
-        
-        // 添加评论数
-        postResponse.setCommentCount(commentService.getCommentCount(post.getId()));
-        
-        // 添加浏览量
-        postResponse.setViewCount(post.getViewCount());
+        boolean heatEligible = isHeatEligible(post);
+
+        if (heatEligible) {
+            // 添加点赞信息
+            postResponse.setLikeCount(likeService.getLikeCount(post.getId()));
+            postResponse.setIsLiked(likeService.isPostLikedByUser(post.getId(), currentUser));
+
+            // 添加评论数
+            postResponse.setCommentCount(commentService.getCommentCount(post.getId()));
+
+            // 添加浏览量
+            postResponse.setViewCount(post.getViewCount());
+        } else {
+            postResponse.setLikeCount(0L);
+            postResponse.setIsLiked(false);
+            postResponse.setCommentCount(0L);
+            postResponse.setViewCount(0L);
+        }
         
         // 添加封面图片URL
         postResponse.setCoverImageUrl(post.getCoverImageUrl());
@@ -76,5 +86,9 @@ public class PostMapper {
         }
         
         return postResponse;
+    }
+
+    private boolean isHeatEligible(Post post) {
+        return post.getStatus() == PostStatus.PUBLISHED;
     }
 }

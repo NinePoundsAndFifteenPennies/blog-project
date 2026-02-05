@@ -6,6 +6,7 @@ import com.lost.blog.repository.PostViewLogRepository;
 import com.lost.blog.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -13,6 +14,10 @@ import java.time.LocalTime;
 @Service
 public class StatisticsServiceImpl implements StatisticsService {
 
+    private static final List<com.lost.blog.model.PostStatus> VISIBLE_STATUSES = List.of(
+            com.lost.blog.model.PostStatus.PUBLISHED,
+            com.lost.blog.model.PostStatus.PENDING_REVISION
+    );
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final PostViewLogRepository postViewLogRepository;
@@ -35,7 +40,7 @@ public class StatisticsServiceImpl implements StatisticsService {
         Long totalUsers = userRepository.count();
 
         // 文章总数（仅统计已发布）
-        Long totalPosts = postRepository.countByDraftFalse();
+        Long totalPosts = postRepository.countByStatusIn(VISIBLE_STATUSES);
 
         // 活跃用户数（从Redis获取）
         Long onlineUsers = activeUserService.getActiveUserCount();
