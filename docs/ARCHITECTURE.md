@@ -128,7 +128,8 @@ Controller ──► Service ──► Repository ──► Database
 | 实体 | └── Notification.java | 通知实体 |
 | 枚举 | └── ContentType.java | 内容类型枚举 |
 | 枚举 | └── FollowInfoType.java | 关注信息类型枚举（FOLLOWING/FOLLOWERS/FRIENDS/STATS） |
-| 枚举 | └── NotificationType.java | 通知类型枚举（POST_LIKED/POST_COMMENTED/FOLLOWED/COMMENT_LIKED/COMMENT_REPLIED/MESSAGE_RECEIVED） |
+| 枚举 | └── NotificationType.java | 通知类型枚举（POST_LIKED/POST_COMMENTED/FOLLOWED/COMMENT_LIKED/COMMENT_REPLIED/MESSAGE_RECEIVED/COMMENT_DELETED） |
+| 枚举 | └── CommentStatus.java | 评论状态枚举（PENDING/APPROVED） |
 | 枚举 | └── Role.java | 用户角色枚举（USER/ADMIN） |
 | 数据访问层 | **repository/** | 提供数据库操作接口 |
 | Repository | └── UserRepository.java | 用户数据访问接口 |
@@ -175,6 +176,8 @@ Controller ──► Service ──► Repository ──► Database
 | 实现类 | └── NotificationServiceImpl.java | 通知服务实现（创建通知、查询、标记已读、未读计数） |
 | 接口 | └── HotAuthorService.java | 热门作者服务接口 |
 | 实现类 | └── HotAuthorServiceImpl.java | 热门作者服务实现（加权对数混合模型计算热度） |
+| 接口 | └── AdminCommentService.java | 管理后台评论服务接口 |
+| 实现类 | └── AdminCommentServiceImpl.java | 管理后台评论服务实现（评论列表、批量审核、批量删除） |
 | 配置文件 | **resources/** | 存放应用的资源文件 |
 | 配置文件 | └── application.properties | 应用配置（数据库、JWT密钥等） |
 
@@ -261,7 +264,7 @@ Service 层使用接口与实现分离：
 - **PostViewLog**: 文章浏览日志（文章、IP、设备信息、用户ID、来源URL、访问时间），用于浏览量统计、防刷和流量来源分析
 - **Tag**: 标签信息（名称、描述、颜色、图标、排序、创建者、创建时间）
 - **Like**: 点赞信息（用户、文章或评论、创建时间）
-- **Comment**: 评论信息（内容、用户、文章、父评论、被回复用户、层级、创建时间、更新时间）
+- **Comment**: 评论信息（内容、用户、文章、父评论、被回复用户、层级、**审核状态**、创建时间、更新时间）
 - **Follow**: 关注关系（关注者、被关注者、创建时间），用于存储单向关注关系
 - **FollowVisibility**: 关注可见性设置（用户、四种类型的独立可见性设置），控制关注信息对谁可见
 - **PrivateMessage**: 私信消息（发送者、接收者、内容、已读状态、创建时间）
@@ -465,9 +468,12 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 | 组件 | 路径 | 说明 |
 |------|------|------|
 | 角色枚举 | `model/Role.java` | 定义 USER 和 ADMIN 角色 |
-| 管理员控制器 | `controller/AdminController.java` | 管理后台 API 端点（含用户管理） |
+| 评论状态枚举 | `model/CommentStatus.java` | 定义 PENDING 和 APPROVED 状态 |
+| 管理员控制器 | `controller/AdminController.java` | 管理后台 API 端点（用户、文章、评论管理） |
 | 用户管理服务 | `service/AdminUserService.java` | 用户管理业务逻辑（列表、状态、角色） |
+| 评论管理服务 | `service/AdminCommentService.java` | 评论管理业务逻辑（列表、审核、删除） |
 | 用户管理DTO | `dto/AdminUser*.java` | 用户管理请求/响应数据模型 |
+| 评论管理DTO | `dto/AdminComment*.java` | 评论管理请求/响应数据模型 |
 | 安全配置 | `config/SecurityConfig.java` | URL级别权限配置 |
 | 用户详情服务 | `security/CustomUserDetailsService.java` | 加载用户角色信息，检查启用状态 |
 
@@ -475,10 +481,12 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 
 | 组件 | 路径 | 说明 |
 |------|------|------|
-| 管理后台API | `api/admin.js` | 管理后台 API 封装（含用户管理接口） |
-| 管理仪表盘 | `views/admin/AdminDashboard.vue` | 管理后台主界面（动态欢迎动画） |
-| 用户管理 | `views/admin/AdminUserManagement.vue` | 用户管理页面（列表、搜索、批量操作） |
-| 路由配置 | `router/index.js` | 管理后台路由守卫 |
+| 管理后台API | `api/admin.js` | 管理后台 API 封装（用户、文章、评论管理接口） |
+| 管理仪表盘 | `modules/admin/views/AdminDashboard.vue` | 管理后台主界面（动态欢迎动画） |
+| 用户管理 | `modules/admin/views/AdminUserManagement.vue` | 用户管理页面（列表、搜索、批量操作） |
+| 文章管理 | `modules/admin/views/AdminPostManagement.vue` | 文章管理页面（审核、拒绝、删除） |
+| 评论管理 | `modules/admin/views/AdminCommentManagement.vue` | 评论管理页面（审核、删除、通知表单） |
+| 路由配置 | `modules/admin/router.js` | 管理后台路由配置 |
 | 导航组件 | `components/Header.vue` | 管理后台入口（仅管理员可见） |
 
 ### 管理后台布局
@@ -512,21 +520,25 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 | 视图 | 布局类型 | 主要组件 |
 |------|----------|----------|
 | 仪表盘 | 统计卡片 + 表格 | 统计数据、最新文章、动态欢迎动画 |
-| 文章管理 | 筛选标签 + 表格 | 文章列表、状态徽章 |
+| 文章管理 | 搜索表单 + 表格 | 多条件筛选、文章列表、状态徽章、批量审核/拒绝/删除 |
 | 分类管理 | 卡片网格 | 分类卡片、文章计数 |
 | 标签管理 | 标签列表 | 标签、使用计数 |
-| 评论管理 | 表格 | 评论内容、审核按钮 |
+| 评论管理 | 搜索表单 + 表格 | 多条件筛选、评论列表、批量审核/删除、删除通知表单 |
 | 媒体库 | 图片网格 | 媒体文件预览 |
 | 用户管理 | 搜索表单 + 表格 | 多条件搜索、用户列表、角色管理、批量操作 |
 | 系统设置 | 表单 | 输入框、开关组件 |
 
-### 代码组织建议
+### 代码组织规范
 
 后台系统代码与用户端代码采用以下分离策略：
 
 1. **API 分离**: 管理后台 API 在 `/api/admin/*` 路径下
-2. **文档分离**: 管理后台 API 文档独立于用户端文档 (`docs/ADMIN_API.md`)
-3. **前端视图分离**: 管理后台视图在 `views/admin/` 目录下
-4. **组件共享**: 通用组件（按钮、表格、表单）可在用户端和管理后台复用
+2. **文档分离**: 
+   - 用户端 API 文档: `docs/API.md`
+   - 管理后台 API 文档: `docs/ADMIN_API.md`
+3. **前端模块分离**: 
+   - 用户端页面: `modules/portal/views/`
+   - 管理后台页面: `modules/admin/views/`
+4. **组件共享**: 通用组件（按钮、表格、表单）放在 `components/` 目录，可在用户端和管理后台复用
 
 
