@@ -23,7 +23,7 @@
       </div>
     </div>
 
-    <div v-if="isLoggedIn && !isDraft" class="mb-8">
+    <div v-if="isLoggedIn && !isDraft && canComment" class="mb-8">
       <div class="flex space-x-4">
         <div class="flex-shrink-0">
           <div
@@ -217,6 +217,10 @@ export default {
     isDraft: {
       type: Boolean,
       default: false
+    },
+    canComment: {
+      type: Boolean,
+      default: true
     },
     expandCommentId: {
       type: [Number, String],
