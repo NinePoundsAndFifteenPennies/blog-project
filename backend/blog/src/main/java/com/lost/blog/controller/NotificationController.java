@@ -155,9 +155,10 @@ public class NotificationController {
             throw new ResourceNotFoundException("无权访问此通知");
         }
         
-        // 只处理拒绝和删除类型的通知
+        // 只处理拒绝、文章删除和评论删除类型的通知
         if (notification.getType() != NotificationType.POST_REJECTED && 
-            notification.getType() != NotificationType.POST_DELETED) {
+            notification.getType() != NotificationType.POST_DELETED &&
+            notification.getType() != NotificationType.COMMENT_DELETED) {
             throw new ResourceNotFoundException("此通知类型无关联表单");
         }
         

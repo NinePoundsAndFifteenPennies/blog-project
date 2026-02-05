@@ -17,6 +17,10 @@ public class AdminFormResponse {
     private Long postId;
     private String postTitle;
     
+    // 评论信息（用于评论删除表单）
+    private Long commentId;
+    private String commentContentPreview;
+    
     // 目标用户信息
     private Long targetUserId;
     private String targetUsername;
@@ -49,6 +53,8 @@ public class AdminFormResponse {
         response.setExtraFields(form.getExtraFields());
         response.setPostId(form.getPostId());
         response.setPostTitle(form.getPostTitle());
+        response.setCommentId(form.getCommentId());
+        response.setCommentContentPreview(form.getCommentContentPreview());
         response.setCreatedAt(form.getCreatedAt());
         response.setSent(form.getSent());
         response.setSentAt(form.getSentAt());
@@ -124,6 +130,22 @@ public class AdminFormResponse {
 
     public void setPostTitle(String postTitle) {
         this.postTitle = postTitle;
+    }
+
+    public Long getCommentId() {
+        return commentId;
+    }
+
+    public void setCommentId(Long commentId) {
+        this.commentId = commentId;
+    }
+
+    public String getCommentContentPreview() {
+        return commentContentPreview;
+    }
+
+    public void setCommentContentPreview(String commentContentPreview) {
+        this.commentContentPreview = commentContentPreview;
     }
 
     public Long getTargetUserId() {

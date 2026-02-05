@@ -279,7 +279,12 @@
           </div>
           <div class="form-group">
             <label>扩展信息 <span class="optional">(可选)</span></label>
-            <textarea v-model="deleteForm.extraFields" class="form-input form-textarea" placeholder='[{"fieldName":"违规类型","fieldValue":"广告信息"}]' rows="2"></textarea>
+            <div v-for="(field, index) in deleteForm.extraFieldsList" :key="index" class="extra-field-row">
+              <input type="text" v-model="field.fieldName" class="form-input extra-field-input" placeholder="字段名">
+              <input type="text" v-model="field.fieldValue" class="form-input extra-field-input" placeholder="字段值">
+              <button class="btn btn-sm btn-danger" @click="removeExtraField(index)">删除</button>
+            </div>
+            <button class="btn btn-sm btn-secondary" @click="addExtraField">+ 添加扩展字段</button>
           </div>
         </div>
         <div class="modal-footer">
@@ -356,8 +361,24 @@ export default {
     const deleteForm = ref({
       formTitle: '',
       reason: '',
-      extraFields: ''
+      extraFieldsList: []
     })
+
+    // Extra field helper functions
+    const addExtraField = () => {
+      deleteForm.value.extraFieldsList.push({ fieldName: '', fieldValue: '' })
+    }
+
+    const removeExtraField = (index) => {
+      deleteForm.value.extraFieldsList.splice(index, 1)
+    }
+
+    const getExtraFieldsJson = () => {
+      const validFields = deleteForm.value.extraFieldsList.filter(
+        f => f.fieldName && f.fieldName.trim() !== ''
+      )
+      return validFields.length > 0 ? JSON.stringify(validFields) : null
+    }
 
     const menuItems = [
       { id: 'dashboard', path: '/admin', label: '仪表盘', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
@@ -507,7 +528,7 @@ export default {
     const openDeleteModal = (comment) => {
       deleteTargetComment.value = comment
       isBatchDelete.value = false
-      deleteForm.value = { formTitle: '', reason: '', extraFields: '' }
+      deleteForm.value = { formTitle: '', reason: '', extraFieldsList: [] }
       showDeleteModal.value = true
     }
 
@@ -520,7 +541,7 @@ export default {
     const openBatchDeleteModal = () => {
       if (selectedCommentIds.value.length === 0) return
       isBatchDelete.value = true
-      deleteForm.value = { formTitle: '', reason: '', extraFields: '' }
+      deleteForm.value = { formTitle: '', reason: '', extraFieldsList: [] }
       showDeleteModal.value = true
     }
 
@@ -544,7 +565,7 @@ export default {
           commentIds: ids,
           formTitle: deleteForm.value.formTitle || undefined,
           reason: deleteForm.value.reason,
-          extraFields: deleteForm.value.extraFields || undefined
+          extraFields: getExtraFieldsJson()
         })
         closeDeleteModal()
         selectedCommentIds.value = []
@@ -644,6 +665,8 @@ export default {
       openBatchDeleteModal,
       closeDeleteModal,
       confirmDelete,
+      addExtraField,
+      removeExtraField,
       // Batch operations
       isCommentSelected,
       toggleCommentSelection,
@@ -741,6 +764,17 @@ export default {
 .form-textarea {
   resize: vertical;
   min-height: 60px;
+}
+
+.extra-field-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.extra-field-input {
+  flex: 1;
 }
 
 .checkbox-group {
