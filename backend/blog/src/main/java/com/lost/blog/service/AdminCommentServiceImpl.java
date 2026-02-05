@@ -124,10 +124,10 @@ public class AdminCommentServiceImpl implements AdminCommentService {
                 Comment comment = commentRepository.findById(commentId)
                         .orElseThrow(() -> new ResourceNotFoundException("未找到评论: " + commentId));
                 
-                // 检查评论状态是否需要审核
+                // 已经是通过状态的评论，跳过但计入成功（幂等操作）
                 if (comment.getStatus() == CommentStatus.APPROVED) {
-                    failures.add(new AdminBatchActionResponse.FailureItem(commentId, 
-                            "评论已经是通过状态"));
+                    successIds.add(commentId);
+                    logger.debug("评论 {} 已经是通过状态，跳过", commentId);
                     continue;
                 }
                 

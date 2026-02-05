@@ -48,8 +48,8 @@ public class Comment {
 
     /**
      * 评论审核状态
-     * PENDING - 待审核（新评论默认状态、修改后重置为此状态）
-     * APPROVED - 已通过
+     * PENDING - 待审核（修改后重置为此状态）
+     * APPROVED - 已通过（新评论默认状态）
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)

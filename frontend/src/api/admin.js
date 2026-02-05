@@ -249,8 +249,8 @@ export async function getCommentDetail(commentId) {
  * @param {Object} data - 操作数据
  * @param {string} data.action - 操作类型: APPROVE, DELETE
  * @param {number[]} data.commentIds - 评论ID列表
- * @param {string} data.formTitle - 表单标题（删除时可选）
- * @param {string} data.reason - 理由（删除时必填）
+ * @param {string} data.formTitle - 通知标题（删除时可选，用于发送给评论作者的通知）
+ * @param {string} data.reason - 删除理由（删除时必填）
  * @param {string} data.extraFields - 扩展字段JSON（可选）
  * @returns {Promise<Object>} - 返回批量操作结果
  */
