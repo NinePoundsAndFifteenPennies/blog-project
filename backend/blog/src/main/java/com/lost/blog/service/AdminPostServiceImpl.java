@@ -208,22 +208,10 @@ public class AdminPostServiceImpl implements AdminPostService {
                 
                 adminFormRepository.save(form);
                 
-                // 如果是PENDING_REVISION，恢复旧内容
-                if (post.getStatus() == PostStatus.PENDING_REVISION) {
-                    if (post.getPreviousContent() != null) {
-                        post.setContent(post.getPreviousContent());
-                    }
-                    if (post.getPreviousTitle() != null) {
-                        post.setTitle(post.getPreviousTitle());
-                    }
-                    post.setPreviousContent(null);
-                    post.setPreviousTitle(null);
-                    // 恢复到已发布状态（拒绝修改，保留原版本）
-                    post.setStatus(PostStatus.PUBLISHED);
-                } else {
-                    // 其他状态更新为拒绝
-                    post.setStatus(PostStatus.REJECTED);
-                }
+                // 更新为拒绝状态（包括修改待审核的文章）
+                post.setStatus(PostStatus.REJECTED);
+                post.setPreviousContent(null);
+                post.setPreviousTitle(null);
                 
                 post.setRejectionFormId(form.getId());
                 postRepository.save(post);
