@@ -4,6 +4,7 @@ import com.lost.blog.model.Tag;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -66,4 +67,18 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
                                    @Param("startDate") java.time.LocalDateTime startDate,
                                    @Param("endDate") java.time.LocalDateTime endDate,
                                    Pageable pageable);
+
+    /**
+     * 移除指定标签与指定文章的关联（原生SQL直接操作post_tags表）
+     */
+    @Modifying
+    @Query(value = "DELETE FROM post_tags WHERE tag_id = :tagId AND post_id = :postId", nativeQuery = true)
+    void removePostTagAssociation(@Param("tagId") Long tagId, @Param("postId") Long postId);
+
+    /**
+     * 移除指定标签的所有文章关联（原生SQL直接操作post_tags表）
+     */
+    @Modifying
+    @Query(value = "DELETE FROM post_tags WHERE tag_id = :tagId", nativeQuery = true)
+    void removeAllPostTagAssociations(@Param("tagId") Long tagId);
 }

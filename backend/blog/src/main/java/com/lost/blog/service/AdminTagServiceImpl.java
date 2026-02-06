@@ -7,6 +7,8 @@ import com.lost.blog.repository.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +37,9 @@ public class AdminTagServiceImpl implements AdminTagService {
     private final TagRepository tagRepository;
     private final AdminFormRepository adminFormRepository;
     private final NotificationService notificationService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Autowired
     public AdminTagServiceImpl(TagRepository tagRepository,
@@ -163,45 +168,53 @@ public class AdminTagServiceImpl implements AdminTagService {
 
         for (Long tagId : tagIds) {
             try {
-                Tag tag = tagRepository.findByIdWithPosts(tagId)
+                Tag tag = tagRepository.findById(tagId)
                         .orElseThrow(() -> new ResourceNotFoundException("未找到标签: " + tagId));
 
                 User tagCreator = tag.getCreatedBy();
                 String tagName = tag.getName();
 
+                // 通过专用查询获取关联的文章（避免依赖Hibernate延迟加载）
+                List<Object[]> postRows = tagRepository.findPostsByTagId(tagId);
+
                 // 确定要解除关联的文章列表
-                Set<Post> postsToRemove;
+                Set<Long> removePostIds;
+                List<Object[]> postsToRemoveRows;
                 if (postIds != null && !postIds.isEmpty()) {
                     // 选择性解除：只移除指定的文章关联
                     Set<Long> targetPostIds = new HashSet<>(postIds);
-                    postsToRemove = new HashSet<>();
-                    if (tag.getPosts() != null) {
-                        for (var post : tag.getPosts()) {
-                            if (targetPostIds.contains(post.getId())) {
-                                postsToRemove.add(post);
-                            }
+                    postsToRemoveRows = new ArrayList<>();
+                    for (Object[] row : postRows) {
+                        Long postId = (Long) row[0];
+                        if (targetPostIds.contains(postId)) {
+                            postsToRemoveRows.add(row);
                         }
                     }
-                    if (postsToRemove.isEmpty()) {
+                    if (postsToRemoveRows.isEmpty()) {
                         failures.add(new AdminBatchActionResponse.FailureItem(tagId,
                                 "标签「" + tagName + "」与指定的 " + targetPostIds.size() + " 篇文章均无关联"));
                         continue;
                     }
                 } else {
                     // 全部解除：移除标签与所有文章的关联
-                    postsToRemove = (tag.getPosts() != null) ? new HashSet<>(tag.getPosts()) : new HashSet<>();
+                    postsToRemoveRows = postRows;
+                }
+
+                removePostIds = new HashSet<>();
+                for (Object[] row : postsToRemoveRows) {
+                    removePostIds.add((Long) row[0]);
                 }
 
                 // 收集受影响的文章信息
                 String affectedPostsJson = "[]";
-                if (!postsToRemove.isEmpty()) {
+                if (!postsToRemoveRows.isEmpty()) {
                     try {
                         ObjectMapper mapper = new ObjectMapper();
                         ArrayNode array = mapper.createArrayNode();
-                        for (var post : postsToRemove) {
+                        for (Object[] row : postsToRemoveRows) {
                             ObjectNode node = mapper.createObjectNode();
-                            node.put("postId", post.getId());
-                            node.put("postTitle", post.getTitle());
+                            node.put("postId", (Long) row[0]);
+                            node.put("postTitle", (String) row[1]);
                             array.add(node);
                         }
                         affectedPostsJson = mapper.writeValueAsString(array);
@@ -229,18 +242,17 @@ public class AdminTagServiceImpl implements AdminTagService {
                 // 发送通知
                 notificationService.createTagRemovedNotification(admin, tagCreator, tagName, reason);
 
-                // 软删除：批量移除指定的文章关联
-                Set<Long> removePostIds = new HashSet<>();
-                for (var post : postsToRemove) {
-                    removePostIds.add(post.getId());
-                    post.getTags().remove(tag);
+                // 软删除：通过原生方式移除指定的文章关联
+                for (Long removeId : removePostIds) {
+                    tagRepository.removePostTagAssociation(tagId, removeId);
                 }
-                tag.getPosts().removeIf(p -> removePostIds.contains(p.getId()));
-                tagRepository.save(tag);
 
                 successIds.add(tagId);
                 logger.info("管理员 {} 软删除标签 {} ({})，解除 {} 篇文章关联，理由: {}",
-                        admin.getUsername(), tagId, tagName, postsToRemove.size(), reason);
+                        admin.getUsername(), tagId, tagName, removePostIds.size(), reason);
+
+                // 刷新持久化上下文，确保批量操作中每个标签的变更独立生效
+                entityManager.flush();
 
             } catch (ResourceNotFoundException e) {
                 failures.add(new AdminBatchActionResponse.FailureItem(tagId, e.getMessage()));
@@ -262,7 +274,7 @@ public class AdminTagServiceImpl implements AdminTagService {
 
         for (Long tagId : tagIds) {
             try {
-                Tag tag = tagRepository.findByIdWithPosts(tagId)
+                Tag tag = tagRepository.findById(tagId)
                         .orElseThrow(() -> new ResourceNotFoundException("未找到标签: " + tagId));
 
                 User tagCreator = tag.getCreatedBy();
@@ -286,17 +298,15 @@ public class AdminTagServiceImpl implements AdminTagService {
                 // 发送通知
                 notificationService.createTagDeletedNotification(admin, tagCreator, tagName, reason);
 
-                // 硬删除：先移除所有文章关联，再删除标签本身
-                if (tag.getPosts() != null && !tag.getPosts().isEmpty()) {
-                    var posts = new HashSet<>(tag.getPosts());
-                    for (var post : posts) {
-                        post.getTags().remove(tag);
-                    }
-                }
-
+                // 硬删除：先移除所有文章关联（通过原生查询），再删除标签本身
+                tagRepository.removeAllPostTagAssociations(tagId);
                 tagRepository.delete(tag);
+
                 successIds.add(tagId);
                 logger.info("管理员 {} 硬删除标签 {} ({}), 理由: {}", admin.getUsername(), tagId, tagName, reason);
+
+                // 刷新持久化上下文，确保批量操作中每个标签的变更独立生效
+                entityManager.flush();
 
             } catch (ResourceNotFoundException e) {
                 failures.add(new AdminBatchActionResponse.FailureItem(tagId, e.getMessage()));
