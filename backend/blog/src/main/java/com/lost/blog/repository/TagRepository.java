@@ -69,11 +69,11 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
                                    Pageable pageable);
 
     /**
-     * 移除指定标签与指定文章的关联（原生SQL直接操作post_tags表）
+     * 移除指定标签与指定文章列表的关联（原生SQL直接操作post_tags表）
      */
     @Modifying
-    @Query(value = "DELETE FROM post_tags WHERE tag_id = :tagId AND post_id = :postId", nativeQuery = true)
-    void removePostTagAssociation(@Param("tagId") Long tagId, @Param("postId") Long postId);
+    @Query(value = "DELETE FROM post_tags WHERE tag_id = :tagId AND post_id IN :postIds", nativeQuery = true)
+    void removePostTagAssociations(@Param("tagId") Long tagId, @Param("postIds") Set<Long> postIds);
 
     /**
      * 移除指定标签的所有文章关联（原生SQL直接操作post_tags表）

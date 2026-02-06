@@ -242,10 +242,8 @@ public class AdminTagServiceImpl implements AdminTagService {
                 // 发送通知
                 notificationService.createTagRemovedNotification(admin, tagCreator, tagName, reason);
 
-                // 软删除：通过原生方式移除指定的文章关联
-                for (Long removeId : removePostIds) {
-                    tagRepository.removePostTagAssociation(tagId, removeId);
-                }
+                // 软删除：通过原生方式批量移除指定的文章关联
+                tagRepository.removePostTagAssociations(tagId, removePostIds);
 
                 successIds.add(tagId);
                 logger.info("管理员 {} 软删除标签 {} ({})，解除 {} 篇文章关联，理由: {}",
