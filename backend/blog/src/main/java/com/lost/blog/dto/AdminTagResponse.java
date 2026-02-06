@@ -72,8 +72,9 @@ public class AdminTagResponse {
             response.setPostCount(0L);
         }
 
-        // 关联文章列表（仅在posts已加载时填充）
-        if (tag.getPosts() != null && !tag.getPosts().isEmpty()) {
+        // 关联文章列表（仅在postCount未显式传入且posts已初始化时填充，
+        // 显式传入postCount时表示来自列表查询，不需要填充详细文章列表以避免N+1）
+        if (postCount == null && tag.getPosts() != null && !tag.getPosts().isEmpty()) {
             List<PostInfo> postInfos = new ArrayList<>();
             for (var post : tag.getPosts()) {
                 postInfos.add(new PostInfo(post.getId(), post.getTitle()));

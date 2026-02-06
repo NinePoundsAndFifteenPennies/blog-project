@@ -88,10 +88,24 @@ public class AdminTagServiceImpl implements AdminTagService {
     @Override
     @Transactional(readOnly = true)
     public AdminTagResponse getTagDetail(Long tagId) {
-        Tag tag = tagRepository.findByIdWithPosts(tagId)
+        Tag tag = tagRepository.findById(tagId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到标签: " + tagId));
 
-        return AdminTagResponse.fromEntity(tag);
+        // 通过专用查询获取关联的文章列表（避免依赖Hibernate延迟加载）
+        List<Object[]> postRows = tagRepository.findPostsByTagId(tagId);
+        AdminTagResponse response = AdminTagResponse.fromEntity(tag, (long) postRows.size());
+
+        if (!postRows.isEmpty()) {
+            List<AdminTagResponse.PostInfo> postInfos = new ArrayList<>();
+            for (Object[] row : postRows) {
+                Long postId = (Long) row[0];
+                String postTitle = (String) row[1];
+                postInfos.add(new AdminTagResponse.PostInfo(postId, postTitle));
+            }
+            response.setPosts(postInfos);
+        }
+
+        return response;
     }
 
     @Override

@@ -43,7 +43,13 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
      * 根据ID查找标签，并加载关联的文章
      */
     @Query("SELECT t FROM Tag t LEFT JOIN FETCH t.posts WHERE t.id = :id")
-    Optional<Tag> findByIdWithPosts(Long id);
+    Optional<Tag> findByIdWithPosts(@Param("id") Long id);
+
+    /**
+     * 查找与指定标签关联的文章ID和标题列表
+     */
+    @Query("SELECT p.id, p.title FROM Post p JOIN p.tags t WHERE t.id = :tagId")
+    List<Object[]> findPostsByTagId(@Param("tagId") Long tagId);
 
     /**
      * 管理员搜索标签（按文章数量降序排序）
