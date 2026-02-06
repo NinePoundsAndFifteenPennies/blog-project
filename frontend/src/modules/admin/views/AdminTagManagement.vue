@@ -1,7 +1,7 @@
 <template>
   <AdminLayout
     :menu-items="menuItems"
-    page-title="评论管理"
+    page-title="标签管理"
     :is-active-route="isActiveRoute"
   >
     <!-- Search Form -->
@@ -9,65 +9,48 @@
       <div class="card-header">
         <h3>搜索条件</h3>
         <div class="header-actions">
-          <button class="btn btn-secondary" @click="resetCommentSearch">重置</button>
+          <button class="btn btn-secondary" @click="resetSearch">重置</button>
         </div>
       </div>
       <div class="search-form">
         <div class="form-row">
           <div class="form-group">
-            <label>评论内容</label>
-            <input type="text" v-model="commentSearchForm.content" class="form-input" placeholder="搜索评论内容">
+            <label>标签名称</label>
+            <input type="text" v-model="searchForm.name" class="form-input" placeholder="搜索标签名称">
           </div>
           <div class="form-group">
-            <label>作者</label>
-            <input type="text" v-model="commentSearchForm.author" class="form-input" placeholder="用户名或昵称">
+            <label>创建者</label>
+            <input type="text" v-model="searchForm.createdBy" class="form-input" placeholder="创建者用户名">
           </div>
-          <div class="form-group">
-            <label>文章标题</label>
-            <input type="text" v-model="commentSearchForm.postTitle" class="form-input" placeholder="搜索文章标题">
-          </div>
-          <div class="form-group">
-            <label>审核状态</label>
-            <select v-model="commentSearchForm.status" class="form-input">
-              <option value="">全部</option>
-              <option value="PENDING">待审核</option>
-              <option value="APPROVED">已通过</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
           <div class="form-group">
             <label>创建开始日期</label>
-            <input type="date" v-model="commentSearchForm.startDate" class="form-input">
+            <input type="date" v-model="searchForm.startDate" class="form-input">
           </div>
           <div class="form-group">
             <label>创建结束日期</label>
-            <input type="date" v-model="commentSearchForm.endDate" class="form-input">
-          </div>
-          <div class="form-group checkbox-group">
-            <label class="checkbox-label">
-              <input type="checkbox" v-model="commentSearchForm.includeReplies">
-              <span>包含子评论</span>
-            </label>
+            <input type="date" v-model="searchForm.endDate" class="form-input">
           </div>
           <div class="form-group search-btn-group">
-            <button class="btn btn-primary" @click="searchComments">搜索</button>
+            <button class="btn btn-primary" @click="searchTags">搜索</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Comment List -->
+    <!-- Tag List -->
     <div class="card">
       <div class="card-header">
-        <h3>评论列表 <span v-if="commentPagination.total > 0">({{ commentPagination.total }})</span></h3>
-        <div class="header-actions" v-if="selectedCommentIds.length > 0">
-          <span class="selected-count">已选择 {{ selectedCommentIds.length }} 项</span>
-          <button class="btn btn-success btn-sm" @click="batchApprove">批量通过</button>
-          <button class="btn btn-danger btn-sm" @click="openBatchDeleteModal">批量删除</button>
+        <h3>标签列表 <span v-if="pagination.total > 0">({{ pagination.total }})</span></h3>
+        <div class="header-actions">
+          <button class="btn btn-primary btn-sm" @click="openCreateModal">+ 新建标签</button>
+          <template v-if="selectedTagIds.length > 0">
+            <span class="selected-count">已选择 {{ selectedTagIds.length }} 项</span>
+            <button class="btn btn-warning btn-sm" @click="openBatchDeleteModal('SOFT_DELETE')">批量软删除</button>
+            <button class="btn btn-danger btn-sm" @click="openBatchDeleteModal('HARD_DELETE')">批量硬删除</button>
+          </template>
         </div>
       </div>
-      <div v-if="commentsLoading" class="loading-container">
+      <div v-if="loading" class="loading-container">
         <div class="loading-spinner">加载中...</div>
       </div>
       <table v-else class="data-table">
@@ -82,173 +65,186 @@
               >
             </th>
             <th>ID</th>
-            <th>评论内容</th>
-            <th>作者</th>
-            <th>所属文章</th>
-            <th>类型</th>
-            <th>审核状态</th>
-            <th>点赞数</th>
-            <th>回复数</th>
+            <th>标签名称</th>
+            <th>描述</th>
+            <th>颜色</th>
+            <th>图标</th>
+            <th>文章数</th>
+            <th>创建者</th>
+            <th>排序</th>
             <th>创建时间</th>
             <th>操作</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-if="commentList.length === 0">
-            <td colspan="11" class="empty-row">暂无评论数据</td>
+          <tr v-if="tagList.length === 0">
+            <td colspan="11" class="empty-row">暂无标签数据</td>
           </tr>
-          <tr v-for="comment in commentList" :key="comment.id" :class="{ 'selected-row': isCommentSelected(comment.id) }">
+          <tr v-for="tag in tagList" :key="tag.id" :class="{ 'selected-row': isTagSelected(tag.id) }">
             <td class="checkbox-col">
               <input
                 type="checkbox"
-                :checked="isCommentSelected(comment.id)"
-                @change="toggleCommentSelection(comment.id)"
+                :checked="isTagSelected(tag.id)"
+                @change="toggleTagSelection(tag.id)"
               >
             </td>
-            <td>{{ comment.id }}</td>
-            <td class="content-col">
-              <span class="comment-content" @click="viewCommentDetail(comment)">{{ truncateText(comment.contentPreview || comment.content, 40) }}</span>
-            </td>
+            <td>{{ tag.id }}</td>
             <td>
-              <span class="author-info">
-                <span class="author-name">{{ comment.authorNickname || comment.authorUsername }}</span>
-                <span v-if="!comment.authorEnabled" class="badge badge-danger ml-1">已禁用</span>
+              <span class="tag-name-cell" @click="viewTagDetail(tag)">
+                <span v-if="tag.color" class="tag-color-dot" :style="{ backgroundColor: tag.color }"></span>
+                {{ tag.name }}
               </span>
             </td>
-            <td class="post-col">
-              <span class="post-title" :title="comment.postTitle">{{ truncateText(comment.postTitle, 20) }}</span>
-            </td>
+            <td class="desc-col">{{ truncateText(tag.description, 30) }}</td>
             <td>
-              <span :class="['badge', comment.level > 0 ? 'badge-info' : 'badge-default']">
-                {{ comment.level > 0 ? '回复' : '评论' }}
+              <span v-if="tag.color" class="color-preview" :style="{ backgroundColor: tag.color }">{{ tag.color }}</span>
+              <span v-else class="text-muted">-</span>
+            </td>
+            <td>{{ tag.icon || '-' }}</td>
+            <td>
+              <span class="post-count-badge" :class="getPostCountClass(tag.postCount)">
+                {{ tag.postCount }}
               </span>
             </td>
-            <td>
-              <span :class="['badge', getStatusBadgeClass(comment.status)]">
-                {{ getStatusLabel(comment.status) }}
-              </span>
-            </td>
-            <td>{{ comment.likeCount }}</td>
-            <td>{{ comment.replyCount }}</td>
-            <td>{{ formatDate(comment.createdAt) }}</td>
+            <td>{{ tag.createdByNickname || tag.createdByUsername || '-' }}</td>
+            <td>{{ tag.sortOrder != null ? tag.sortOrder : '-' }}</td>
+            <td>{{ formatDate(tag.createdAt) }}</td>
             <td class="actions">
-              <button class="action-btn" @click="viewCommentDetail(comment)">详情</button>
-              <button
-                v-if="comment.status === 'PENDING'"
-                class="action-btn success"
-                @click="approveComment(comment)"
-              >通过</button>
-              <button
-                class="action-btn danger"
-                @click="openDeleteModal(comment)"
-              >删除</button>
+              <button class="action-btn" @click="viewTagDetail(tag)">详情</button>
+              <button class="action-btn success" @click="openEditModal(tag)">编辑</button>
+              <button class="action-btn warning" @click="openDeleteModal(tag, 'SOFT_DELETE')">软删除</button>
+              <button class="action-btn danger" @click="openDeleteModal(tag, 'HARD_DELETE')">硬删除</button>
             </td>
           </tr>
         </tbody>
       </table>
       <!-- Pagination -->
-      <div v-if="commentPagination.totalPages > 1" class="pagination">
+      <div v-if="pagination.totalPages > 1" class="pagination">
         <button 
           class="page-btn" 
-          :disabled="commentPagination.page === 0"
-          @click="changeCommentPage(commentPagination.page - 1)"
+          :disabled="pagination.page === 0"
+          @click="changePage(pagination.page - 1)"
         >上一页</button>
         <span class="page-info">
-          第 {{ commentPagination.page + 1 }} / {{ commentPagination.totalPages }} 页
+          第 {{ pagination.page + 1 }} / {{ pagination.totalPages }} 页
         </span>
         <button 
           class="page-btn" 
-          :disabled="commentPagination.page >= commentPagination.totalPages - 1"
-          @click="changeCommentPage(commentPagination.page + 1)"
+          :disabled="pagination.page >= pagination.totalPages - 1"
+          @click="changePage(pagination.page + 1)"
         >下一页</button>
       </div>
     </div>
 
-    <!-- Comment Detail Modal -->
-    <div v-if="showCommentModal" class="modal-overlay" @click.self="closeCommentModal">
+    <!-- Tag Detail Modal -->
+    <div v-if="showDetailModal" class="modal-overlay" @click.self="closeDetailModal">
       <div class="modal-content modal-lg">
         <div class="modal-header">
-          <h3>评论详情</h3>
-          <button class="close-btn" @click="closeCommentModal">&times;</button>
+          <h3>标签详情</h3>
+          <button class="close-btn" @click="closeDetailModal">&times;</button>
         </div>
-        <div class="modal-body" v-if="selectedComment">
+        <div class="modal-body" v-if="selectedTag">
           <div class="detail-row">
             <span class="label">ID:</span>
-            <span class="value">{{ selectedComment.id }}</span>
+            <span class="value">{{ selectedTag.id }}</span>
           </div>
           <div class="detail-row">
-            <span class="label">评论内容:</span>
-            <span class="value content-value">{{ selectedComment.content }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="label">作者:</span>
-            <span class="value">{{ selectedComment.authorNickname }} (@{{ selectedComment.authorUsername }})</span>
-          </div>
-          <div class="detail-row">
-            <span class="label">所属文章:</span>
+            <span class="label">名称:</span>
             <span class="value">
-              <router-link 
-                v-if="selectedComment.postId" 
-                :to="`/post/${selectedComment.postId}`" 
-                target="_blank"
-                class="link"
-              >{{ selectedComment.postTitle }}</router-link>
-              <span v-else>{{ selectedComment.postTitle || '-' }}</span>
+              <span v-if="selectedTag.color" class="tag-color-dot" :style="{ backgroundColor: selectedTag.color }"></span>
+              {{ selectedTag.name }}
             </span>
           </div>
-          <div v-if="selectedComment.parentId" class="detail-row">
-            <span class="label">父评论:</span>
-            <span class="value">ID: {{ selectedComment.parentId }} - {{ selectedComment.parentContentPreview }}</span>
-          </div>
-          <div v-if="selectedComment.replyToUsername" class="detail-row">
-            <span class="label">回复给:</span>
-            <span class="value">@{{ selectedComment.replyToUsername }}</span>
+          <div class="detail-row">
+            <span class="label">描述:</span>
+            <span class="value">{{ selectedTag.description || '-' }}</span>
           </div>
           <div class="detail-row">
-            <span class="label">类型:</span>
+            <span class="label">颜色:</span>
             <span class="value">
-              <span :class="['badge', selectedComment.level > 0 ? 'badge-info' : 'badge-default']">
-                {{ selectedComment.level > 0 ? '回复（层级' + selectedComment.level + '）' : '顶层评论' }}
+              <span v-if="selectedTag.color" class="color-preview" :style="{ backgroundColor: selectedTag.color }">{{ selectedTag.color }}</span>
+              <span v-else>-</span>
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="label">图标:</span>
+            <span class="value">{{ selectedTag.icon || '-' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">排序:</span>
+            <span class="value">{{ selectedTag.sortOrder != null ? selectedTag.sortOrder : '-' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">文章数:</span>
+            <span class="value">
+              <span class="post-count-badge" :class="getPostCountClass(selectedTag.postCount)">
+                {{ selectedTag.postCount }}
               </span>
             </span>
           </div>
           <div class="detail-row">
-            <span class="label">审核状态:</span>
-            <span class="value">
-              <span :class="['badge', getStatusBadgeClass(selectedComment.status)]">
-                {{ getStatusLabel(selectedComment.status) }}
-              </span>
-            </span>
-          </div>
-          <div class="detail-row">
-            <span class="label">点赞数:</span>
-            <span class="value">{{ selectedComment.likeCount }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="label">回复数:</span>
-            <span class="value">{{ selectedComment.replyCount }}</span>
+            <span class="label">创建者:</span>
+            <span class="value">{{ selectedTag.createdByNickname || selectedTag.createdByUsername || '-' }} (@{{ selectedTag.createdByUsername }})</span>
           </div>
           <div class="detail-row">
             <span class="label">创建时间:</span>
-            <span class="value">{{ formatDateTime(selectedComment.createdAt) }}</span>
+            <span class="value">{{ formatDateTime(selectedTag.createdAt) }}</span>
           </div>
           <div class="detail-row">
             <span class="label">更新时间:</span>
-            <span class="value">{{ formatDateTime(selectedComment.updatedAt) }}</span>
+            <span class="value">{{ formatDateTime(selectedTag.updatedAt) }}</span>
           </div>
         </div>
         <div class="modal-footer">
-          <button
-            v-if="selectedComment && selectedComment.status === 'PENDING'"
-            class="btn btn-success"
-            @click="approveCommentFromModal"
-          >通过审核</button>
-          <button
-            v-if="selectedComment"
-            class="btn btn-danger"
-            @click="openDeleteModalFromDetail"
-          >删除评论</button>
-          <button class="btn btn-secondary" @click="closeCommentModal">关闭</button>
+          <button class="btn btn-primary" @click="openEditModalFromDetail">编辑</button>
+          <button class="btn btn-warning" @click="openDeleteModalFromDetail('SOFT_DELETE')">软删除</button>
+          <button class="btn btn-danger" @click="openDeleteModalFromDetail('HARD_DELETE')">硬删除</button>
+          <button class="btn btn-secondary" @click="closeDetailModal">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div v-if="showFormModal" class="modal-overlay" @click.self="closeFormModal">
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3>{{ isEditMode ? '编辑标签' : '创建标签' }}</h3>
+          <button class="close-btn" @click="closeFormModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>标签名称 <span class="required">*</span></label>
+            <input type="text" v-model="tagForm.name" class="form-input" placeholder="请输入标签名称">
+          </div>
+          <div class="form-group">
+            <label>标签描述 <span class="optional">(可选)</span></label>
+            <textarea v-model="tagForm.description" class="form-input form-textarea" placeholder="请输入标签描述" rows="3"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>颜色 <span class="optional">(可选)</span></label>
+              <div class="color-input-group">
+                <input type="color" v-model="colorPickerValue" class="color-picker" @input="onColorPick">
+                <input type="text" v-model="tagForm.color" class="form-input" placeholder="#FF5733" maxlength="7">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>图标 <span class="optional">(可选)</span></label>
+              <input type="text" v-model="tagForm.icon" class="form-input" placeholder="图标名称或图标类">
+            </div>
+            <div class="form-group">
+              <label>排序 <span class="optional">(可选)</span></label>
+              <input type="number" v-model.number="tagForm.sortOrder" class="form-input" placeholder="数字越小越靠前" min="0">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="closeFormModal">取消</button>
+          <button 
+            class="btn btn-primary" 
+            @click="submitTagForm"
+            :disabled="!tagForm.name || tagForm.name.trim() === ''"
+          >{{ isEditMode ? '保存修改' : '创建标签' }}</button>
         </div>
       </div>
     </div>
@@ -257,21 +253,26 @@
     <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>{{ isBatchDelete ? '批量删除评论' : '删除评论' }}</h3>
+          <h3>{{ getDeleteModalTitle() }}</h3>
           <button class="close-btn" @click="closeDeleteModal">&times;</button>
         </div>
         <div class="modal-body">
           <p class="warning-text">
             {{ isBatchDelete 
-              ? `确定要删除选中的 ${selectedCommentIds.length} 条评论吗？` 
-              : `确定要删除此评论吗？` 
+              ? `确定要${deleteAction === 'SOFT_DELETE' ? '软' : '硬'}删除选中的 ${selectedTagIds.length} 个标签吗？` 
+              : `确定要${deleteAction === 'SOFT_DELETE' ? '软' : '硬'}删除此标签吗？` 
             }}
           </p>
-          <p class="sub-text">删除后将级联删除所有子评论，此操作不可恢复。</p>
+          <p class="sub-text" v-if="deleteAction === 'SOFT_DELETE'">
+            软删除仅移除标签与文章的关联关系，标签本身仍然保留。
+          </p>
+          <p class="sub-text" v-else>
+            硬删除将永久删除标签及其与文章的所有关联，此操作不可恢复。
+          </p>
           
           <div class="form-group">
             <label>通知标题 <span class="optional">(可选)</span></label>
-            <input type="text" v-model="deleteForm.formTitle" class="form-input" placeholder="评论删除通知">
+            <input type="text" v-model="deleteForm.formTitle" class="form-input" :placeholder="deleteAction === 'SOFT_DELETE' ? '标签关联移除通知' : '标签删除通知'">
           </div>
           <div class="form-group">
             <label>删除理由 <span class="required">*</span></label>
@@ -293,7 +294,7 @@
             class="btn btn-danger" 
             @click="confirmDelete"
             :disabled="!deleteForm.reason || deleteForm.reason.trim() === ''"
-          >确认删除</button>
+          >确认{{ deleteAction === 'SOFT_DELETE' ? '软' : '硬' }}删除</button>
         </div>
       </div>
     </div>
@@ -320,11 +321,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
-import { getComments, getCommentDetail, executeCommentAction } from '@/api/admin'
+import { getAdminTags, getAdminTagDetail, createAdminTag, updateAdminTag, executeTagAction } from '@/api/admin'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
 export default {
-  name: 'AdminCommentManagement',
+  name: 'AdminTagManagement',
   components: {
     AdminLayout
   },
@@ -332,54 +333,54 @@ export default {
     const store = useStore()
     const router = useRouter()
 
-    // ======================= Comment Management State =======================
-    const commentList = ref([])
-    const commentsLoading = ref(false)
-    const commentPagination = ref({
+    // ======================= State =======================
+    const tagList = ref([])
+    const loading = ref(false)
+    const pagination = ref({
       page: 0,
       size: 10,
       total: 0,
       totalPages: 0
     })
-    const commentSearchForm = ref({
-      content: '',
-      author: '',
-      postTitle: '',
-      status: '',
+    const searchForm = ref({
+      name: '',
+      createdBy: '',
       startDate: '',
-      endDate: '',
-      includeReplies: true
+      endDate: ''
     })
-    const showCommentModal = ref(false)
-    const selectedComment = ref(null)
-    const selectedCommentIds = ref([])
+
+    // Selection state
+    const selectedTagIds = ref([])
+
+    // Detail modal state
+    const showDetailModal = ref(false)
+    const selectedTag = ref(null)
+
+    // Create/Edit modal state
+    const showFormModal = ref(false)
+    const isEditMode = ref(false)
+    const editingTagId = ref(null)
+    const colorPickerValue = ref('#1890ff')
+    const tagForm = ref({
+      name: '',
+      description: '',
+      color: '',
+      icon: '',
+      sortOrder: null
+    })
 
     // Delete modal state
     const showDeleteModal = ref(false)
     const isBatchDelete = ref(false)
-    const deleteTargetComment = ref(null)
+    const deleteAction = ref('SOFT_DELETE')
+    const deleteTargetTag = ref(null)
     const deleteForm = ref({
       formTitle: '',
       reason: '',
       extraFieldsList: []
     })
 
-    // Extra field helper functions
-    const addExtraField = () => {
-      deleteForm.value.extraFieldsList.push({ fieldName: '', fieldValue: '' })
-    }
-
-    const removeExtraField = (index) => {
-      deleteForm.value.extraFieldsList.splice(index, 1)
-    }
-
-    const getExtraFieldsJson = () => {
-      const validFields = deleteForm.value.extraFieldsList.filter(
-        f => f.fieldName && f.fieldName.trim() !== ''
-      )
-      return validFields.length > 0 ? JSON.stringify(validFields) : null
-    }
-
+    // Menu items (consistent with other admin views)
     const menuItems = [
       { id: 'dashboard', path: '/admin', label: '仪表盘', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
       { id: 'articles', path: '/admin/posts', label: '文章管理', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>' },
@@ -392,7 +393,7 @@ export default {
     ]
 
     const isActiveRoute = (id) => {
-      return id === 'comments'
+      return id === 'tags'
     }
 
     const handleLogout = () => {
@@ -400,7 +401,7 @@ export default {
       router.push('/login')
     }
 
-    // ======================= Comment Management Methods =======================
+    // ======================= Helper Methods =======================
 
     const formatDate = (dateString) => {
       if (!dateString) return '-'
@@ -420,126 +421,172 @@ export default {
       return text.substring(0, maxLength) + '...'
     }
 
-    const getStatusLabel = (status) => {
-      switch (status) {
-        case 'PENDING': return '待审核'
-        case 'APPROVED': return '已通过'
-        default: return status || '-'
-      }
+    const getPostCountClass = (count) => {
+      if (count >= 10) return 'count-high'
+      if (count >= 5) return 'count-medium'
+      return 'count-low'
     }
 
-    const getStatusBadgeClass = (status) => {
-      switch (status) {
-        case 'PENDING': return 'badge-warning'
-        case 'APPROVED': return 'badge-success'
-        default: return 'badge-default'
-      }
+    const getDeleteModalTitle = () => {
+      const typeStr = deleteAction.value === 'SOFT_DELETE' ? '软删除' : '硬删除'
+      return isBatchDelete.value ? `批量${typeStr}标签` : `${typeStr}标签`
     }
 
-    const loadComments = async () => {
-      commentsLoading.value = true
+    // ======================= Data Loading =======================
+
+    const loadTags = async () => {
+      loading.value = true
       try {
         const params = {
-          page: commentPagination.value.page,
-          size: commentPagination.value.size,
-          content: commentSearchForm.value.content || undefined,
-          author: commentSearchForm.value.author || undefined,
-          postTitle: commentSearchForm.value.postTitle || undefined,
-          status: commentSearchForm.value.status || undefined,
-          startDate: commentSearchForm.value.startDate || undefined,
-          endDate: commentSearchForm.value.endDate || undefined,
-          includeReplies: commentSearchForm.value.includeReplies
+          page: pagination.value.page,
+          size: pagination.value.size,
+          name: searchForm.value.name || undefined,
+          createdBy: searchForm.value.createdBy || undefined,
+          startDate: searchForm.value.startDate || undefined,
+          endDate: searchForm.value.endDate || undefined
         }
-        const response = await getComments(params)
-        commentList.value = response.content || []
-        commentPagination.value.total = response.totalElements || 0
-        commentPagination.value.totalPages = response.totalPages || 0
+        const response = await getAdminTags(params)
+        tagList.value = response.content || []
+        pagination.value.total = response.totalElements || 0
+        pagination.value.totalPages = response.totalPages || 0
         // Clear selections when page changes
-        selectedCommentIds.value = []
+        selectedTagIds.value = []
       } catch (error) {
-        console.error('Failed to load comments:', error)
-        alert('加载评论列表失败: ' + (error.message || '未知错误'))
+        console.error('Failed to load tags:', error)
+        alert('加载标签列表失败: ' + (error.message || '未知错误'))
       } finally {
-        commentsLoading.value = false
+        loading.value = false
       }
     }
 
-    const searchComments = () => {
-      commentPagination.value.page = 0
-      loadComments()
+    const searchTags = () => {
+      pagination.value.page = 0
+      loadTags()
     }
 
-    const resetCommentSearch = () => {
-      commentSearchForm.value = {
-        content: '',
-        author: '',
-        postTitle: '',
-        status: '',
+    const resetSearch = () => {
+      searchForm.value = {
+        name: '',
+        createdBy: '',
         startDate: '',
-        endDate: '',
-        includeReplies: true
+        endDate: ''
       }
-      commentPagination.value.page = 0
-      loadComments()
+      pagination.value.page = 0
+      loadTags()
     }
 
-    const changeCommentPage = (newPage) => {
-      commentPagination.value.page = newPage
-      loadComments()
+    const changePage = (newPage) => {
+      pagination.value.page = newPage
+      loadTags()
     }
 
-    const viewCommentDetail = async (comment) => {
+    // ======================= Detail Modal =======================
+
+    const viewTagDetail = async (tag) => {
       try {
-        const detail = await getCommentDetail(comment.id)
-        selectedComment.value = detail
-        showCommentModal.value = true
+        const detail = await getAdminTagDetail(tag.id)
+        selectedTag.value = detail
+        showDetailModal.value = true
       } catch (error) {
-        console.error('Failed to load comment detail:', error)
-        alert('加载评论详情失败')
+        console.error('Failed to load tag detail:', error)
+        alert('加载标签详情失败')
       }
     }
 
-    const closeCommentModal = () => {
-      showCommentModal.value = false
-      selectedComment.value = null
+    const closeDetailModal = () => {
+      showDetailModal.value = false
+      selectedTag.value = null
     }
 
-    const approveComment = async (comment) => {
-      if (!confirm(`确定要通过评论 ID ${comment.id} 的审核吗？`)) return
+    // ======================= Create/Edit Modal =======================
+
+    const openCreateModal = () => {
+      isEditMode.value = false
+      editingTagId.value = null
+      tagForm.value = { name: '', description: '', color: '', icon: '', sortOrder: null }
+      colorPickerValue.value = '#1890ff'
+      showFormModal.value = true
+    }
+
+    const openEditModal = (tag) => {
+      isEditMode.value = true
+      editingTagId.value = tag.id
+      tagForm.value = {
+        name: tag.name,
+        description: tag.description || '',
+        color: tag.color || '',
+        icon: tag.icon || '',
+        sortOrder: tag.sortOrder
+      }
+      colorPickerValue.value = tag.color || '#1890ff'
+      showFormModal.value = true
+    }
+
+    const openEditModalFromDetail = () => {
+      if (!selectedTag.value) return
+      closeDetailModal()
+      openEditModal(selectedTag.value)
+    }
+
+    const closeFormModal = () => {
+      showFormModal.value = false
+      isEditMode.value = false
+      editingTagId.value = null
+    }
+
+    const onColorPick = () => {
+      tagForm.value.color = colorPickerValue.value
+    }
+
+    const submitTagForm = async () => {
+      if (!tagForm.value.name || tagForm.value.name.trim() === '') {
+        alert('请填写标签名称')
+        return
+      }
+
+      const data = {
+        name: tagForm.value.name.trim(),
+        description: tagForm.value.description || undefined,
+        color: tagForm.value.color || undefined,
+        icon: tagForm.value.icon || undefined,
+        sortOrder: tagForm.value.sortOrder != null ? tagForm.value.sortOrder : undefined
+      }
+
       try {
-        await executeCommentAction({
-          action: 'APPROVE',
-          commentIds: [comment.id]
-        })
-        await loadComments()
-        alert('评论已通过审核')
+        if (isEditMode.value) {
+          await updateAdminTag(editingTagId.value, data)
+          alert('标签更新成功')
+        } else {
+          await createAdminTag(data)
+          alert('标签创建成功')
+        }
+        closeFormModal()
+        await loadTags()
       } catch (error) {
-        console.error('Failed to approve comment:', error)
-        alert('审核通过失败: ' + (error.response?.data || error.message))
+        console.error('Failed to save tag:', error)
+        alert((isEditMode.value ? '更新' : '创建') + '标签失败: ' + (error.response?.data || error.message))
       }
     }
 
-    const approveCommentFromModal = async () => {
-      if (!selectedComment.value) return
-      await approveComment(selectedComment.value)
-      closeCommentModal()
-    }
+    // ======================= Delete Modal =======================
 
-    const openDeleteModal = (comment) => {
-      deleteTargetComment.value = comment
+    const openDeleteModal = (tag, action) => {
+      deleteTargetTag.value = tag
+      deleteAction.value = action
       isBatchDelete.value = false
       deleteForm.value = { formTitle: '', reason: '', extraFieldsList: [] }
       showDeleteModal.value = true
     }
 
-    const openDeleteModalFromDetail = () => {
-      if (!selectedComment.value) return
-      closeCommentModal()
-      openDeleteModal(selectedComment.value)
+    const openDeleteModalFromDetail = (action) => {
+      if (!selectedTag.value) return
+      closeDetailModal()
+      openDeleteModal(selectedTag.value, action)
     }
 
-    const openBatchDeleteModal = () => {
-      if (selectedCommentIds.value.length === 0) return
+    const openBatchDeleteModal = (action) => {
+      if (selectedTagIds.value.length === 0) return
+      deleteAction.value = action
       isBatchDelete.value = true
       deleteForm.value = { formTitle: '', reason: '', extraFieldsList: [] }
       showDeleteModal.value = true
@@ -547,8 +594,23 @@ export default {
 
     const closeDeleteModal = () => {
       showDeleteModal.value = false
-      deleteTargetComment.value = null
+      deleteTargetTag.value = null
       isBatchDelete.value = false
+    }
+
+    const addExtraField = () => {
+      deleteForm.value.extraFieldsList.push({ fieldName: '', fieldValue: '' })
+    }
+
+    const removeExtraField = (index) => {
+      deleteForm.value.extraFieldsList.splice(index, 1)
+    }
+
+    const getExtraFieldsJson = () => {
+      const validFields = deleteForm.value.extraFieldsList.filter(
+        f => f.fieldName && f.fieldName.trim() !== ''
+      )
+      return validFields.length > 0 ? JSON.stringify(validFields) : null
     }
 
     const confirmDelete = async () => {
@@ -557,123 +619,115 @@ export default {
         return
       }
 
-      const ids = isBatchDelete.value ? selectedCommentIds.value : [deleteTargetComment.value.id]
+      const ids = isBatchDelete.value ? selectedTagIds.value : [deleteTargetTag.value.id]
       
       try {
-        await executeCommentAction({
-          action: 'DELETE',
-          commentIds: ids,
+        await executeTagAction({
+          action: deleteAction.value,
+          tagIds: ids,
           formTitle: deleteForm.value.formTitle || undefined,
           reason: deleteForm.value.reason,
           extraFields: getExtraFieldsJson()
         })
         closeDeleteModal()
-        selectedCommentIds.value = []
-        await loadComments()
-        alert(`成功删除 ${ids.length} 条评论`)
+        selectedTagIds.value = []
+        await loadTags()
+        const typeStr = deleteAction.value === 'SOFT_DELETE' ? '软' : '硬'
+        alert(`成功${typeStr}删除 ${ids.length} 个标签`)
       } catch (error) {
-        console.error('Failed to delete comments:', error)
+        console.error('Failed to delete tags:', error)
         alert('删除失败: ' + (error.response?.data || error.message))
       }
     }
 
-    // ======================= Batch Selection Methods =======================
+    // ======================= Batch Selection =======================
 
-    const isCommentSelected = (commentId) => {
-      return selectedCommentIds.value.includes(commentId)
+    const isTagSelected = (tagId) => {
+      return selectedTagIds.value.includes(tagId)
     }
 
-    const toggleCommentSelection = (commentId) => {
-      const index = selectedCommentIds.value.indexOf(commentId)
+    const toggleTagSelection = (tagId) => {
+      const index = selectedTagIds.value.indexOf(tagId)
       if (index === -1) {
-        selectedCommentIds.value.push(commentId)
+        selectedTagIds.value.push(tagId)
       } else {
-        selectedCommentIds.value.splice(index, 1)
+        selectedTagIds.value.splice(index, 1)
       }
     }
 
     const isAllSelected = computed(() => {
-      return commentList.value.length > 0 && commentList.value.every(c => selectedCommentIds.value.includes(c.id))
+      return tagList.value.length > 0 && tagList.value.every(t => selectedTagIds.value.includes(t.id))
     })
 
     const isPartialSelected = computed(() => {
-      const selectedCount = commentList.value.filter(c => selectedCommentIds.value.includes(c.id)).length
-      return selectedCount > 0 && selectedCount < commentList.value.length
+      const selectedCount = tagList.value.filter(t => selectedTagIds.value.includes(t.id)).length
+      return selectedCount > 0 && selectedCount < tagList.value.length
     })
 
     const toggleSelectAll = () => {
       if (isAllSelected.value) {
-        selectedCommentIds.value = []
+        selectedTagIds.value = []
       } else {
-        selectedCommentIds.value = commentList.value.map(c => c.id)
-      }
-    }
-
-    const batchApprove = async () => {
-      if (selectedCommentIds.value.length === 0) return
-      if (!confirm(`确定要批量通过 ${selectedCommentIds.value.length} 条评论的审核吗？`)) return
-      
-      const count = selectedCommentIds.value.length
-      try {
-        await executeCommentAction({
-          action: 'APPROVE',
-          commentIds: selectedCommentIds.value
-        })
-        selectedCommentIds.value = []
-        await loadComments()
-        alert(`已成功通过 ${count} 条评论的审核`)
-      } catch (error) {
-        console.error('Batch approve failed:', error)
-        alert('批量审核通过失败: ' + (error.response?.data || error.message))
+        selectedTagIds.value = tagList.value.map(t => t.id)
       }
     }
 
     onMounted(() => {
-      loadComments()
+      loadTags()
     })
 
     return {
       menuItems,
       isActiveRoute,
       handleLogout,
-      // Comment management
-      commentList,
-      commentsLoading,
-      commentPagination,
-      commentSearchForm,
-      showCommentModal,
-      selectedComment,
-      selectedCommentIds,
+      // Tag list
+      tagList,
+      loading,
+      pagination,
+      searchForm,
       formatDate,
       formatDateTime,
       truncateText,
-      getStatusLabel,
-      getStatusBadgeClass,
-      searchComments,
-      resetCommentSearch,
-      changeCommentPage,
-      viewCommentDetail,
-      closeCommentModal,
-      approveComment,
-      approveCommentFromModal,
-      // Delete operations
+      getPostCountClass,
+      searchTags,
+      resetSearch,
+      changePage,
+      // Detail modal
+      showDetailModal,
+      selectedTag,
+      viewTagDetail,
+      closeDetailModal,
+      // Create/Edit modal
+      showFormModal,
+      isEditMode,
+      tagForm,
+      colorPickerValue,
+      openCreateModal,
+      openEditModal,
+      openEditModalFromDetail,
+      closeFormModal,
+      onColorPick,
+      submitTagForm,
+      // Delete modal
       showDeleteModal,
       isBatchDelete,
+      deleteAction,
       deleteForm,
+      getDeleteModalTitle,
       openDeleteModal,
       openDeleteModalFromDetail,
       openBatchDeleteModal,
       closeDeleteModal,
-      confirmDelete,
       addExtraField,
       removeExtraField,
-      // Batch operations
-      isCommentSelected,
-      toggleCommentSelection,
+      confirmDelete,
+      // Batch selection
+      selectedTagIds,
+      isTagSelected,
+      toggleTagSelection,
       isAllSelected,
       isPartialSelected,
-      toggleSelectAll,
-      batchApprove
+      toggleSelectAll
     }
   }
 }
@@ -737,6 +791,10 @@ export default {
   margin-bottom: 0;
 }
 
+.form-group {
+  margin-bottom: 16px;
+}
+
 .form-group label {
   display: block;
   font-size: 14px;
@@ -766,6 +824,21 @@ export default {
   min-height: 60px;
 }
 
+.color-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.color-picker {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 2px;
+}
+
 .extra-field-row {
   display: flex;
   gap: 8px;
@@ -775,24 +848,6 @@ export default {
 
 .extra-field-input {
   flex: 1;
-}
-
-.checkbox-group {
-  display: flex;
-  align-items: flex-end;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-weight: normal;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
 }
 
 .search-btn-group {
@@ -818,6 +873,11 @@ export default {
 
 .btn-primary:hover {
   background: #40a9ff;
+}
+
+.btn-primary:disabled {
+  background: #91d5ff;
+  cursor: not-allowed;
 }
 
 .btn-secondary {
@@ -907,25 +967,66 @@ export default {
   background-color: #e6f7ff;
 }
 
-.content-col {
-  max-width: 250px;
+.desc-col {
+  max-width: 200px;
+  color: #666;
 }
 
-.comment-content {
+.tag-name-cell {
   cursor: pointer;
   color: #1890ff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.comment-content:hover {
+.tag-name-cell:hover {
   text-decoration: underline;
 }
 
-.post-col {
-  max-width: 150px;
+.tag-color-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.post-title {
-  color: #666;
+.color-preview {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.text-muted {
+  color: #999;
+}
+
+/* Post count badge */
+.post-count-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.count-high {
+  background: #fff2f0;
+  color: #f5222d;
+}
+
+.count-medium {
+  background: #fffbe6;
+  color: #faad14;
+}
+
+.count-low {
+  background: #f6ffed;
+  color: #52c41a;
 }
 
 /* Badges */
@@ -960,10 +1061,6 @@ export default {
 .badge-default {
   background: #fafafa;
   color: #666;
-}
-
-.ml-1 {
-  margin-left: 4px;
 }
 
 /* Action Buttons */
@@ -1001,6 +1098,14 @@ export default {
 
 .action-btn.success:hover {
   background: #f6ffed;
+}
+
+.action-btn.warning {
+  color: #faad14;
+}
+
+.action-btn.warning:hover {
+  background: #fffbe6;
 }
 
 /* Loading & Empty */
@@ -1146,20 +1251,9 @@ export default {
   flex: 1;
   color: #333;
   font-size: 14px;
-}
-
-.content-value {
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.link {
-  color: #1890ff;
-  text-decoration: none;
-}
-
-.link:hover {
-  text-decoration: underline;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .warning-text {

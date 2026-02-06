@@ -121,4 +121,9 @@ public interface NotificationService {
      * 创建评论被删除的通知
      */
     void createCommentDeletedNotification(User admin, User author, String postTitle, String commentPreview, String reason);
+
+    /**
+     * 创建标签被删除的通知
+     */
+    void createTagDeletedNotification(User admin, User tagCreator, String tagName, String reason);
 }

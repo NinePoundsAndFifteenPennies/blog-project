@@ -52,5 +52,10 @@ public enum NotificationType {
     /**
      * 评论被删除（违规）
      */
-    COMMENT_DELETED
+    COMMENT_DELETED,
+
+    /**
+     * 标签被删除（管理员操作）
+     */
+    TAG_DELETED
 }

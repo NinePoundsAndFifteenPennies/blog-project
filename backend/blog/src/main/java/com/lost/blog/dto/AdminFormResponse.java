@@ -20,6 +20,10 @@ public class AdminFormResponse {
     // 评论信息（用于评论删除表单）
     private Long commentId;
     private String commentContentPreview;
+
+    // 标签信息（用于标签删除表单）
+    private Long tagId;
+    private String tagName;
     
     // 目标用户信息
     private Long targetUserId;
@@ -55,6 +59,8 @@ public class AdminFormResponse {
         response.setPostTitle(form.getPostTitle());
         response.setCommentId(form.getCommentId());
         response.setCommentContentPreview(form.getCommentContentPreview());
+        response.setTagId(form.getTagId());
+        response.setTagName(form.getTagName());
         response.setCreatedAt(form.getCreatedAt());
         response.setSent(form.getSent());
         response.setSentAt(form.getSentAt());
@@ -146,6 +152,22 @@ public class AdminFormResponse {
 
     public void setCommentContentPreview(String commentContentPreview) {
         this.commentContentPreview = commentContentPreview;
+    }
+
+    public Long getTagId() {
+        return tagId;
+    }
+
+    public void setTagId(Long tagId) {
+        this.tagId = tagId;
+    }
+
+    public String getTagName() {
+        return tagName;
+    }
+
+    public void setTagName(String tagName) {
+        this.tagName = tagName;
     }
 
     public Long getTargetUserId() {

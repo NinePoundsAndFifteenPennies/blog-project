@@ -1,8 +1,11 @@
 package com.lost.blog.repository;
 
 import com.lost.blog.model.Tag;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -41,4 +44,20 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
      */
     @Query("SELECT t FROM Tag t LEFT JOIN FETCH t.posts WHERE t.id = :id")
     Optional<Tag> findByIdWithPosts(Long id);
+
+    /**
+     * 管理员搜索标签（按文章数量降序排序）
+     */
+    @Query("SELECT t, COUNT(p) as postCount FROM Tag t LEFT JOIN t.posts p " +
+           "WHERE (:name IS NULL OR LOWER(t.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
+           "AND (:createdBy IS NULL OR LOWER(t.createdBy.username) LIKE LOWER(CONCAT('%', :createdBy, '%'))) " +
+           "AND (:startDate IS NULL OR t.createdAt >= :startDate) " +
+           "AND (:endDate IS NULL OR t.createdAt <= :endDate) " +
+           "GROUP BY t.id " +
+           "ORDER BY COUNT(p) DESC, t.createdAt DESC")
+    Page<Object[]> adminSearchTags(@Param("name") String name,
+                                   @Param("createdBy") String createdBy,
+                                   @Param("startDate") java.time.LocalDateTime startDate,
+                                   @Param("endDate") java.time.LocalDateTime endDate,
+                                   Pageable pageable);
 }
