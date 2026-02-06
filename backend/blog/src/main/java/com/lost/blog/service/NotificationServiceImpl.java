@@ -1,8 +1,11 @@
 package com.lost.blog.service;
 
+import com.lost.blog.dto.AdminFormResponse;
 import com.lost.blog.dto.NotificationResponse;
+import com.lost.blog.exception.AccessDeniedException;
 import com.lost.blog.exception.ResourceNotFoundException;
 import com.lost.blog.model.*;
+import com.lost.blog.repository.AdminFormRepository;
 import com.lost.blog.repository.NotificationRepository;
 import com.lost.blog.repository.UserRepository;
 import org.slf4j.Logger;
@@ -22,18 +25,25 @@ import java.util.stream.Collectors;
 public class NotificationServiceImpl implements NotificationService {
 
     private static final Logger logger = LoggerFactory.getLogger(NotificationServiceImpl.class);
+    private static final int FORM_LOOKUP_WINDOW_MINUTES = 1;
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final AdminFormRepository adminFormRepository;
 
     @Autowired
     public NotificationServiceImpl(NotificationRepository notificationRepository,
-                                   UserRepository userRepository) {
+                                   UserRepository userRepository,
+                                   AdminFormRepository adminFormRepository) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
+        this.adminFormRepository = adminFormRepository;
     }
 
     private User getCurrentUser(UserDetails userDetails) {
+        if (userDetails == null) {
+            throw new AccessDeniedException("未登录");
+        }
         return userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("未找到用户: " + userDetails.getUsername()));
     }
@@ -117,6 +127,60 @@ public class NotificationServiceImpl implements NotificationService {
         } else {
             return notificationRepository.markAsReadByTypes(user, types);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AdminFormResponse getFormByPostId(Long postId, UserDetails currentUser) {
+        User user = getCurrentUser(currentUser);
+        AdminForm form = adminFormRepository.findFirstByTargetUserAndPostIdOrderByCreatedAtDesc(user, postId);
+        if (form == null) {
+            throw new ResourceNotFoundException("未找到该文章的表单记录");
+        }
+        return buildFormResponse(form);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AdminFormResponse getFormByNotificationId(Long notificationId, UserDetails currentUser) {
+        User user = getCurrentUser(currentUser);
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到通知"));
+
+        if (!notification.getRecipient().getId().equals(user.getId())) {
+            throw new ResourceNotFoundException("未找到通知");
+        }
+
+        if (notification.getType() != NotificationType.POST_REJECTED
+                && notification.getType() != NotificationType.POST_DELETED
+                && notification.getType() != NotificationType.COMMENT_DELETED) {
+            throw new ResourceNotFoundException("此通知类型无关联表单");
+        }
+
+        AdminForm form = null;
+        if (notification.getPost() != null) {
+            form = adminFormRepository.findFirstByTargetUserAndPostIdOrderByCreatedAtDesc(
+                    user, notification.getPost().getId());
+        }
+
+        if (form == null) {
+            LocalDateTime notificationTime = notification.getCreatedAt();
+            LocalDateTime startTime = notificationTime.minusMinutes(FORM_LOOKUP_WINDOW_MINUTES);
+            LocalDateTime endTime = notificationTime.plusMinutes(FORM_LOOKUP_WINDOW_MINUTES);
+
+            List<AdminForm> forms = adminFormRepository
+                    .findByTargetUserAndCreatedAtBetweenOrderByCreatedAtDesc(user, startTime, endTime);
+
+            if (!forms.isEmpty()) {
+                form = forms.get(0);
+            }
+        }
+
+        if (form == null) {
+            throw new ResourceNotFoundException("未找到关联的表单记录");
+        }
+
+        return buildFormResponse(form);
     }
 
     // --- 创建通知的方法 ---
@@ -337,5 +401,13 @@ public class NotificationServiceImpl implements NotificationService {
             return cleanContent;
         }
         return cleanContent.substring(0, maxLength - 3) + "...";
+    }
+
+    private AdminFormResponse buildFormResponse(AdminForm form) {
+        AdminFormResponse response = AdminFormResponse.fromEntity(form);
+        response.setAdminId(null);
+        response.setAdminUsername(null);
+        response.setAdminNickname(null);
+        return response;
     }
 }
