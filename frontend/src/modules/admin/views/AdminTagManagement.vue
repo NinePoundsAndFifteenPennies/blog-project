@@ -111,15 +111,15 @@
                 {{ tag.postCount }}
                 <span v-if="tag.postCount > 0" class="expand-arrow">{{ isTagExpanded(tag.id) ? '▲' : '▼' }}</span>
               </span>
-              <div v-if="isTagExpanded(tag.id) && tag._posts" class="expanded-posts">
-                <div v-for="post in tag._posts" :key="post.postId" class="expanded-post-item">
+              <div v-if="isTagExpanded(tag.id) && expandedPostsMap[tag.id]" class="expanded-posts">
+                <div v-for="post in expandedPostsMap[tag.id]" :key="post.postId" class="expanded-post-item">
                   <router-link :to="`/post/${post.postId}`" class="post-link-sm" target="_blank">
                     <span class="post-id-badge-sm">#{{ post.postId }}</span>
                     {{ truncateText(post.postTitle, 20) }}
                   </router-link>
                 </div>
               </div>
-              <div v-if="isTagExpanded(tag.id) && tag._loadingPosts" class="expanded-posts">
+              <div v-if="isTagExpanded(tag.id) && expandedPostsLoading[tag.id]" class="expanded-posts">
                 <span class="text-muted">加载中...</span>
               </div>
             </td>
@@ -484,6 +484,7 @@ export default {
 
     // Expanded posts in table
     const expandedTagIds = ref([])
+    const expandedPostsMap = ref({})
 
     // Icon picker state
     const showIconPicker = ref(false)
@@ -900,6 +901,9 @@ export default {
 
     // ======================= Expand Posts in Table =======================
 
+    // State for tracking loading status per tag
+    const expandedPostsLoading = ref({})
+
     const isTagExpanded = (tagId) => {
       return expandedTagIds.value.includes(tagId)
     }
@@ -914,16 +918,16 @@ export default {
       }
 
       // Load posts if not already loaded
-      if (!tag._posts) {
-        tag._loadingPosts = true
+      if (!expandedPostsMap.value[tag.id]) {
+        expandedPostsLoading.value = { ...expandedPostsLoading.value, [tag.id]: true }
         try {
           const detail = await getAdminTagDetail(tag.id)
-          tag._posts = detail.posts || []
+          expandedPostsMap.value = { ...expandedPostsMap.value, [tag.id]: detail.posts || [] }
         } catch (error) {
           console.error('Failed to load tag posts:', error)
-          tag._posts = []
+          expandedPostsMap.value = { ...expandedPostsMap.value, [tag.id]: [] }
         } finally {
-          tag._loadingPosts = false
+          expandedPostsLoading.value = { ...expandedPostsLoading.value, [tag.id]: false }
         }
       }
       expandedTagIds.value.push(tag.id)
@@ -1021,6 +1025,8 @@ export default {
       removeExtraField,
       confirmDelete,
       // Expand posts in table
+      expandedPostsMap,
+      expandedPostsLoading,
       isTagExpanded,
       toggleExpandPosts,
       // Batch selection

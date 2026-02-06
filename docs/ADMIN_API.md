@@ -801,11 +801,17 @@ Authorization: Bearer {admin-token}
   "icon": "fa-brands fa-java",
   "sortOrder": 0,
   "postCount": 15,
+  "posts": [
+    { "postId": 1, "postTitle": "Spring Boot入门" },
+    { "postId": 3, "postTitle": "JPA实践指南" }
+  ],
   "createdByUsername": "admin",
   "createdByNickname": "管理员",
   "createdAt": "2024-01-01T00:00:00"
 }
 ```
+
+> 注：`posts` 字段包含该标签关联的所有文章列表（ID和标题），列表接口也会返回此字段（当标签关联了文章时）。
 
 **错误响应:**
 - `404 Not Found` - 标签不存在
@@ -898,6 +904,7 @@ Content-Type: application/json
 {
   "action": "SOFT_DELETE",
   "tagIds": [1, 2, 3],
+  "postIds": [1, 5],
   "formTitle": "标签关联移除通知",
   "reason": "标签与文章内容不相关",
   "extraFields": "[{\"fieldName\":\"建议\",\"fieldValue\":\"请使用更准确的标签\"}]"
@@ -909,12 +916,13 @@ Content-Type: application/json
 |------|------|------|------|
 | action | string | 是 | 操作类型：SOFT_DELETE/HARD_DELETE |
 | tagIds | array | 是 | 标签ID列表（支持批量操作） |
+| postIds | array | 否 | 指定要解除关联的文章ID列表（仅SOFT_DELETE有效，不提供则解除所有关联） |
 | formTitle | string | 否 | 表单标题（默认根据操作类型自动生成） |
 | reason | string | 是 | 操作原因 |
 | extraFields | string | 否 | 扩展字段JSON数组，格式：`[{"fieldName":"字段名","fieldValue":"字段值"}]` |
 
 **操作说明:**
-- **SOFT_DELETE**: 软删除，仅移除标签与文章的关联关系（post_tags表），标签实体保留。保存删除表单（含受影响的文章列表）并向标签创建者发送 `TAG_REMOVED` 通知
+- **SOFT_DELETE**: 软删除，移除标签与文章的关联关系（post_tags表），标签实体保留。可通过 `postIds` 指定要解除关联的特定文章，不提供则解除所有文章关联。保存删除表单（含受影响的文章列表）并向标签创建者发送 `TAG_REMOVED` 通知
 - **HARD_DELETE**: 硬删除，移除关联关系并删除标签实体。保存删除表单并向标签创建者发送 `TAG_DELETED` 通知
 
 **成功响应:** `200 OK`

@@ -169,7 +169,8 @@ public class AdminTagServiceImpl implements AdminTagService {
                         }
                     }
                     if (postsToRemove.isEmpty()) {
-                        failures.add(new AdminBatchActionResponse.FailureItem(tagId, "标签与指定文章无关联"));
+                        failures.add(new AdminBatchActionResponse.FailureItem(tagId,
+                                "标签「" + tagName + "」与指定的 " + targetPostIds.size() + " 篇文章均无关联"));
                         continue;
                     }
                 } else {
@@ -214,11 +215,13 @@ public class AdminTagServiceImpl implements AdminTagService {
                 // 发送通知
                 notificationService.createTagRemovedNotification(admin, tagCreator, tagName, reason);
 
-                // 软删除：移除指定的文章关联
+                // 软删除：批量移除指定的文章关联
+                Set<Long> removePostIds = new HashSet<>();
                 for (var post : postsToRemove) {
+                    removePostIds.add(post.getId());
                     post.getTags().remove(tag);
-                    tag.getPosts().remove(post);
                 }
+                tag.getPosts().removeIf(p -> removePostIds.contains(p.getId()));
                 tagRepository.save(tag);
 
                 successIds.add(tagId);
