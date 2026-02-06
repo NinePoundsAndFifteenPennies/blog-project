@@ -62,5 +62,10 @@ public enum NotificationType {
     /**
      * 标签被删除（管理员硬删除操作）
      */
-    TAG_DELETED
+    TAG_DELETED,
+
+    /**
+     * 分类被删除（管理员删除操作）
+     */
+    CATEGORY_DELETED
 }

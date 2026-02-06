@@ -131,4 +131,9 @@ public interface NotificationService {
      * 创建标签被删除的通知（硬删除）
      */
     void createTagDeletedNotification(User admin, User tagCreator, String tagName, String reason);
+
+    /**
+     * 创建分类被删除的通知
+     */
+    void createCategoryDeletedNotification(User admin, User categoryCreator, String categoryName, String reason);
 }
