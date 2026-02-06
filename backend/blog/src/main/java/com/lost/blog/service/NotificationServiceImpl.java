@@ -148,7 +148,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .orElseThrow(() -> new ResourceNotFoundException("未找到通知"));
 
         if (!notification.getRecipient().getId().equals(user.getId())) {
-            throw new AccessDeniedException("无权访问此通知");
+            throw new ResourceNotFoundException("未找到通知");
         }
 
         if (notification.getType() != NotificationType.POST_REJECTED
