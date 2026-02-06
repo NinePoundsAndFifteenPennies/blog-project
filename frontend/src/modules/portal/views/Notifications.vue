@@ -220,7 +220,7 @@
             <div
               :class="[
                 'px-6 py-4 border-b',
-                isDeleteFormType(detailModalData.formType) ? 'bg-red-50' : (detailModalData.formType === 'TAG_SOFT_DELETION' ? 'bg-orange-50' : 'bg-yellow-50')
+                getDetailModalHeaderBg()
               ]"
             >
               <div class="flex items-center justify-between">
@@ -229,7 +229,7 @@
                   <div
                     :class="[
                       'w-10 h-10 rounded-full flex items-center justify-center',
-                      isDeleteFormType(detailModalData.formType) ? 'bg-red-100' : (detailModalData.formType === 'TAG_SOFT_DELETION' ? 'bg-orange-100' : 'bg-yellow-100')
+                      getDetailModalIconBg()
                     ]"
                   >
                     <svg
@@ -1034,6 +1034,22 @@ export default {
       }
     }
 
+    // 获取详情弹窗头部背景色
+    const getDetailModalHeaderBg = () => {
+      const formType = detailModalData.value.formType
+      if (isDeleteFormType(formType)) return 'bg-red-50'
+      if (formType === 'TAG_SOFT_DELETION') return 'bg-orange-50'
+      return 'bg-yellow-50'
+    }
+
+    // 获取详情弹窗图标背景色
+    const getDetailModalIconBg = () => {
+      const formType = detailModalData.value.formType
+      if (isDeleteFormType(formType)) return 'bg-red-100'
+      if (formType === 'TAG_SOFT_DELETION') return 'bg-orange-100'
+      return 'bg-yellow-100'
+    }
+
     // 跳转到文章详情
     const goToPost = (postId) => {
       closeDetailModal()
@@ -1128,6 +1144,8 @@ export default {
       closeDetailModal,
       isDeleteFormType,
       getDetailModalTitle,
+      getDetailModalHeaderBg,
+      getDetailModalIconBg,
       goToPost,
       formatDetailTime
     }

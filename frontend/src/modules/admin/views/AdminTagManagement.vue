@@ -231,7 +231,7 @@
             <div class="form-group">
               <label>图标 <span class="optional">(可选)</span></label>
               <div class="icon-picker-wrapper">
-                <div class="icon-picker-display" @click="showIconPicker = !showIconPicker">
+                <div class="icon-picker-display" tabindex="0" role="button" @click="showIconPicker = !showIconPicker" @keydown.enter.prevent="showIconPicker = !showIconPicker" @keydown.space.prevent="showIconPicker = !showIconPicker">
                   <span v-if="tagForm.icon" class="icon-preview">
                     <i :class="tagForm.icon"></i>
                     <span class="icon-class-text">{{ tagForm.icon }}</span>
@@ -247,7 +247,11 @@
                       :key="icon.value"
                       class="icon-grid-item"
                       :class="{ 'icon-selected': tagForm.icon === icon.value }"
+                      tabindex="0"
+                      role="button"
                       @click="selectIcon(icon.value)"
+                      @keydown.enter.prevent="selectIcon(icon.value)"
+                      @keydown.space.prevent="selectIcon(icon.value)"
                       :title="icon.label"
                     >
                       <i :class="icon.value"></i>
@@ -494,7 +498,9 @@ export default {
 
     const selectIcon = (iconValue) => {
       tagForm.value.icon = iconValue
-      showIconPicker.value = false
+      if (iconValue) {
+        showIconPicker.value = false
+      }
       iconSearchQuery.value = ''
     }
 
