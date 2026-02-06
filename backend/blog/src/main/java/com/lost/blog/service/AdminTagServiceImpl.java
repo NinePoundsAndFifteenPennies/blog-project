@@ -4,6 +4,9 @@ import com.lost.blog.dto.*;
 import com.lost.blog.exception.ResourceNotFoundException;
 import com.lost.blog.model.*;
 import com.lost.blog.repository.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -152,17 +155,22 @@ public class AdminTagServiceImpl implements AdminTagService {
                 String tagName = tag.getName();
 
                 // 收集受影响的文章信息
-                StringBuilder affectedPostsJson = new StringBuilder("[");
+                String affectedPostsJson = "[]";
                 if (tag.getPosts() != null && !tag.getPosts().isEmpty()) {
-                    boolean first = true;
-                    for (var post : tag.getPosts()) {
-                        if (!first) affectedPostsJson.append(",");
-                        affectedPostsJson.append("{\"postId\":").append(post.getId())
-                                .append(",\"postTitle\":\"").append(post.getTitle().replace("\"", "\\\"")).append("\"}");
-                        first = false;
+                    try {
+                        ObjectMapper mapper = new ObjectMapper();
+                        ArrayNode array = mapper.createArrayNode();
+                        for (var post : tag.getPosts()) {
+                            ObjectNode node = mapper.createObjectNode();
+                            node.put("postId", post.getId());
+                            node.put("postTitle", post.getTitle());
+                            array.add(node);
+                        }
+                        affectedPostsJson = mapper.writeValueAsString(array);
+                    } catch (Exception e) {
+                        logger.warn("序列化受影响文章列表失败: {}", e.getMessage());
                     }
                 }
-                affectedPostsJson.append("]");
 
                 // 创建软删除表单
                 AdminForm form = new AdminForm();
@@ -172,7 +180,7 @@ public class AdminTagServiceImpl implements AdminTagService {
                 form.setExtraFields(extraFields);
                 form.setTagId(tagId);
                 form.setTagName(tagName);
-                form.setAffectedPosts(affectedPostsJson.toString());
+                form.setAffectedPosts(affectedPostsJson);
                 form.setTargetUser(tagCreator);
                 form.setAdmin(admin);
                 form.setSent(true);
