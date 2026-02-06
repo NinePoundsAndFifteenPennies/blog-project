@@ -24,6 +24,9 @@ public class AdminFormResponse {
     // 标签信息（用于标签删除表单）
     private Long tagId;
     private String tagName;
+
+    // 受影响的文章列表（用于标签软删除表单）
+    private String affectedPosts;
     
     // 目标用户信息
     private Long targetUserId;
@@ -61,6 +64,7 @@ public class AdminFormResponse {
         response.setCommentContentPreview(form.getCommentContentPreview());
         response.setTagId(form.getTagId());
         response.setTagName(form.getTagName());
+        response.setAffectedPosts(form.getAffectedPosts());
         response.setCreatedAt(form.getCreatedAt());
         response.setSent(form.getSent());
         response.setSentAt(form.getSentAt());
@@ -168,6 +172,14 @@ public class AdminFormResponse {
 
     public void setTagName(String tagName) {
         this.tagName = tagName;
+    }
+
+    public String getAffectedPosts() {
+        return affectedPosts;
+    }
+
+    public void setAffectedPosts(String affectedPosts) {
+        this.affectedPosts = affectedPosts;
     }
 
     public Long getTargetUserId() {

@@ -90,6 +90,14 @@ public class AdminForm {
     private String tagName;
 
     /**
+     * 受影响的文章列表（JSON格式，用于标签软删除时记录移除了哪些文章的关联）
+     * 格式: [{"postId": 1, "postTitle": "文章标题"}, ...]
+     */
+    @Lob
+    @Column(name = "affected_posts", columnDefinition = "TEXT")
+    private String affectedPosts;
+
+    /**
      * 被通知的用户（文章作者或评论作者）
      */
     @ManyToOne(fetch = FetchType.LAZY)
@@ -214,6 +222,14 @@ public class AdminForm {
 
     public void setTagName(String tagName) {
         this.tagName = tagName;
+    }
+
+    public String getAffectedPosts() {
+        return affectedPosts;
+    }
+
+    public void setAffectedPosts(String affectedPosts) {
+        this.affectedPosts = affectedPosts;
     }
 
     public User getTargetUser() {

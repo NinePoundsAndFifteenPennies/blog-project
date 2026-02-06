@@ -151,6 +151,19 @@ public class AdminTagServiceImpl implements AdminTagService {
                 User tagCreator = tag.getCreatedBy();
                 String tagName = tag.getName();
 
+                // 收集受影响的文章信息
+                StringBuilder affectedPostsJson = new StringBuilder("[");
+                if (tag.getPosts() != null && !tag.getPosts().isEmpty()) {
+                    boolean first = true;
+                    for (var post : tag.getPosts()) {
+                        if (!first) affectedPostsJson.append(",");
+                        affectedPostsJson.append("{\"postId\":").append(post.getId())
+                                .append(",\"postTitle\":\"").append(post.getTitle().replace("\"", "\\\"")).append("\"}");
+                        first = false;
+                    }
+                }
+                affectedPostsJson.append("]");
+
                 // 创建软删除表单
                 AdminForm form = new AdminForm();
                 form.setTitle(formTitle != null ? formTitle : "标签关联移除通知");
@@ -159,6 +172,7 @@ public class AdminTagServiceImpl implements AdminTagService {
                 form.setExtraFields(extraFields);
                 form.setTagId(tagId);
                 form.setTagName(tagName);
+                form.setAffectedPosts(affectedPostsJson.toString());
                 form.setTargetUser(tagCreator);
                 form.setAdmin(admin);
                 form.setSent(true);
