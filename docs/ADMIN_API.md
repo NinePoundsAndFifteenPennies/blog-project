@@ -735,6 +735,203 @@ Content-Type: application/json
 
 ---
 
+## 标签管理
+
+### 获取标签列表
+
+获取标签列表，支持分页和多条件搜索过滤。按标签关联的文章数量（热度）降序排列。
+
+```http
+GET /api/admin/tags
+Authorization: Bearer {admin-token}
+```
+
+**查询参数:**
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| page | int | 否 | 页码（从0开始），默认0 |
+| size | int | 否 | 每页数量，默认10 |
+| name | string | 否 | 标签名称搜索（模糊匹配） |
+| createdBy | string | 否 | 创建者用户名搜索（模糊匹配） |
+| startDate | string | 否 | 创建开始日期（yyyy-MM-dd） |
+| endDate | string | 否 | 创建结束日期（yyyy-MM-dd） |
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "name": "Java",
+      "description": "Java编程语言",
+      "color": "#FF5733",
+      "icon": "fa-brands fa-java",
+      "sortOrder": 0,
+      "postCount": 15,
+      "createdByUsername": "admin",
+      "createdByNickname": "管理员",
+      "createdAt": "2024-01-01T00:00:00"
+    }
+  ],
+  "totalElements": 50,
+  "totalPages": 5,
+  "size": 10,
+  "number": 0
+}
+```
+
+---
+
+### 获取标签详情
+
+获取指定标签的详细信息。
+
+```http
+GET /api/admin/tags/{id}
+Authorization: Bearer {admin-token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 1,
+  "name": "Java",
+  "description": "Java编程语言",
+  "color": "#FF5733",
+  "icon": "fa-brands fa-java",
+  "sortOrder": 0,
+  "postCount": 15,
+  "createdByUsername": "admin",
+  "createdByNickname": "管理员",
+  "createdAt": "2024-01-01T00:00:00"
+}
+```
+
+**错误响应:**
+- `404 Not Found` - 标签不存在
+
+---
+
+### 创建标签
+
+创建新标签。
+
+```http
+POST /api/admin/tags
+Authorization: Bearer {admin-token}
+Content-Type: application/json
+```
+
+**请求体:**
+```json
+{
+  "name": "Spring Boot",
+  "description": "Spring Boot框架",
+  "color": "#6DB33F",
+  "icon": "fa-solid fa-leaf",
+  "sortOrder": 0
+}
+```
+
+**参数说明:**
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 是 | 标签名称（唯一） |
+| description | string | 否 | 标签描述 |
+| color | string | 否 | 颜色值（如 #FF5733） |
+| icon | string | 否 | 图标类名（Font Awesome 6，如 `fa-brands fa-java`、`fa-solid fa-code`） |
+| sortOrder | integer | 否 | 排序值（越小越靠前） |
+
+**成功响应:** `201 Created`
+```json
+{
+  "id": 10,
+  "name": "Spring Boot",
+  "description": "Spring Boot框架",
+  "color": "#6DB33F",
+  "icon": "fa-solid fa-leaf",
+  "sortOrder": 0,
+  "postCount": 0,
+  "createdByUsername": "admin",
+  "createdByNickname": "管理员",
+  "createdAt": "2024-01-15T12:00:00"
+}
+```
+
+**错误响应:**
+- `400 Bad Request` - 标签名称已存在或参数验证失败
+
+---
+
+### 更新标签
+
+更新已有标签信息。
+
+```http
+PUT /api/admin/tags/{id}
+Authorization: Bearer {admin-token}
+Content-Type: application/json
+```
+
+**请求体:** 同创建标签
+
+**成功响应:** `200 OK`（响应格式同标签详情）
+
+**错误响应:**
+- `404 Not Found` - 标签不存在
+- `400 Bad Request` - 标签名称已存在
+
+---
+
+### 批量操作标签
+
+对一个或多个标签执行软删除/硬删除操作。
+
+```http
+POST /api/admin/tags/action
+Authorization: Bearer {admin-token}
+Content-Type: application/json
+```
+
+**请求体:**
+```json
+{
+  "action": "SOFT_DELETE",
+  "tagIds": [1, 2, 3],
+  "formTitle": "标签关联移除通知",
+  "reason": "标签与文章内容不相关",
+  "extraFields": "[{\"fieldName\":\"建议\",\"fieldValue\":\"请使用更准确的标签\"}]"
+}
+```
+
+**参数说明:**
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| action | string | 是 | 操作类型：SOFT_DELETE/HARD_DELETE |
+| tagIds | array | 是 | 标签ID列表（支持批量操作） |
+| formTitle | string | 否 | 表单标题（默认根据操作类型自动生成） |
+| reason | string | 是 | 操作原因 |
+| extraFields | string | 否 | 扩展字段JSON数组，格式：`[{"fieldName":"字段名","fieldValue":"字段值"}]` |
+
+**操作说明:**
+- **SOFT_DELETE**: 软删除，仅移除标签与文章的关联关系（post_tags表），标签实体保留。保存删除表单（含受影响的文章列表）并向标签创建者发送 `TAG_REMOVED` 通知
+- **HARD_DELETE**: 硬删除，移除关联关系并删除标签实体。保存删除表单并向标签创建者发送 `TAG_DELETED` 通知
+
+**成功响应:** `200 OK`
+```json
+{
+  "successCount": 3,
+  "failureCount": 0,
+  "successIds": [1, 2, 3],
+  "failures": []
+}
+```
+
+**错误响应:**
+- `400 Bad Request` - 参数验证失败（如未填写理由）
+
+---
+
 ## 后续规划
 
 管理后台 API 将陆续增加以下功能：
