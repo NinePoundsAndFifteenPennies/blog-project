@@ -59,7 +59,7 @@ public class NotificationServiceImpl implements NotificationService {
             case "messages":
                 return List.of(NotificationType.MESSAGE_RECEIVED);
             case "system":
-                return List.of(NotificationType.POST_APPROVED, NotificationType.POST_REJECTED, NotificationType.POST_DELETED, NotificationType.COMMENT_DELETED);
+                return List.of(NotificationType.POST_APPROVED, NotificationType.POST_REJECTED, NotificationType.POST_DELETED, NotificationType.COMMENT_DELETED, NotificationType.TAG_REMOVED, NotificationType.TAG_DELETED);
             default:
                 return null; // all types
         }
@@ -153,7 +153,9 @@ public class NotificationServiceImpl implements NotificationService {
 
         if (notification.getType() != NotificationType.POST_REJECTED
                 && notification.getType() != NotificationType.POST_DELETED
-                && notification.getType() != NotificationType.COMMENT_DELETED) {
+                && notification.getType() != NotificationType.COMMENT_DELETED
+                && notification.getType() != NotificationType.TAG_REMOVED
+                && notification.getType() != NotificationType.TAG_DELETED) {
             throw new ResourceNotFoundException("此通知类型无关联表单");
         }
 
@@ -389,6 +391,42 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.save(notification);
 
         logger.info("创建通知: 管理员 {} 删除了 {} 的评论「{}」", admin.getUsername(), author.getUsername(), commentPreview);
+    }
+
+    @Override
+    @Transactional
+    public void createTagRemovedNotification(User admin, User tagCreator, String tagName, String reason) {
+        // 不需要给管理员自己发通知
+        if (admin.getId().equals(tagCreator.getId())) {
+            return;
+        }
+
+        Notification notification = new Notification();
+        notification.setType(NotificationType.TAG_REMOVED);
+        notification.setRecipient(tagCreator);
+        notification.setActor(admin);
+        notification.setContent("您创建的标签「" + truncateContent(tagName, 30) + "」的文章关联已被管理员移除: " + truncateContent(reason, 50));
+        notificationRepository.save(notification);
+
+        logger.info("创建通知: 管理员 {} 移除了 {} 的标签「{}」的文章关联", admin.getUsername(), tagCreator.getUsername(), tagName);
+    }
+
+    @Override
+    @Transactional
+    public void createTagDeletedNotification(User admin, User tagCreator, String tagName, String reason) {
+        // 不需要给管理员自己发通知
+        if (admin.getId().equals(tagCreator.getId())) {
+            return;
+        }
+
+        Notification notification = new Notification();
+        notification.setType(NotificationType.TAG_DELETED);
+        notification.setRecipient(tagCreator);
+        notification.setActor(admin);
+        notification.setContent("您创建的标签「" + truncateContent(tagName, 30) + "」因违规已被管理员删除: " + truncateContent(reason, 50));
+        notificationRepository.save(notification);
+
+        logger.info("创建通知: 管理员 {} 删除了 {} 的标签「{}」", admin.getUsername(), tagCreator.getUsername(), tagName);
     }
 
     private String truncateContent(String content, int maxLength) {

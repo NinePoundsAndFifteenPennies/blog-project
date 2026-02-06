@@ -1,8 +1,12 @@
 package com.lost.blog.repository;
 
 import com.lost.blog.model.Tag;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -40,5 +44,41 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
      * 根据ID查找标签，并加载关联的文章
      */
     @Query("SELECT t FROM Tag t LEFT JOIN FETCH t.posts WHERE t.id = :id")
-    Optional<Tag> findByIdWithPosts(Long id);
+    Optional<Tag> findByIdWithPosts(@Param("id") Long id);
+
+    /**
+     * 查找与指定标签关联的文章ID和标题列表
+     */
+    @Query("SELECT p.id, p.title FROM Post p JOIN p.tags t WHERE t.id = :tagId")
+    List<Object[]> findPostsByTagId(@Param("tagId") Long tagId);
+
+    /**
+     * 管理员搜索标签（按文章数量降序排序）
+     */
+    @Query("SELECT t, COUNT(p) as postCount FROM Tag t LEFT JOIN t.posts p " +
+           "WHERE (:name IS NULL OR LOWER(t.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
+           "AND (:createdBy IS NULL OR LOWER(t.createdBy.username) LIKE LOWER(CONCAT('%', :createdBy, '%'))) " +
+           "AND (:startDate IS NULL OR t.createdAt >= :startDate) " +
+           "AND (:endDate IS NULL OR t.createdAt <= :endDate) " +
+           "GROUP BY t.id " +
+           "ORDER BY COUNT(p) DESC, t.createdAt DESC")
+    Page<Object[]> adminSearchTags(@Param("name") String name,
+                                   @Param("createdBy") String createdBy,
+                                   @Param("startDate") java.time.LocalDateTime startDate,
+                                   @Param("endDate") java.time.LocalDateTime endDate,
+                                   Pageable pageable);
+
+    /**
+     * 移除指定标签与指定文章列表的关联（原生SQL直接操作post_tags表）
+     */
+    @Modifying
+    @Query(value = "DELETE FROM post_tags WHERE tag_id = :tagId AND post_id IN :postIds", nativeQuery = true)
+    void removePostTagAssociations(@Param("tagId") Long tagId, @Param("postIds") Set<Long> postIds);
+
+    /**
+     * 移除指定标签的所有文章关联（原生SQL直接操作post_tags表）
+     */
+    @Modifying
+    @Query(value = "DELETE FROM post_tags WHERE tag_id = :tagId", nativeQuery = true)
+    void removeAllPostTagAssociations(@Param("tagId") Long tagId);
 }

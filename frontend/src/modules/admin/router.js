@@ -28,4 +28,10 @@ export default [
         component: () => import("@/modules/admin/views/AdminCommentManagement.vue"),
         meta: { title: "评论管理 - 管理后台", requiresAdmin: true },
     },
+    {
+        path: "/admin/tags",
+        name: "AdminTagManagement",
+        component: () => import("@/modules/admin/views/AdminTagManagement.vue"),
+        meta: { title: "标签管理 - 管理后台", requiresAdmin: true },
+    },
 ];

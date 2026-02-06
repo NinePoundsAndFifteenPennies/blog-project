@@ -5,6 +5,8 @@ import com.lost.blog.exception.ResourceNotFoundException;
 import com.lost.blog.mapper.AdminPostMapper;
 import com.lost.blog.model.*;
 import com.lost.blog.repository.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +39,9 @@ public class AdminPostServiceImpl implements AdminPostService {
     private final CommentRepository commentRepository;
     private final LikeRepository likeRepository;
     private final PostViewLogRepository postViewLogRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Autowired
     public AdminPostServiceImpl(PostRepository postRepository,
@@ -284,6 +289,9 @@ public class AdminPostServiceImpl implements AdminPostService {
                 successIds.add(postId);
                 
                 logger.info("管理员 {} 删除文章 {}, 理由: {}", admin.getUsername(), postId, reason);
+
+                // 刷新持久化上下文，确保批量操作中每篇文章的变更独立生效
+                entityManager.flush();
                 
             } catch (ResourceNotFoundException e) {
                 failures.add(new AdminBatchActionResponse.FailureItem(postId, e.getMessage()));

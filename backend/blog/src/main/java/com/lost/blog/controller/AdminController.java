@@ -7,6 +7,7 @@ import com.lost.blog.model.User;
 import com.lost.blog.security.JwtTokenProvider;
 import com.lost.blog.service.AdminCommentService;
 import com.lost.blog.service.AdminPostService;
+import com.lost.blog.service.AdminTagService;
 import com.lost.blog.service.AdminUserService;
 import com.lost.blog.service.UserService;
 import jakarta.validation.Valid;
@@ -46,6 +47,7 @@ public class AdminController {
     private final AdminUserService adminUserService;
     private final AdminPostService adminPostService;
     private final AdminCommentService adminCommentService;
+    private final AdminTagService adminTagService;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
 
@@ -54,12 +56,14 @@ public class AdminController {
                           AdminUserService adminUserService,
                           AdminPostService adminPostService,
                           AdminCommentService adminCommentService,
+                          AdminTagService adminTagService,
                           AuthenticationManager authenticationManager,
                           JwtTokenProvider tokenProvider) {
         this.userService = userService;
         this.adminUserService = adminUserService;
         this.adminPostService = adminPostService;
         this.adminCommentService = adminCommentService;
+        this.adminTagService = adminTagService;
         this.authenticationManager = authenticationManager;
         this.tokenProvider = tokenProvider;
     }
@@ -456,6 +460,136 @@ public class AdminController {
                         request.getExtraFields(), 
                         admin);
                 logger.info("管理员 {} 批量删除 {} 条评论", currentUser.getUsername(), result.getSuccessCount());
+                break;
+                
+            default:
+                return ResponseEntity.badRequest().body("不支持的操作类型: " + action);
+        }
+        
+        return ResponseEntity.ok(result);
+    }
+
+    // ======================= 标签管理接口 =======================
+
+    /**
+     * 获取标签列表（支持分页和多条件搜索，按热度排序）
+     * 
+     * @param page 页码（从0开始）
+     * @param size 每页数量
+     * @param name 标签名称搜索（模糊匹配）
+     * @param createdBy 创建者用户名搜索（模糊匹配）
+     * @param startDate 创建开始日期（yyyy-MM-dd）
+     * @param endDate 创建结束日期（yyyy-MM-dd）
+     */
+    @GetMapping("/tags")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<AdminTagResponse>> getTags(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String createdBy,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        
+        AdminTagQueryRequest query = new AdminTagQueryRequest();
+        query.setName(name);
+        query.setCreatedBy(createdBy);
+        query.setStartDate(startDate);
+        query.setEndDate(endDate);
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<AdminTagResponse> tags = adminTagService.searchTags(query, pageable);
+        
+        return ResponseEntity.ok(tags);
+    }
+
+    /**
+     * 获取标签详细信息
+     * 
+     * @param id 标签ID
+     */
+    @GetMapping("/tags/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AdminTagResponse> getTagDetail(@PathVariable Long id) {
+        AdminTagResponse tag = adminTagService.getTagDetail(id);
+        return ResponseEntity.ok(tag);
+    }
+
+    /**
+     * 管理员创建标签
+     * 
+     * @param tagRequest 标签创建请求
+     */
+    @PostMapping("/tags")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AdminTagResponse> createTag(
+            @Valid @RequestBody TagRequest tagRequest,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        User admin = userService.findByUsername(currentUser.getUsername());
+        AdminTagResponse tag = adminTagService.createTag(tagRequest, admin);
+        logger.info("管理员 {} 创建标签: {}", currentUser.getUsername(), tagRequest.getName());
+        return new ResponseEntity<>(tag, HttpStatus.CREATED);
+    }
+
+    /**
+     * 管理员更新标签
+     * 
+     * @param id 标签ID
+     * @param tagRequest 标签更新请求
+     */
+    @PutMapping("/tags/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AdminTagResponse> updateTag(
+            @PathVariable Long id,
+            @Valid @RequestBody TagRequest tagRequest,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        AdminTagResponse tag = adminTagService.updateTag(id, tagRequest);
+        logger.info("管理员 {} 更新标签 {}", currentUser.getUsername(), id);
+        return ResponseEntity.ok(tag);
+    }
+
+    /**
+     * 执行标签操作（软删除/硬删除）
+     * 支持批量操作
+     * 
+     * @param request 操作请求
+     */
+    @PostMapping("/tags/action")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> executeTagAction(
+            @Valid @RequestBody AdminTagActionRequest request,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        
+        User admin = userService.findByUsername(currentUser.getUsername());
+        String action = request.getAction().toUpperCase();
+        
+        // 验证删除操作需要理由
+        if (request.getReason() == null || request.getReason().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("删除操作需要填写理由");
+        }
+        
+        AdminBatchActionResponse result;
+        
+        switch (action) {
+            case "SOFT_DELETE":
+                result = adminTagService.softDeleteTags(
+                        request.getTagIds(),
+                        request.getPostIds(),
+                        request.getFormTitle(),
+                        request.getReason(),
+                        request.getExtraFields(),
+                        admin);
+                logger.info("管理员 {} 批量软删除 {} 个标签", currentUser.getUsername(), result.getSuccessCount());
+                break;
+                
+            case "HARD_DELETE":
+                result = adminTagService.hardDeleteTags(
+                        request.getTagIds(),
+                        request.getFormTitle(),
+                        request.getReason(),
+                        request.getExtraFields(),
+                        admin);
+                logger.info("管理员 {} 批量硬删除 {} 个标签", currentUser.getUsername(), result.getSuccessCount());
                 break;
                 
             default:

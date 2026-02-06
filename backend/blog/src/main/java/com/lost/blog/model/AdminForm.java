@@ -78,6 +78,26 @@ public class AdminForm {
     private String commentContentPreview;
 
     /**
+     * 关联的标签ID（用于标签删除表单）
+     */
+    @Column(name = "tag_id")
+    private Long tagId;
+
+    /**
+     * 关联的标签名称（冗余存储，用于标签被删除后仍可查看）
+     */
+    @Column(name = "tag_name", length = 50)
+    private String tagName;
+
+    /**
+     * 受影响的文章列表（JSON格式，用于标签软删除时记录移除了哪些文章的关联）
+     * 格式: [{"postId": 1, "postTitle": "文章标题"}, ...]
+     */
+    @Lob
+    @Column(name = "affected_posts", columnDefinition = "TEXT")
+    private String affectedPosts;
+
+    /**
      * 被通知的用户（文章作者或评论作者）
      */
     @ManyToOne(fetch = FetchType.LAZY)
@@ -186,6 +206,30 @@ public class AdminForm {
 
     public void setCommentContentPreview(String commentContentPreview) {
         this.commentContentPreview = commentContentPreview;
+    }
+
+    public Long getTagId() {
+        return tagId;
+    }
+
+    public void setTagId(Long tagId) {
+        this.tagId = tagId;
+    }
+
+    public String getTagName() {
+        return tagName;
+    }
+
+    public void setTagName(String tagName) {
+        this.tagName = tagName;
+    }
+
+    public String getAffectedPosts() {
+        return affectedPosts;
+    }
+
+    public void setAffectedPosts(String affectedPosts) {
+        this.affectedPosts = affectedPosts;
     }
 
     public User getTargetUser() {

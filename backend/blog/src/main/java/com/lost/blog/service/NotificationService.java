@@ -121,4 +121,14 @@ public interface NotificationService {
      * 创建评论被删除的通知
      */
     void createCommentDeletedNotification(User admin, User author, String postTitle, String commentPreview, String reason);
+
+    /**
+     * 创建标签被移除关联的通知（软删除）
+     */
+    void createTagRemovedNotification(User admin, User tagCreator, String tagName, String reason);
+
+    /**
+     * 创建标签被删除的通知（硬删除）
+     */
+    void createTagDeletedNotification(User admin, User tagCreator, String tagName, String reason);
 }

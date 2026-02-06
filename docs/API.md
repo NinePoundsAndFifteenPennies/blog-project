@@ -2817,7 +2817,7 @@ Authorization: Bearer {token}
 |------|------|--------|------|
 | page | integer | 0 | 页码（从0开始）|
 | size | integer | 20 | 每页数量 |
-| filter | string | all | 过滤类型：`all`（全部）、`comments`（评论）、`likes`（点赞）、`follows`（关注）、`messages`（私信）|
+| filter | string | all | 过滤类型：`all`（全部）、`comments`（评论）、`likes`（点赞）、`follows`（关注）、`messages`（私信）、`system`（系统）|
 
 **成功响应:** `200 OK`
 ```json
@@ -2874,6 +2874,9 @@ Authorization: Bearer {token}
 | POST_APPROVED | 文章审核通过（系统通知） |
 | POST_REJECTED | 文章审核拒绝（系统通知） |
 | POST_DELETED | 文章被删除（系统通知） |
+| COMMENT_DELETED | 评论被删除（系统通知） |
+| TAG_REMOVED | 标签文章关联被移除（系统通知，软删除） |
+| TAG_DELETED | 标签被删除（系统通知，硬删除） |
 
 ---
 
@@ -2996,7 +2999,7 @@ Authorization: Bearer {token}
 
 ### 获取系统通知表单详情（通过通知ID）
 
-通过通知ID获取关联的表单详情，用于文章已被删除的情况。
+通过通知ID获取关联的表单详情，用于文章删除、评论删除、标签删除等场景。
 
 ```http
 GET /api/notifications/{notificationId}/form
@@ -3004,6 +3007,8 @@ Authorization: Bearer {token}
 ```
 
 **成功响应:** `200 OK`
+
+文章/评论相关表单：
 ```json
 {
   "id": 5,
@@ -3016,8 +3021,34 @@ Authorization: Bearer {token}
 }
 ```
 
+标签相关表单（TAG_SOFT_DELETION/TAG_HARD_DELETION）：
+```json
+{
+  "id": 8,
+  "formType": "TAG_SOFT_DELETION",
+  "title": "标签关联移除通知",
+  "reason": "标签与文章内容不相关",
+  "extraFields": "[{\"fieldName\":\"建议\",\"fieldValue\":\"请使用更准确的标签\"}]",
+  "tagId": 5,
+  "tagName": "Java",
+  "affectedPosts": "[{\"postId\":1,\"postTitle\":\"Spring Boot入门\"},{\"postId\":3,\"postTitle\":\"JPA实践\"}]",
+  "createdAt": "2024-01-15T12:00:00"
+}
+```
+
+**表单类型说明:**
+
+| formType | 说明 |
+|----------|------|
+| REJECTION | 文章审核拒绝 |
+| DELETION | 文章删除 |
+| COMMENT_DELETION | 评论删除 |
+| TAG_SOFT_DELETION | 标签文章关联移除（软删除） |
+| TAG_HARD_DELETION | 标签删除（硬删除） |
+```
+
 **错误响应:**
 - `404 Not Found` - 通知不存在或不属于当前用户
 - `404 Not Found` - 关联的表单不存在
 
-> 注：此接口主要用于文章已被删除后，用户仍需查看删除原因的场景。
+> 注：此接口用于文章删除、评论删除、标签删除后，用户查看处理原因的场景。标签软删除表单包含 `affectedPosts` 字段，记录了受影响的文章列表。

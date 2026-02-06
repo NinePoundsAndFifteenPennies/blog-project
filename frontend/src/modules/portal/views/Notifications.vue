@@ -220,7 +220,7 @@
             <div
               :class="[
                 'px-6 py-4 border-b',
-                detailModalData.formType === 'DELETION' ? 'bg-red-50' : 'bg-yellow-50'
+                getDetailModalHeaderBg()
               ]"
             >
               <div class="flex items-center justify-between">
@@ -229,17 +229,26 @@
                   <div
                     :class="[
                       'w-10 h-10 rounded-full flex items-center justify-center',
-                      (detailModalData.formType === 'DELETION' || detailModalData.formType === 'COMMENT_DELETION') ? 'bg-red-100' : 'bg-yellow-100'
+                      getDetailModalIconBg()
                     ]"
                   >
                     <svg
-                      v-if="detailModalData.formType === 'DELETION' || detailModalData.formType === 'COMMENT_DELETION'"
+                      v-if="isDeleteFormType(detailModalData.formType)"
                       class="w-5 h-5 text-red-600"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
                     >
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <svg
+                      v-else-if="detailModalData.formType === 'TAG_SOFT_DELETION'"
+                      class="w-5 h-5 text-orange-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                     </svg>
                     <svg
                       v-else
@@ -252,7 +261,7 @@
                     </svg>
                   </div>
                   <h3 class="text-lg font-semibold text-gray-900">
-                    {{ detailModalData.formType === 'COMMENT_DELETION' ? '评论处理结果' : (detailModalData.formType === 'DELETION' ? '文章已被删除' : '文章未通过审核') }}
+                    {{ getDetailModalTitle() }}
                   </h3>
                 </div>
                 <button
@@ -309,6 +318,49 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
+                </div>
+
+                <!-- 标签信息（标签删除/移除） -->
+                <div v-else-if="detailModalData.formType === 'TAG_SOFT_DELETION' || detailModalData.formType === 'TAG_HARD_DELETION'" class="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide">标签信息</h4>
+                  <div class="space-y-2">
+                    <div class="flex items-start">
+                      <span class="text-gray-500 w-20 flex-shrink-0">标签名称</span>
+                      <span class="text-gray-900 font-medium">{{ detailModalData.tagName || '未知标签' }}</span>
+                    </div>
+                    <div class="flex items-start">
+                      <span class="text-gray-500 w-20 flex-shrink-0">操作类型</span>
+                      <span
+                        :class="[
+                          'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+                          detailModalData.formType === 'TAG_HARD_DELETION' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
+                        ]"
+                      >
+                        {{ detailModalData.formType === 'TAG_HARD_DELETION' ? '已删除' : '已移除关联' }}
+                      </span>
+                    </div>
+                    <div class="flex items-start">
+                      <span class="text-gray-500 w-20 flex-shrink-0">处理时间</span>
+                      <span class="text-gray-900">{{ formatDetailTime(detailModalData.createdAt) }}</span>
+                    </div>
+                  </div>
+                  <!-- 受影响的文章列表（仅软删除/移除时显示） -->
+                  <div v-if="detailModalData.formType === 'TAG_SOFT_DELETION' && parsedAffectedPosts.length > 0" class="mt-3">
+                    <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">受影响的文章</h4>
+                    <div class="space-y-1">
+                      <button
+                        v-for="post in parsedAffectedPosts"
+                        :key="post.postId"
+                        @click="goToPost(post.postId)"
+                        class="w-full text-left text-sm text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded px-2 py-1.5 transition-colors inline-flex items-center"
+                      >
+                        <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        {{ post.postTitle }}
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- 文章信息（文章相关通知） -->
@@ -437,6 +489,8 @@ export default {
       postId: null,
       postTitle: '',
       commentContentPreview: '',
+      tagName: '',
+      affectedPosts: '',
       reason: '',
       extraFields: '',
       createdAt: ''
@@ -449,6 +503,16 @@ export default {
       try {
         if (!detailModalData.value.extraFields) return []
         return JSON.parse(detailModalData.value.extraFields)
+      } catch (e) {
+        return []
+      }
+    })
+
+    // 解析受影响的文章列表
+    const parsedAffectedPosts = computed(() => {
+      try {
+        if (!detailModalData.value.affectedPosts) return []
+        return JSON.parse(detailModalData.value.affectedPosts)
       } catch (e) {
         return []
       }
@@ -561,6 +625,16 @@ export default {
             bgColor: 'bg-red-100', 
             icon: '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>'
           }
+        case 'TAG_DELETED':
+          return { 
+            bgColor: 'bg-red-100', 
+            icon: '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>'
+          }
+        case 'TAG_REMOVED':
+          return { 
+            bgColor: 'bg-orange-100', 
+            icon: '<svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>'
+          }
         default:
           return { 
             bgColor: 'bg-gray-100', 
@@ -591,6 +665,10 @@ export default {
           return '您的文章因违规被删除'
         case 'COMMENT_DELETED':
           return '您的评论因违规被删除'
+        case 'TAG_REMOVED':
+          return '您创建的标签的文章关联已被移除'
+        case 'TAG_DELETED':
+          return '您创建的标签因违规被删除'
         default:
           return ''
       }
@@ -598,7 +676,7 @@ export default {
 
     // 判断是否为系统通知
     const isSystemNotification = (notification) => {
-      return ['POST_APPROVED', 'POST_REJECTED', 'POST_DELETED', 'COMMENT_DELETED'].includes(notification.type)
+      return ['POST_APPROVED', 'POST_REJECTED', 'POST_DELETED', 'COMMENT_DELETED', 'TAG_REMOVED', 'TAG_DELETED'].includes(notification.type)
     }
 
     // 获取通知显示的名称
@@ -742,7 +820,9 @@ export default {
         case 'POST_REJECTED':
         case 'POST_DELETED':
         case 'COMMENT_DELETED':
-          // 审核拒绝、文章删除或评论删除，打开详情弹窗
+        case 'TAG_REMOVED':
+        case 'TAG_DELETED':
+          // 审核拒绝、文章删除、评论删除或标签删除，打开详情弹窗
           openDetailModal(notification)
           break
       }
@@ -870,6 +950,7 @@ export default {
       // 尝试从通知内容中提取文章标题
       let extractedTitle = notification.postTitle || ''
       let extractedCommentPreview = ''
+      let extractedTagName = ''
       if (!extractedTitle && notification.content) {
         // 从内容 "您的文章「xxx」未通过审核" 或 "您在文章「xxx」的评论「yyy」" 中提取
         const match = notification.content.match(/「(.+?)」/)
@@ -882,6 +963,13 @@ export default {
           extractedCommentPreview = commentMatch[1]
         }
       }
+      // 对于标签通知，从内容中提取标签名称
+      if ((notification.type === 'TAG_REMOVED' || notification.type === 'TAG_DELETED') && notification.content) {
+        const tagMatch = notification.content.match(/标签「(.+?)」/)
+        if (tagMatch) {
+          extractedTagName = tagMatch[1]
+        }
+      }
       
       // 根据通知类型确定formType
       let formType = 'REJECTION'
@@ -889,6 +977,10 @@ export default {
         formType = 'DELETION'
       } else if (notification.type === 'COMMENT_DELETED') {
         formType = 'COMMENT_DELETION'
+      } else if (notification.type === 'TAG_REMOVED') {
+        formType = 'TAG_SOFT_DELETION'
+      } else if (notification.type === 'TAG_DELETED') {
+        formType = 'TAG_HARD_DELETION'
       }
       
       // 设置基本信息
@@ -897,6 +989,8 @@ export default {
         postId: notification.postId,
         postTitle: extractedTitle,
         commentContentPreview: extractedCommentPreview,
+        tagName: extractedTagName,
+        affectedPosts: '',
         reason: '',
         extraFields: '',
         createdAt: notification.createdAt
@@ -905,9 +999,9 @@ export default {
       try {
         let form = null
         
-        // 对于评论删除，直接通过通知ID查找表单
+        // 对于评论删除和标签删除，直接通过通知ID查找表单
         // 对于文章相关的通知，首先尝试通过postId获取表单信息
-        if (notification.type !== 'COMMENT_DELETED' && notification.postId) {
+        if (!['COMMENT_DELETED', 'TAG_REMOVED', 'TAG_DELETED'].includes(notification.type) && notification.postId) {
           try {
             form = await getFormByPostId(notification.postId)
           } catch (e) {
@@ -929,6 +1023,8 @@ export default {
             ...detailModalData.value,
             postTitle: form.postTitle || detailModalData.value.postTitle,
             commentContentPreview: form.commentContentPreview || detailModalData.value.commentContentPreview,
+            tagName: form.tagName || detailModalData.value.tagName,
+            affectedPosts: form.affectedPosts || detailModalData.value.affectedPosts,
             reason: form.reason || '',
             extraFields: form.extraFields || '',
             createdAt: form.createdAt || notification.createdAt
@@ -945,6 +1041,43 @@ export default {
     // 关闭详情弹窗
     const closeDetailModal = () => {
       showDetailModal.value = false
+    }
+
+    // 判断是否为删除类表单类型
+    const isDeleteFormType = (formType) => {
+      return ['DELETION', 'COMMENT_DELETION', 'TAG_HARD_DELETION'].includes(formType)
+    }
+
+    // 获取详情弹窗标题
+    const getDetailModalTitle = () => {
+      switch (detailModalData.value.formType) {
+        case 'COMMENT_DELETION':
+          return '评论处理结果'
+        case 'DELETION':
+          return '文章已被删除'
+        case 'TAG_SOFT_DELETION':
+          return '标签关联已被移除'
+        case 'TAG_HARD_DELETION':
+          return '标签已被删除'
+        default:
+          return '文章未通过审核'
+      }
+    }
+
+    // 获取详情弹窗头部背景色
+    const getDetailModalHeaderBg = () => {
+      const formType = detailModalData.value.formType
+      if (isDeleteFormType(formType)) return 'bg-red-50'
+      if (formType === 'TAG_SOFT_DELETION') return 'bg-orange-50'
+      return 'bg-yellow-50'
+    }
+
+    // 获取详情弹窗图标背景色
+    const getDetailModalIconBg = () => {
+      const formType = detailModalData.value.formType
+      if (isDeleteFormType(formType)) return 'bg-red-100'
+      if (formType === 'TAG_SOFT_DELETION') return 'bg-orange-100'
+      return 'bg-yellow-100'
     }
 
     // 跳转到文章详情
@@ -983,7 +1116,7 @@ export default {
       if (route.query.notificationId) {
         const notificationId = parseInt(route.query.notificationId)
         const targetNotification = notifications.value.find(n => n.id === notificationId)
-        if (targetNotification && (targetNotification.type === 'POST_REJECTED' || targetNotification.type === 'POST_DELETED')) {
+        if (targetNotification && ['POST_REJECTED', 'POST_DELETED', 'COMMENT_DELETED', 'TAG_REMOVED', 'TAG_DELETED'].includes(targetNotification.type)) {
           openDetailModal(targetNotification)
         } else {
           // 通知不在当前列表中，尝试通过ID直接获取表单
@@ -994,6 +1127,8 @@ export default {
               formType: form.formType || 'REJECTION',
               postId: form.postId,
               postTitle: form.postTitle || '',
+              tagName: form.tagName || '',
+              affectedPosts: form.affectedPosts || '',
               reason: form.reason || '',
               extraFields: form.extraFields || '',
               createdAt: form.createdAt || ''
@@ -1037,7 +1172,12 @@ export default {
       loadingDetailModal,
       detailModalData,
       parsedExtraFields,
+      parsedAffectedPosts,
       closeDetailModal,
+      isDeleteFormType,
+      getDetailModalTitle,
+      getDetailModalHeaderBg,
+      getDetailModalIconBg,
       goToPost,
       formatDetailTime
     }

@@ -4,6 +4,8 @@ import com.lost.blog.dto.*;
 import com.lost.blog.exception.ResourceNotFoundException;
 import com.lost.blog.model.*;
 import com.lost.blog.repository.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +34,9 @@ public class AdminCommentServiceImpl implements AdminCommentService {
     private final NotificationService notificationService;
     private final NotificationRepository notificationRepository;
     private final LikeRepository likeRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Autowired
     public AdminCommentServiceImpl(CommentRepository commentRepository,
@@ -194,6 +199,9 @@ public class AdminCommentServiceImpl implements AdminCommentService {
                 successIds.add(commentId);
                 
                 logger.info("管理员 {} 删除评论 {}, 理由: {}", admin.getUsername(), commentId, reason);
+
+                // 刷新持久化上下文，确保批量操作中每条评论的变更独立生效
+                entityManager.flush();
                 
             } catch (ResourceNotFoundException e) {
                 failures.add(new AdminBatchActionResponse.FailureItem(commentId, e.getMessage()));
