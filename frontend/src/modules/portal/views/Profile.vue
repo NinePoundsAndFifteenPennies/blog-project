@@ -215,6 +215,12 @@
                     <span v-if="post.draft" class="px-3 py-1 text-xs font-bold bg-yellow-100 text-orange-700 rounded-md shadow-sm">
                       草稿
                     </span>
+                    <span v-else-if="post.status === 'PENDING_REVIEW'" class="px-3 py-1 text-xs font-bold bg-blue-100 text-blue-700 rounded-md shadow-sm">
+                      待审核
+                    </span>
+                    <span v-else-if="post.status === 'REJECTED'" class="px-3 py-1 text-xs font-bold bg-red-100 text-red-700 rounded-md shadow-sm">
+                      已拒绝
+                    </span>
                   </div>
 
                   <p class="text-gray-600 mt-2 line-clamp-2 text-sm">{{ post.summary }}</p>
@@ -241,7 +247,7 @@
                   </div>
 
                   <!-- Stats -->
-                  <div class="flex items-center space-x-6 mt-3 text-sm">
+                  <div v-if="post.status === 'PUBLISHED'" class="flex items-center space-x-6 mt-3 text-sm">
                     <span class="flex items-center text-red-500" :title="`${post.likeCount || 0} 个点赞`">
                       <svg class="w-4 h-4 mr-1.5" :fill="post.isLiked ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />

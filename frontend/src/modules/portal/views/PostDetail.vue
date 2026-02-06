@@ -123,7 +123,7 @@
 
           <!-- Article Footer Actions -->
           <div class="card p-6 flex items-center justify-between backdrop-blur-sm bg-white/90 animate-slide-up" style="animation-delay: 0.3s;">
-            <div class="flex items-center space-x-6 text-gray-400">
+            <div v-if="isPublished" class="flex items-center space-x-6 text-gray-400">
               <!-- Like Button -->
               <button
                   @click="handleLike"
@@ -177,6 +177,7 @@
               :post-id="post.id"
               :post-author-username="post.authorUsername"
               :is-draft="post.draft"
+              :can-comment="isPublished"
               :expand-comment-id="expandCommentId"
               @comment-count-changed="handleCommentCountChanged"
             />
@@ -256,6 +257,7 @@ export default {
 
     const currentUser = computed(() => store.getters.currentUser)
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
+    const isPublished = computed(() => post.value?.status === 'PUBLISHED')
     const isAuthor = computed(() => {
       return currentUser.value && post.value?.authorUsername === currentUser.value.username
     })
@@ -349,6 +351,7 @@ export default {
           updatedAt: response.updatedAt,
           publishedAt: response.publishedAt,
           draft: response.draft || false,
+          status: response.status,
           likeCount: response.likeCount || 0,  // 从后端获取点赞数
           isLiked: response.isLiked || false,   // 从后端获取是否已点赞
           viewCount: response.viewCount || 0,   // 从后端获取浏览量
@@ -542,6 +545,7 @@ export default {
       showBackToTop,
       commentCount,
       commentListRef,
+      isPublished,
       expandCommentId,
       formatDate,
       formatFullDate,

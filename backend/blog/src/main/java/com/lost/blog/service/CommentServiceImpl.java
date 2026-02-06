@@ -9,6 +9,7 @@ import com.lost.blog.mapper.CommentMapper;
 import com.lost.blog.model.Comment;
 import com.lost.blog.model.CommentStatus;
 import com.lost.blog.model.Post;
+import com.lost.blog.model.PostStatus;
 import com.lost.blog.model.User;
 import com.lost.blog.repository.CommentRepository;
 import com.lost.blog.repository.LikeRepository;
@@ -75,10 +76,15 @@ public class CommentServiceImpl implements CommentService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到文章ID: " + postId));
 
-        // 检查文章是否为草稿
-        if (post.getDraft()) {
+        // 检查文章状态
+        if (post.getStatus() == PostStatus.DRAFT) {
             logger.warn("用户 {} 尝试评论草稿文章ID: {}", user.getUsername(), postId);
             throw new AccessDeniedException("不能对草稿文章进行评论");
+        }
+
+        if (!isHeatEligible(post)) {
+            logger.warn("用户 {} 尝试评论未审核通过的文章ID: {}", user.getUsername(), postId);
+            throw new AccessDeniedException("文章未审核通过，无法评论");
         }
 
         // 创建评论
@@ -110,10 +116,15 @@ public class CommentServiceImpl implements CommentService {
         Comment parentComment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到评论ID: " + commentId));
 
-        // 检查父评论所属文章是否为草稿
-        if (parentComment.getPost().getDraft()) {
+        // 检查父评论所属文章状态
+        if (parentComment.getPost().getStatus() == PostStatus.DRAFT) {
             logger.warn("用户 {} 尝试回复草稿文章的评论ID: {}", user.getUsername(), commentId);
             throw new AccessDeniedException("不能回复草稿文章的评论");
+        }
+
+        if (!isHeatEligible(parentComment.getPost())) {
+            logger.warn("用户 {} 尝试回复未审核通过的文章评论ID: {}", user.getUsername(), commentId);
+            throw new AccessDeniedException("文章未审核通过，无法回复");
         }
 
         // 计算回复层级
@@ -333,5 +344,9 @@ public class CommentServiceImpl implements CommentService {
                 .orElseThrow(() -> new ResourceNotFoundException("未找到文章ID: " + postId));
 
         return commentRepository.countByPost(post);
+    }
+
+    private boolean isHeatEligible(Post post) {
+        return post.getStatus() == PostStatus.PUBLISHED;
     }
 }

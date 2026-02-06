@@ -84,21 +84,24 @@ public class HotAuthorServiceImpl implements HotAuthorService {
             LEFT JOIN (
                 SELECT user_id, COUNT(*) AS article_count, COALESCE(SUM(view_count), 0) AS view_count 
                 FROM posts 
-                WHERE is_draft = false 
+                WHERE is_draft = false
+                  AND status = 'PUBLISHED'
                 GROUP BY user_id
             ) p ON u.id = p.user_id
             LEFT JOIN (
                 SELECT po.user_id, COUNT(l.id) AS like_count 
                 FROM posts po 
                 JOIN likes l ON po.id = l.post_id 
-                WHERE po.is_draft = false 
+                WHERE po.is_draft = false
+                  AND po.status = 'PUBLISHED'
                 GROUP BY po.user_id
             ) lk ON u.id = lk.user_id
             LEFT JOIN (
                 SELECT po.user_id, COUNT(cm.id) AS comment_count 
                 FROM posts po 
                 JOIN comments cm ON po.id = cm.post_id 
-                WHERE po.is_draft = false 
+                WHERE po.is_draft = false
+                  AND po.status = 'PUBLISHED'
                 GROUP BY po.user_id
             ) c ON u.id = c.user_id
             WHERE p.article_count > 0
