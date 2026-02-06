@@ -1,6 +1,7 @@
 package com.lost.blog.service;
 
 import com.lost.blog.dto.NotificationResponse;
+import com.lost.blog.dto.AdminFormResponse;
 import com.lost.blog.model.Comment;
 import com.lost.blog.model.Post;
 import com.lost.blog.model.User;
@@ -52,6 +53,22 @@ public interface NotificationService {
      * @return 标记为已读的通知数量
      */
     int markAllAsRead(String filter, UserDetails currentUser);
+
+    /**
+     * 获取文章关联的管理表单
+     * @param postId 文章ID
+     * @param currentUser 当前用户
+     * @return 表单详情
+     */
+    AdminFormResponse getFormByPostId(Long postId, UserDetails currentUser);
+
+    /**
+     * 根据通知ID获取关联的管理表单
+     * @param notificationId 通知ID
+     * @param currentUser 当前用户
+     * @return 表单详情
+     */
+    AdminFormResponse getFormByNotificationId(Long notificationId, UserDetails currentUser);
 
     // --- 创建通知的方法 ---
 
