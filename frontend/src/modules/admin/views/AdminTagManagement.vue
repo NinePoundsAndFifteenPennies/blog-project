@@ -230,7 +230,35 @@
             </div>
             <div class="form-group">
               <label>图标 <span class="optional">(可选)</span></label>
-              <input type="text" v-model="tagForm.icon" class="form-input" placeholder="图标名称或图标类">
+              <div class="icon-picker-wrapper">
+                <div class="icon-picker-display" @click="showIconPicker = !showIconPicker">
+                  <span v-if="tagForm.icon" class="icon-preview">
+                    <i :class="tagForm.icon"></i>
+                    <span class="icon-class-text">{{ tagForm.icon }}</span>
+                  </span>
+                  <span v-else class="icon-placeholder">点击选择图标</span>
+                  <span class="icon-picker-arrow">▼</span>
+                </div>
+                <div v-if="showIconPicker" class="icon-picker-dropdown">
+                  <input type="text" v-model="iconSearchQuery" class="form-input icon-search-input" placeholder="搜索图标...">
+                  <div class="icon-grid">
+                    <div
+                      v-for="icon in filteredIcons"
+                      :key="icon.value"
+                      class="icon-grid-item"
+                      :class="{ 'icon-selected': tagForm.icon === icon.value }"
+                      @click="selectIcon(icon.value)"
+                      :title="icon.label"
+                    >
+                      <i :class="icon.value"></i>
+                    </div>
+                  </div>
+                  <div class="icon-picker-footer">
+                    <button class="btn btn-sm btn-secondary" @click="selectIcon('')">清除选择</button>
+                    <button class="btn btn-sm btn-primary" @click="showIconPicker = false">确定</button>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="form-group">
               <label>排序 <span class="optional">(可选)</span></label>
@@ -379,6 +407,96 @@ export default {
       reason: '',
       extraFieldsList: []
     })
+
+    // Icon picker state
+    const showIconPicker = ref(false)
+    const iconSearchQuery = ref('')
+
+    // Common Font Awesome icons for tags
+    const iconList = [
+      { value: 'fa fa-tag', label: '标签' },
+      { value: 'fa fa-tags', label: '多标签' },
+      { value: 'fa fa-code', label: '代码' },
+      { value: 'fa fa-java', label: 'Java' },
+      { value: 'fa fa-python', label: 'Python' },
+      { value: 'fa fa-js', label: 'JavaScript' },
+      { value: 'fa fa-html5', label: 'HTML5' },
+      { value: 'fa fa-css3-alt', label: 'CSS3' },
+      { value: 'fa fa-react', label: 'React' },
+      { value: 'fa fa-vuejs', label: 'Vue.js' },
+      { value: 'fa fa-angular', label: 'Angular' },
+      { value: 'fa fa-node-js', label: 'Node.js' },
+      { value: 'fa fa-docker', label: 'Docker' },
+      { value: 'fa fa-linux', label: 'Linux' },
+      { value: 'fa fa-windows', label: 'Windows' },
+      { value: 'fa fa-apple', label: 'Apple' },
+      { value: 'fa fa-android', label: 'Android' },
+      { value: 'fa fa-github', label: 'GitHub' },
+      { value: 'fa fa-git-alt', label: 'Git' },
+      { value: 'fa fa-database', label: '数据库' },
+      { value: 'fa fa-server', label: '服务器' },
+      { value: 'fa fa-cloud', label: '云' },
+      { value: 'fa fa-globe', label: '全球' },
+      { value: 'fa fa-lock', label: '安全' },
+      { value: 'fa fa-shield-alt', label: '防护' },
+      { value: 'fa fa-bug', label: 'Bug' },
+      { value: 'fa fa-wrench', label: '工具' },
+      { value: 'fa fa-cog', label: '设置' },
+      { value: 'fa fa-cogs', label: '多设置' },
+      { value: 'fa fa-rocket', label: '火箭' },
+      { value: 'fa fa-lightbulb', label: '灵感' },
+      { value: 'fa fa-book', label: '书籍' },
+      { value: 'fa fa-graduation-cap', label: '教育' },
+      { value: 'fa fa-paint-brush', label: '设计' },
+      { value: 'fa fa-palette', label: '调色板' },
+      { value: 'fa fa-camera', label: '相机' },
+      { value: 'fa fa-image', label: '图片' },
+      { value: 'fa fa-video', label: '视频' },
+      { value: 'fa fa-music', label: '音乐' },
+      { value: 'fa fa-gamepad', label: '游戏' },
+      { value: 'fa fa-heart', label: '喜爱' },
+      { value: 'fa fa-star', label: '星标' },
+      { value: 'fa fa-fire', label: '热门' },
+      { value: 'fa fa-bolt', label: '闪电' },
+      { value: 'fa fa-leaf', label: '叶子' },
+      { value: 'fa fa-coffee', label: '咖啡' },
+      { value: 'fa fa-pen', label: '写作' },
+      { value: 'fa fa-laptop-code', label: '编程' },
+      { value: 'fa fa-mobile-alt', label: '移动端' },
+      { value: 'fa fa-desktop', label: '桌面' },
+      { value: 'fa fa-microchip', label: '芯片' },
+      { value: 'fa fa-robot', label: '机器人' },
+      { value: 'fa fa-brain', label: 'AI/大脑' },
+      { value: 'fa fa-chart-line', label: '图表' },
+      { value: 'fa fa-network-wired', label: '网络' },
+      { value: 'fa fa-terminal', label: '终端' },
+      { value: 'fa fa-sitemap', label: '架构' },
+      { value: 'fa fa-cube', label: '模块' },
+      { value: 'fa fa-cubes', label: '多模块' },
+      { value: 'fa fa-puzzle-piece', label: '插件' },
+      { value: 'fa fa-flask', label: '实验' },
+      { value: 'fa fa-seedling', label: '成长' },
+      { value: 'fa fa-trophy', label: '奖杯' },
+      { value: 'fa fa-flag', label: '标记' },
+      { value: 'fa fa-bookmark', label: '收藏' },
+      { value: 'fa fa-compass', label: '指南' },
+      { value: 'fa fa-map', label: '地图' }
+    ]
+
+    const filteredIcons = computed(() => {
+      if (!iconSearchQuery.value) return iconList
+      const query = iconSearchQuery.value.toLowerCase()
+      return iconList.filter(icon =>
+        icon.label.toLowerCase().includes(query) ||
+        icon.value.toLowerCase().includes(query)
+      )
+    })
+
+    const selectIcon = (iconValue) => {
+      tagForm.value.icon = iconValue
+      showIconPicker.value = false
+      iconSearchQuery.value = ''
+    }
 
     // Menu items (consistent with other admin views)
     const menuItems = [
@@ -708,6 +826,11 @@ export default {
       closeFormModal,
       onColorPick,
       submitTagForm,
+      // Icon picker
+      showIconPicker,
+      iconSearchQuery,
+      filteredIcons,
+      selectIcon,
       // Delete modal
       showDeleteModal,
       isBatchDelete,
@@ -1307,5 +1430,116 @@ export default {
 .quick-link svg {
   width: 18px;
   height: 18px;
+}
+
+/* Icon Picker */
+.icon-picker-wrapper {
+  position: relative;
+}
+
+.icon-picker-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+
+.icon-picker-display:hover {
+  border-color: #1890ff;
+}
+
+.icon-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-preview i {
+  font-size: 18px;
+  color: #333;
+}
+
+.icon-class-text {
+  font-size: 13px;
+  color: #666;
+  font-family: monospace;
+}
+
+.icon-placeholder {
+  color: #999;
+  font-size: 14px;
+}
+
+.icon-picker-arrow {
+  color: #999;
+  font-size: 10px;
+}
+
+.icon-picker-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  max-height: 360px;
+  display: flex;
+  flex-direction: column;
+}
+
+.icon-search-input {
+  margin: 8px;
+  width: calc(100% - 16px) !important;
+}
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  padding: 8px;
+  overflow-y: auto;
+  max-height: 240px;
+}
+
+.icon-grid-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 18px;
+  color: #555;
+}
+
+.icon-grid-item:hover {
+  background: #e6f7ff;
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.icon-grid-item.icon-selected {
+  background: #1890ff;
+  color: #fff;
+  border-color: #1890ff;
+}
+
+.icon-picker-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  border-top: 1px solid #e8e8e8;
 }
 </style>

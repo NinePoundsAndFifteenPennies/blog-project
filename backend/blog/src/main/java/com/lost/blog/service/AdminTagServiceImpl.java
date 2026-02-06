@@ -167,7 +167,7 @@ public class AdminTagServiceImpl implements AdminTagService {
                 adminFormRepository.save(form);
 
                 // 发送通知
-                notificationService.createTagDeletedNotification(admin, tagCreator, tagName, reason);
+                notificationService.createTagRemovedNotification(admin, tagCreator, tagName, reason);
 
                 // 软删除：只移除标签与所有文章的关联（post_tags表中的记录）
                 if (tag.getPosts() != null && !tag.getPosts().isEmpty()) {
