@@ -39,6 +39,12 @@ public class AdminTagActionRequest {
      */
     private String extraFields;
 
+    /**
+     * 指定的文章ID列表（用于软删除时选择性解除关联，可选）
+     * 如果不提供，则解除标签与所有文章的关联
+     */
+    private List<Long> postIds;
+
     public AdminTagActionRequest() {
     }
 
@@ -80,5 +86,13 @@ public class AdminTagActionRequest {
 
     public void setExtraFields(String extraFields) {
         this.extraFields = extraFields;
+    }
+
+    public List<Long> getPostIds() {
+        return postIds;
+    }
+
+    public void setPostIds(List<Long> postIds) {
+        this.postIds = postIds;
     }
 }

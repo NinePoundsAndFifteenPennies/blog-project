@@ -102,9 +102,26 @@
             </td>
             <td>{{ tag.icon || '-' }}</td>
             <td>
-              <span class="post-count-badge" :class="getPostCountClass(tag.postCount)">
+              <span 
+                class="post-count-badge clickable" 
+                :class="getPostCountClass(tag.postCount)"
+                @click="toggleExpandPosts(tag)"
+                :title="tag.postCount > 0 ? '点击展开/收起关联文章' : ''"
+              >
                 {{ tag.postCount }}
+                <span v-if="tag.postCount > 0" class="expand-arrow">{{ isTagExpanded(tag.id) ? '▲' : '▼' }}</span>
               </span>
+              <div v-if="isTagExpanded(tag.id) && tag._posts" class="expanded-posts">
+                <div v-for="post in tag._posts" :key="post.postId" class="expanded-post-item">
+                  <router-link :to="`/post/${post.postId}`" class="post-link-sm" target="_blank">
+                    <span class="post-id-badge-sm">#{{ post.postId }}</span>
+                    {{ truncateText(post.postTitle, 20) }}
+                  </router-link>
+                </div>
+              </div>
+              <div v-if="isTagExpanded(tag.id) && tag._loadingPosts" class="expanded-posts">
+                <span class="text-muted">加载中...</span>
+              </div>
             </td>
             <td>{{ tag.createdByNickname || tag.createdByUsername || '-' }}</td>
             <td>{{ tag.sortOrder != null ? tag.sortOrder : '-' }}</td>
@@ -181,6 +198,22 @@
                 {{ selectedTag.postCount }}
               </span>
             </span>
+          </div>
+          <!-- 关联文章列表 -->
+          <div v-if="selectedTag.posts && selectedTag.posts.length > 0" class="detail-row detail-row-block">
+            <span class="label">关联文章:</span>
+            <div class="associated-posts-list">
+              <div v-for="post in selectedTag.posts" :key="post.postId" class="associated-post-item">
+                <router-link :to="`/post/${post.postId}`" class="post-link" target="_blank">
+                  <span class="post-id-badge">#{{ post.postId }}</span>
+                  {{ post.postTitle }}
+                </router-link>
+              </div>
+            </div>
+          </div>
+          <div v-else class="detail-row">
+            <span class="label">关联文章:</span>
+            <span class="value text-muted">暂无关联文章</span>
           </div>
           <div class="detail-row">
             <span class="label">创建者:</span>
@@ -283,7 +316,7 @@
 
     <!-- Delete Modal -->
     <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
-      <div class="modal-content">
+      <div class="modal-content modal-lg">
         <div class="modal-header">
           <h3>{{ getDeleteModalTitle() }}</h3>
           <button class="close-btn" @click="closeDeleteModal">&times;</button>
@@ -296,11 +329,44 @@
             }}
           </p>
           <p class="sub-text" v-if="deleteAction === 'SOFT_DELETE'">
-            软删除仅移除标签与文章的关联关系，标签本身仍然保留。
+            软删除仅移除标签与文章的关联关系，标签本身仍然保留。您可以选择要解除关联的文章，不选则解除所有关联。
           </p>
           <p class="sub-text" v-else>
             硬删除将永久删除标签及其与文章的所有关联，此操作不可恢复。
           </p>
+
+          <!-- 软删除时显示关联文章选择 -->
+          <div v-if="deleteAction === 'SOFT_DELETE' && !isBatchDelete && deletePostsList.length > 0" class="form-group">
+            <label>选择要解除关联的文章 <span class="optional">(不选则全部解除)</span></label>
+            <div class="post-selection-list">
+              <div class="post-selection-header">
+                <label class="checkbox-label">
+                  <input type="checkbox" :checked="isAllDeletePostsSelected" @change="toggleSelectAllDeletePosts">
+                  <span>全选 ({{ deletePostsList.length }} 篇文章)</span>
+                </label>
+                <span v-if="selectedDeletePostIds.length > 0" class="selected-info">
+                  已选择 {{ selectedDeletePostIds.length }} 篇
+                </span>
+              </div>
+              <div class="post-selection-items">
+                <label v-for="post in deletePostsList" :key="post.postId" class="checkbox-label post-checkbox-item">
+                  <input 
+                    type="checkbox" 
+                    :value="post.postId" 
+                    v-model="selectedDeletePostIds"
+                  >
+                  <span class="post-id-badge-sm">#{{ post.postId }}</span>
+                  <span class="post-checkbox-title">{{ post.postTitle }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div v-if="deleteAction === 'SOFT_DELETE' && !isBatchDelete && deletePostsList.length === 0 && deletePostsLoading" class="form-group">
+            <p class="text-muted">加载关联文章中...</p>
+          </div>
+          <div v-if="deleteAction === 'SOFT_DELETE' && !isBatchDelete && deletePostsList.length === 0 && !deletePostsLoading" class="form-group">
+            <p class="text-muted">此标签暂无关联文章</p>
+          </div>
           
           <div class="form-group">
             <label>通知标题 <span class="optional">(可选)</span></label>
@@ -411,6 +477,13 @@ export default {
       reason: '',
       extraFieldsList: []
     })
+    // Soft delete post selection state
+    const deletePostsList = ref([])
+    const deletePostsLoading = ref(false)
+    const selectedDeletePostIds = ref([])
+
+    // Expanded posts in table
+    const expandedTagIds = ref([])
 
     // Icon picker state
     const showIconPicker = ref(false)
@@ -703,18 +776,45 @@ export default {
 
     // ======================= Delete Modal =======================
 
-    const openDeleteModal = (tag, action) => {
+    const openDeleteModal = async (tag, action) => {
       deleteTargetTag.value = tag
       deleteAction.value = action
       isBatchDelete.value = false
       deleteForm.value = { formTitle: '', reason: '', extraFieldsList: [] }
+      deletePostsList.value = []
+      selectedDeletePostIds.value = []
       showDeleteModal.value = true
+
+      // 软删除时加载关联文章列表供选择
+      if (action === 'SOFT_DELETE' && tag.postCount > 0) {
+        deletePostsLoading.value = true
+        try {
+          const detail = await getAdminTagDetail(tag.id)
+          deletePostsList.value = detail.posts || []
+        } catch (error) {
+          console.error('Failed to load tag posts for delete:', error)
+        } finally {
+          deletePostsLoading.value = false
+        }
+      }
     }
 
     const openDeleteModalFromDetail = (action) => {
       if (!selectedTag.value) return
+      const tag = selectedTag.value
       closeDetailModal()
-      openDeleteModal(selectedTag.value, action)
+      // 如果详情中已有posts数据，直接使用
+      deleteTargetTag.value = tag
+      deleteAction.value = action
+      isBatchDelete.value = false
+      deleteForm.value = { formTitle: '', reason: '', extraFieldsList: [] }
+      selectedDeletePostIds.value = []
+      if (action === 'SOFT_DELETE' && tag.posts && tag.posts.length > 0) {
+        deletePostsList.value = tag.posts
+      } else {
+        deletePostsList.value = []
+      }
+      showDeleteModal.value = true
     }
 
     const openBatchDeleteModal = (action) => {
@@ -722,6 +822,8 @@ export default {
       deleteAction.value = action
       isBatchDelete.value = true
       deleteForm.value = { formTitle: '', reason: '', extraFieldsList: [] }
+      deletePostsList.value = []
+      selectedDeletePostIds.value = []
       showDeleteModal.value = true
     }
 
@@ -729,6 +831,21 @@ export default {
       showDeleteModal.value = false
       deleteTargetTag.value = null
       isBatchDelete.value = false
+      deletePostsList.value = []
+      selectedDeletePostIds.value = []
+    }
+
+    const isAllDeletePostsSelected = computed(() => {
+      return deletePostsList.value.length > 0 && 
+             deletePostsList.value.every(p => selectedDeletePostIds.value.includes(p.postId))
+    })
+
+    const toggleSelectAllDeletePosts = () => {
+      if (isAllDeletePostsSelected.value) {
+        selectedDeletePostIds.value = []
+      } else {
+        selectedDeletePostIds.value = deletePostsList.value.map(p => p.postId)
+      }
     }
 
     const addExtraField = () => {
@@ -754,14 +871,22 @@ export default {
 
       const ids = isBatchDelete.value ? selectedTagIds.value : [deleteTargetTag.value.id]
       
+      // 构造请求
+      const requestData = {
+        action: deleteAction.value,
+        tagIds: ids,
+        formTitle: deleteForm.value.formTitle || undefined,
+        reason: deleteForm.value.reason,
+        extraFields: getExtraFieldsJson()
+      }
+
+      // 软删除时，如果选择了特定文章，则传递postIds
+      if (deleteAction.value === 'SOFT_DELETE' && selectedDeletePostIds.value.length > 0) {
+        requestData.postIds = selectedDeletePostIds.value
+      }
+
       try {
-        await executeTagAction({
-          action: deleteAction.value,
-          tagIds: ids,
-          formTitle: deleteForm.value.formTitle || undefined,
-          reason: deleteForm.value.reason,
-          extraFields: getExtraFieldsJson()
-        })
+        await executeTagAction(requestData)
         closeDeleteModal()
         selectedTagIds.value = []
         await loadTags()
@@ -771,6 +896,37 @@ export default {
         console.error('Failed to delete tags:', error)
         alert('删除失败: ' + (error.response?.data || error.message))
       }
+    }
+
+    // ======================= Expand Posts in Table =======================
+
+    const isTagExpanded = (tagId) => {
+      return expandedTagIds.value.includes(tagId)
+    }
+
+    const toggleExpandPosts = async (tag) => {
+      if (tag.postCount === 0) return
+
+      const idx = expandedTagIds.value.indexOf(tag.id)
+      if (idx !== -1) {
+        expandedTagIds.value.splice(idx, 1)
+        return
+      }
+
+      // Load posts if not already loaded
+      if (!tag._posts) {
+        tag._loadingPosts = true
+        try {
+          const detail = await getAdminTagDetail(tag.id)
+          tag._posts = detail.posts || []
+        } catch (error) {
+          console.error('Failed to load tag posts:', error)
+          tag._posts = []
+        } finally {
+          tag._loadingPosts = false
+        }
+      }
+      expandedTagIds.value.push(tag.id)
     }
 
     // ======================= Batch Selection =======================
@@ -851,6 +1007,11 @@ export default {
       isBatchDelete,
       deleteAction,
       deleteForm,
+      deletePostsList,
+      deletePostsLoading,
+      selectedDeletePostIds,
+      isAllDeletePostsSelected,
+      toggleSelectAllDeletePosts,
       getDeleteModalTitle,
       openDeleteModal,
       openDeleteModalFromDetail,
@@ -859,6 +1020,9 @@ export default {
       addExtraField,
       removeExtraField,
       confirmDelete,
+      // Expand posts in table
+      isTagExpanded,
+      toggleExpandPosts,
       // Batch selection
       selectedTagIds,
       isTagSelected,
@@ -1556,5 +1720,157 @@ export default {
   justify-content: space-between;
   padding: 8px;
   border-top: 1px solid #e8e8e8;
+}
+
+/* Associated posts in detail modal */
+.detail-row-block {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-row-block .label {
+  width: auto;
+}
+
+.associated-posts-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  padding: 4px;
+}
+
+.associated-post-item {
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.associated-post-item:hover {
+  background: #f5f5f5;
+}
+
+.post-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1890ff;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.post-link:hover {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+.post-id-badge {
+  display: inline-block;
+  background: #e6f7ff;
+  color: #1890ff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* Expanded posts in table */
+.post-count-badge.clickable {
+  cursor: pointer;
+}
+
+.post-count-badge.clickable:hover {
+  opacity: 0.8;
+}
+
+.expand-arrow {
+  font-size: 10px;
+  margin-left: 4px;
+}
+
+.expanded-posts {
+  margin-top: 6px;
+  padding: 6px 0;
+  border-top: 1px solid #f0f0f0;
+}
+
+.expanded-post-item {
+  padding: 2px 0;
+}
+
+.post-link-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #1890ff;
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.post-link-sm:hover {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+.post-id-badge-sm {
+  display: inline-block;
+  background: #e6f7ff;
+  color: #1890ff;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* Post selection in delete modal */
+.post-selection-list {
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.post-selection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #fafafa;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.selected-info {
+  font-size: 12px;
+  color: #1890ff;
+  font-weight: 500;
+}
+
+.post-selection-items {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.post-checkbox-item {
+  padding: 6px 12px;
+  transition: background 0.15s;
+}
+
+.post-checkbox-item:hover {
+  background: #f5f5f5;
+}
+
+.post-checkbox-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

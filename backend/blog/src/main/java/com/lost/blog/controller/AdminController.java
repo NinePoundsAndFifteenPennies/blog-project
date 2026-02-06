@@ -574,6 +574,7 @@ public class AdminController {
             case "SOFT_DELETE":
                 result = adminTagService.softDeleteTags(
                         request.getTagIds(),
+                        request.getPostIds(),
                         request.getFormTitle(),
                         request.getReason(),
                         request.getExtraFields(),

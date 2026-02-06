@@ -3,6 +3,8 @@ package com.lost.blog.dto;
 import com.lost.blog.model.Tag;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 管理员标签响应DTO
@@ -24,6 +26,9 @@ public class AdminTagResponse {
 
     // 统计信息
     private Long postCount;
+
+    // 关联的文章列表（详情接口返回）
+    private List<PostInfo> posts;
 
     // 时间信息
     private LocalDateTime createdAt;
@@ -65,6 +70,15 @@ public class AdminTagResponse {
             response.setPostCount((long) tag.getPosts().size());
         } else {
             response.setPostCount(0L);
+        }
+
+        // 关联文章列表（仅在posts已加载时填充）
+        if (tag.getPosts() != null && !tag.getPosts().isEmpty()) {
+            List<PostInfo> postInfos = new ArrayList<>();
+            for (var post : tag.getPosts()) {
+                postInfos.add(new PostInfo(post.getId(), post.getTitle()));
+            }
+            response.setPosts(postInfos);
         }
 
         response.setCreatedAt(tag.getCreatedAt());
@@ -168,5 +182,45 @@ public class AdminTagResponse {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public List<PostInfo> getPosts() {
+        return posts;
+    }
+
+    public void setPosts(List<PostInfo> posts) {
+        this.posts = posts;
+    }
+
+    /**
+     * 文章简要信息（用于标签-文章关联展示）
+     */
+    public static class PostInfo {
+        private Long postId;
+        private String postTitle;
+
+        public PostInfo() {
+        }
+
+        public PostInfo(Long postId, String postTitle) {
+            this.postId = postId;
+            this.postTitle = postTitle;
+        }
+
+        public Long getPostId() {
+            return postId;
+        }
+
+        public void setPostId(Long postId) {
+            this.postId = postId;
+        }
+
+        public String getPostTitle() {
+            return postTitle;
+        }
+
+        public void setPostTitle(String postTitle) {
+            this.postTitle = postTitle;
+        }
     }
 }

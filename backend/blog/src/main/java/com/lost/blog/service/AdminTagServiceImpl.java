@@ -22,6 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 管理员标签服务实现类
@@ -141,8 +142,8 @@ public class AdminTagServiceImpl implements AdminTagService {
 
     @Override
     @Transactional
-    public AdminBatchActionResponse softDeleteTags(List<Long> tagIds, String formTitle,
-                                                    String reason, String extraFields, User admin) {
+    public AdminBatchActionResponse softDeleteTags(List<Long> tagIds, List<Long> postIds,
+                                                    String formTitle, String reason, String extraFields, User admin) {
         List<Long> successIds = new ArrayList<>();
         List<AdminBatchActionResponse.FailureItem> failures = new ArrayList<>();
 
@@ -154,13 +155,35 @@ public class AdminTagServiceImpl implements AdminTagService {
                 User tagCreator = tag.getCreatedBy();
                 String tagName = tag.getName();
 
+                // 确定要解除关联的文章列表
+                Set<Post> postsToRemove;
+                if (postIds != null && !postIds.isEmpty()) {
+                    // 选择性解除：只移除指定的文章关联
+                    Set<Long> targetPostIds = new HashSet<>(postIds);
+                    postsToRemove = new HashSet<>();
+                    if (tag.getPosts() != null) {
+                        for (var post : tag.getPosts()) {
+                            if (targetPostIds.contains(post.getId())) {
+                                postsToRemove.add(post);
+                            }
+                        }
+                    }
+                    if (postsToRemove.isEmpty()) {
+                        failures.add(new AdminBatchActionResponse.FailureItem(tagId, "标签与指定文章无关联"));
+                        continue;
+                    }
+                } else {
+                    // 全部解除：移除标签与所有文章的关联
+                    postsToRemove = (tag.getPosts() != null) ? new HashSet<>(tag.getPosts()) : new HashSet<>();
+                }
+
                 // 收集受影响的文章信息
                 String affectedPostsJson = "[]";
-                if (tag.getPosts() != null && !tag.getPosts().isEmpty()) {
+                if (!postsToRemove.isEmpty()) {
                     try {
                         ObjectMapper mapper = new ObjectMapper();
                         ArrayNode array = mapper.createArrayNode();
-                        for (var post : tag.getPosts()) {
+                        for (var post : postsToRemove) {
                             ObjectNode node = mapper.createObjectNode();
                             node.put("postId", post.getId());
                             node.put("postTitle", post.getTitle());
@@ -191,18 +214,16 @@ public class AdminTagServiceImpl implements AdminTagService {
                 // 发送通知
                 notificationService.createTagRemovedNotification(admin, tagCreator, tagName, reason);
 
-                // 软删除：只移除标签与所有文章的关联（post_tags表中的记录）
-                if (tag.getPosts() != null && !tag.getPosts().isEmpty()) {
-                    var posts = new HashSet<>(tag.getPosts());
-                    for (var post : posts) {
-                        post.getTags().remove(tag);
-                    }
-                    tag.getPosts().clear();
-                    tagRepository.save(tag);
+                // 软删除：移除指定的文章关联
+                for (var post : postsToRemove) {
+                    post.getTags().remove(tag);
+                    tag.getPosts().remove(post);
                 }
+                tagRepository.save(tag);
 
                 successIds.add(tagId);
-                logger.info("管理员 {} 软删除标签 {} ({}), 理由: {}", admin.getUsername(), tagId, tagName, reason);
+                logger.info("管理员 {} 软删除标签 {} ({})，解除 {} 篇文章关联，理由: {}",
+                        admin.getUsername(), tagId, tagName, postsToRemove.size(), reason);
 
             } catch (ResourceNotFoundException e) {
                 failures.add(new AdminBatchActionResponse.FailureItem(tagId, e.getMessage()));

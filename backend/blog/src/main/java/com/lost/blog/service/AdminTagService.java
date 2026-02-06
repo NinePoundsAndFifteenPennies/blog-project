@@ -45,14 +45,15 @@ public interface AdminTagService {
     /**
      * 批量软删除标签（只移除标签与文章的关联）
      * @param tagIds 标签ID列表
+     * @param postIds 指定要解除关联的文章ID列表（为null时解除所有关联）
      * @param formTitle 表单标题
      * @param reason 删除理由
      * @param extraFields 扩展字段（JSON格式）
      * @param admin 操作管理员
      * @return 批量操作结果
      */
-    AdminBatchActionResponse softDeleteTags(java.util.List<Long> tagIds, String formTitle,
-                                            String reason, String extraFields, User admin);
+    AdminBatchActionResponse softDeleteTags(java.util.List<Long> tagIds, java.util.List<Long> postIds,
+                                            String formTitle, String reason, String extraFields, User admin);
 
     /**
      * 批量硬删除标签（删除标签本身及所有关联）
