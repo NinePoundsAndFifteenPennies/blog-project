@@ -3,7 +3,7 @@
     <div class="stat-info">
       <span class="stat-label">{{ label }}</span>
       <span class="stat-value">{{ formattedValue }}</span>
-      <span class="stat-today" v-if="todayValue !== undefined">
+      <span class="stat-today" v-if="todayValue !== null">
         今日新增
         <span class="today-count">+{{ todayValue }}</span>
       </span>
@@ -18,7 +18,7 @@ export default {
   props: {
     label: { type: String, required: true },
     value: { type: Number, default: 0 },
-    todayValue: { type: Number, default: undefined },
+    todayValue: { type: Number, default: null },
     iconClass: { type: String, default: 'icon-blue' },
     icon: { type: String, default: '' },
   },
