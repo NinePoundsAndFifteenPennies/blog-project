@@ -278,7 +278,39 @@
             </div>
             <div class="form-group">
               <label>图标 <span class="optional">(可选)</span></label>
-              <input type="text" v-model="categoryForm.icon" class="form-input" placeholder="输入图标名称，如 fa-solid fa-folder">
+              <div class="icon-picker-wrapper">
+                <div class="icon-picker-display" tabindex="0" role="button" @click="showIconPicker = !showIconPicker" @keydown.enter.prevent="showIconPicker = !showIconPicker" @keydown.space.prevent="showIconPicker = !showIconPicker">
+                  <span v-if="categoryForm.icon" class="icon-preview">
+                    <i :class="categoryForm.icon"></i>
+                    <span class="icon-class-text">{{ categoryForm.icon }}</span>
+                  </span>
+                  <span v-else class="icon-placeholder">点击选择图标</span>
+                  <span class="icon-picker-arrow">▼</span>
+                </div>
+                <div v-if="showIconPicker" class="icon-picker-dropdown">
+                  <input type="text" v-model="iconSearchQuery" class="form-input icon-search-input" placeholder="搜索图标...">
+                  <div class="icon-grid">
+                    <div
+                      v-for="icon in filteredIcons"
+                      :key="icon.value"
+                      class="icon-grid-item"
+                      :class="{ 'icon-selected': categoryForm.icon === icon.value }"
+                      tabindex="0"
+                      role="button"
+                      @click="selectIcon(icon.value)"
+                      @keydown.enter.prevent="selectIcon(icon.value)"
+                      @keydown.space.prevent="selectIcon(icon.value)"
+                      :title="icon.label"
+                    >
+                      <i :class="icon.value"></i>
+                    </div>
+                  </div>
+                  <div class="icon-picker-footer">
+                    <button class="btn btn-sm btn-secondary" @click="selectIcon('')">清除选择</button>
+                    <button class="btn btn-sm btn-primary" @click="showIconPicker = false">确定</button>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="form-group">
               <label>排序 <span class="optional">(可选)</span></label>
@@ -414,6 +446,108 @@ export default {
       icon: '',
       sortOrder: null
     })
+
+    // Icon picker state
+    const showIconPicker = ref(false)
+    const iconSearchQuery = ref('')
+
+    // Common Font Awesome 6 icons for categories
+    const iconList = [
+      // Solid icons (fa-solid)
+      { value: 'fa-solid fa-folder', label: '文件夹' },
+      { value: 'fa-solid fa-folder-open', label: '打开文件夹' },
+      { value: 'fa-solid fa-tag', label: '标签' },
+      { value: 'fa-solid fa-tags', label: '多标签' },
+      { value: 'fa-solid fa-code', label: '代码' },
+      { value: 'fa-solid fa-database', label: '数据库' },
+      { value: 'fa-solid fa-server', label: '服务器' },
+      { value: 'fa-solid fa-cloud', label: '云' },
+      { value: 'fa-solid fa-globe', label: '全球' },
+      { value: 'fa-solid fa-lock', label: '安全' },
+      { value: 'fa-solid fa-shield-halved', label: '防护' },
+      { value: 'fa-solid fa-bug', label: 'Bug' },
+      { value: 'fa-solid fa-wrench', label: '工具' },
+      { value: 'fa-solid fa-gear', label: '设置' },
+      { value: 'fa-solid fa-gears', label: '多设置' },
+      { value: 'fa-solid fa-rocket', label: '火箭' },
+      { value: 'fa-solid fa-lightbulb', label: '灵感' },
+      { value: 'fa-solid fa-book', label: '书籍' },
+      { value: 'fa-solid fa-graduation-cap', label: '教育' },
+      { value: 'fa-solid fa-paintbrush', label: '设计' },
+      { value: 'fa-solid fa-palette', label: '调色板' },
+      { value: 'fa-solid fa-camera', label: '相机' },
+      { value: 'fa-solid fa-image', label: '图片' },
+      { value: 'fa-solid fa-video', label: '视频' },
+      { value: 'fa-solid fa-music', label: '音乐' },
+      { value: 'fa-solid fa-gamepad', label: '游戏' },
+      { value: 'fa-solid fa-heart', label: '喜爱' },
+      { value: 'fa-solid fa-star', label: '星标' },
+      { value: 'fa-solid fa-fire', label: '热门' },
+      { value: 'fa-solid fa-bolt', label: '闪电' },
+      { value: 'fa-solid fa-leaf', label: '叶子' },
+      { value: 'fa-solid fa-mug-hot', label: '咖啡' },
+      { value: 'fa-solid fa-pen', label: '写作' },
+      { value: 'fa-solid fa-laptop-code', label: '编程' },
+      { value: 'fa-solid fa-mobile-screen-button', label: '移动端' },
+      { value: 'fa-solid fa-desktop', label: '桌面' },
+      { value: 'fa-solid fa-microchip', label: '芯片' },
+      { value: 'fa-solid fa-robot', label: '机器人' },
+      { value: 'fa-solid fa-brain', label: 'AI/大脑' },
+      { value: 'fa-solid fa-chart-line', label: '图表' },
+      { value: 'fa-solid fa-network-wired', label: '网络' },
+      { value: 'fa-solid fa-terminal', label: '终端' },
+      { value: 'fa-solid fa-sitemap', label: '架构' },
+      { value: 'fa-solid fa-cube', label: '模块' },
+      { value: 'fa-solid fa-cubes', label: '多模块' },
+      { value: 'fa-solid fa-puzzle-piece', label: '插件' },
+      { value: 'fa-solid fa-flask', label: '实验' },
+      { value: 'fa-solid fa-seedling', label: '成长' },
+      { value: 'fa-solid fa-trophy', label: '奖杯' },
+      { value: 'fa-solid fa-flag', label: '标记' },
+      { value: 'fa-solid fa-bookmark', label: '收藏' },
+      { value: 'fa-solid fa-compass', label: '指南' },
+      { value: 'fa-solid fa-map', label: '地图' },
+      // Brand icons (fa-brands)
+      { value: 'fa-brands fa-java', label: 'Java' },
+      { value: 'fa-brands fa-python', label: 'Python' },
+      { value: 'fa-brands fa-js', label: 'JavaScript' },
+      { value: 'fa-brands fa-html5', label: 'HTML5' },
+      { value: 'fa-brands fa-css3-alt', label: 'CSS3' },
+      { value: 'fa-brands fa-react', label: 'React' },
+      { value: 'fa-brands fa-vuejs', label: 'Vue.js' },
+      { value: 'fa-brands fa-angular', label: 'Angular' },
+      { value: 'fa-brands fa-node-js', label: 'Node.js' },
+      { value: 'fa-brands fa-docker', label: 'Docker' },
+      { value: 'fa-brands fa-linux', label: 'Linux' },
+      { value: 'fa-brands fa-windows', label: 'Windows' },
+      { value: 'fa-brands fa-apple', label: 'Apple' },
+      { value: 'fa-brands fa-android', label: 'Android' },
+      { value: 'fa-brands fa-github', label: 'GitHub' },
+      { value: 'fa-brands fa-git-alt', label: 'Git' },
+      { value: 'fa-brands fa-php', label: 'PHP' },
+      { value: 'fa-brands fa-rust', label: 'Rust' },
+      { value: 'fa-brands fa-golang', label: 'Go' },
+      { value: 'fa-brands fa-swift', label: 'Swift' },
+      { value: 'fa-brands fa-aws', label: 'AWS' },
+      { value: 'fa-brands fa-npm', label: 'npm' }
+    ]
+
+    const filteredIcons = computed(() => {
+      if (!iconSearchQuery.value) return iconList
+      const query = iconSearchQuery.value.toLowerCase()
+      return iconList.filter(icon =>
+        icon.label.toLowerCase().includes(query) ||
+        icon.value.toLowerCase().includes(query)
+      )
+    })
+
+    const selectIcon = (iconValue) => {
+      categoryForm.value.icon = iconValue
+      if (iconValue) {
+        showIconPicker.value = false
+      }
+      iconSearchQuery.value = ''
+    }
 
     // Delete modal state
     const showDeleteModal = ref(false)
@@ -630,6 +764,8 @@ export default {
       editingCategoryId.value = null
       categoryForm.value = { name: '', description: '', color: '', icon: '', sortOrder: null }
       colorPickerValue.value = '#1890ff'
+      showIconPicker.value = false
+      iconSearchQuery.value = ''
       showFormModal.value = true
     }
 
@@ -644,6 +780,8 @@ export default {
         sortOrder: category.sortOrder
       }
       colorPickerValue.value = category.color || '#1890ff'
+      showIconPicker.value = false
+      iconSearchQuery.value = ''
       showFormModal.value = true
     }
 
@@ -657,6 +795,8 @@ export default {
       showFormModal.value = false
       isEditMode.value = false
       editingCategoryId.value = null
+      showIconPicker.value = false
+      iconSearchQuery.value = ''
     }
 
     const onColorPick = () => {
@@ -857,6 +997,10 @@ export default {
       isEditMode,
       categoryForm,
       colorPickerValue,
+      showIconPicker,
+      iconSearchQuery,
+      filteredIcons,
+      selectIcon,
       openCreateModal,
       openEditModal,
       openEditModalFromDetail,
@@ -1508,6 +1652,117 @@ export default {
   font-size: 12px;
   font-weight: 500;
   flex-shrink: 0;
+}
+
+/* Icon Picker */
+.icon-picker-wrapper {
+  position: relative;
+}
+
+.icon-picker-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+
+.icon-picker-display:hover {
+  border-color: #1890ff;
+}
+
+.icon-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-preview i {
+  font-size: 18px;
+  color: #333;
+}
+
+.icon-class-text {
+  font-size: 13px;
+  color: #666;
+  font-family: monospace;
+}
+
+.icon-placeholder {
+  color: #999;
+  font-size: 14px;
+}
+
+.icon-picker-arrow {
+  color: #999;
+  font-size: 10px;
+}
+
+.icon-picker-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  max-height: 360px;
+  display: flex;
+  flex-direction: column;
+}
+
+.icon-search-input {
+  margin: 8px;
+  width: calc(100% - 16px) !important;
+}
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  padding: 8px;
+  overflow-y: auto;
+  max-height: 240px;
+}
+
+.icon-grid-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 18px;
+  color: #555;
+}
+
+.icon-grid-item:hover {
+  background: #e6f7ff;
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.icon-grid-item.icon-selected {
+  background: #1890ff;
+  color: #fff;
+  border-color: #1890ff;
+}
+
+.icon-picker-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  border-top: 1px solid #e8e8e8;
 }
 
 /* Assign post input */
