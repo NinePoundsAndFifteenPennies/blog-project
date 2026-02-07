@@ -358,7 +358,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { getAdminCategories, getAdminCategoryDetail, createAdminCategory, updateAdminCategory, assignPostToCategory, removePostFromCategory, executeCategoryAction, searchPostsForCategory } from '@/api/admin'
@@ -816,6 +816,10 @@ export default {
 
     onMounted(() => {
       loadCategories()
+    })
+
+    onBeforeUnmount(() => {
+      if (postSearchTimer) clearTimeout(postSearchTimer)
     })
 
     return {
