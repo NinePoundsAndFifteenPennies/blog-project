@@ -429,6 +429,24 @@ public class NotificationServiceImpl implements NotificationService {
         logger.info("创建通知: 管理员 {} 删除了 {} 的标签「{}」", admin.getUsername(), tagCreator.getUsername(), tagName);
     }
 
+    @Override
+    @Transactional
+    public void createCategoryDeletedNotification(User admin, User categoryCreator, String categoryName, String reason) {
+        // 不需要给管理员自己发通知
+        if (admin.getId().equals(categoryCreator.getId())) {
+            return;
+        }
+
+        Notification notification = new Notification();
+        notification.setType(NotificationType.CATEGORY_DELETED);
+        notification.setRecipient(categoryCreator);
+        notification.setActor(admin);
+        notification.setContent("您创建的分类「" + truncateContent(categoryName, 30) + "」已被管理员删除: " + truncateContent(reason, 50));
+        notificationRepository.save(notification);
+
+        logger.info("创建通知: 管理员 {} 删除了 {} 的分类「{}」", admin.getUsername(), categoryCreator.getUsername(), categoryName);
+    }
+
     private String truncateContent(String content, int maxLength) {
         if (content == null) {
             return null;

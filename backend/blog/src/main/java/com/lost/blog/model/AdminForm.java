@@ -90,6 +90,18 @@ public class AdminForm {
     private String tagName;
 
     /**
+     * 关联的分类ID（用于分类删除表单）
+     */
+    @Column(name = "category_id")
+    private Long categoryId;
+
+    /**
+     * 关联的分类名称（冗余存储，用于分类被删除后仍可查看）
+     */
+    @Column(name = "category_name", length = 50)
+    private String categoryName;
+
+    /**
      * 受影响的文章列表（JSON格式，用于标签软删除时记录移除了哪些文章的关联）
      * 格式: [{"postId": 1, "postTitle": "文章标题"}, ...]
      */
@@ -222,6 +234,22 @@ public class AdminForm {
 
     public void setTagName(String tagName) {
         this.tagName = tagName;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
     }
 
     public String getAffectedPosts() {

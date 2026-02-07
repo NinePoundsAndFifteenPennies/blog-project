@@ -27,5 +27,10 @@ public enum AdminFormType {
     /**
      * 标签硬删除表单（删除标签本身）
      */
-    TAG_HARD_DELETION
+    TAG_HARD_DELETION,
+
+    /**
+     * 分类删除表单（删除分类并清除文章关联）
+     */
+    CATEGORY_DELETION
 }

@@ -1,7 +1,7 @@
 <template>
   <AdminLayout
     :menu-items="menuItems"
-    page-title="标签管理"
+    page-title="分类管理"
     :is-active-route="isActiveRoute"
   >
     <!-- Search Form -->
@@ -15,8 +15,8 @@
       <div class="search-form">
         <div class="form-row">
           <div class="form-group">
-            <label>标签名称</label>
-            <input type="text" v-model="searchForm.name" class="form-input" placeholder="搜索标签名称">
+            <label>分类名称</label>
+            <input type="text" v-model="searchForm.name" class="form-input" placeholder="搜索分类名称">
           </div>
           <div class="form-group">
             <label>创建者</label>
@@ -31,22 +31,21 @@
             <input type="date" v-model="searchForm.endDate" class="form-input">
           </div>
           <div class="form-group search-btn-group">
-            <button class="btn btn-primary" @click="searchTags">搜索</button>
+            <button class="btn btn-primary" @click="searchCategories">搜索</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Tag List -->
+    <!-- Category List -->
     <div class="card">
       <div class="card-header">
-        <h3>标签列表 <span v-if="pagination.total > 0">({{ pagination.total }})</span></h3>
+        <h3>分类列表 <span v-if="pagination.total > 0">({{ pagination.total }})</span></h3>
         <div class="header-actions">
-          <button class="btn btn-primary btn-sm" @click="openCreateModal">+ 新建标签</button>
-          <template v-if="selectedTagIds.length > 0">
-            <span class="selected-count">已选择 {{ selectedTagIds.length }} 项</span>
-            <button class="btn btn-warning btn-sm" @click="openBatchDeleteModal('SOFT_DELETE')">批量软删除</button>
-            <button class="btn btn-danger btn-sm" @click="openBatchDeleteModal('HARD_DELETE')">批量硬删除</button>
+          <button class="btn btn-primary btn-sm" @click="openCreateModal">+ 新建分类</button>
+          <template v-if="selectedCategoryIds.length > 0">
+            <span class="selected-count">已选择 {{ selectedCategoryIds.length }} 项</span>
+            <button class="btn btn-danger btn-sm" @click="openBatchDeleteModal">批量删除</button>
           </template>
         </div>
       </div>
@@ -65,72 +64,71 @@
               >
             </th>
             <th>ID</th>
-            <th>标签名称</th>
+            <th>分类名称</th>
             <th>描述</th>
             <th>颜色</th>
             <th>图标</th>
+            <th>排序</th>
             <th>文章数</th>
             <th>创建者</th>
-            <th>排序</th>
             <th>创建时间</th>
             <th>操作</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-if="tagList.length === 0">
-            <td colspan="11" class="empty-row">暂无标签数据</td>
+          <tr v-if="categoryList.length === 0">
+            <td colspan="11" class="empty-row">暂无分类数据</td>
           </tr>
-          <tr v-for="tag in tagList" :key="tag.id" :class="{ 'selected-row': isTagSelected(tag.id) }">
+          <tr v-for="category in categoryList" :key="category.id" :class="{ 'selected-row': isCategorySelected(category.id) }">
             <td class="checkbox-col">
               <input
                 type="checkbox"
-                :checked="isTagSelected(tag.id)"
-                @change="toggleTagSelection(tag.id)"
+                :checked="isCategorySelected(category.id)"
+                @change="toggleCategorySelection(category.id)"
               >
             </td>
-            <td>{{ tag.id }}</td>
+            <td>{{ category.id }}</td>
             <td>
-              <span class="tag-name-cell" @click="viewTagDetail(tag)">
-                <span v-if="tag.color" class="tag-color-dot" :style="{ backgroundColor: tag.color }"></span>
-                {{ tag.name }}
+              <span class="tag-name-cell" @click="viewCategoryDetail(category)">
+                <span v-if="category.color" class="tag-color-dot" :style="{ backgroundColor: category.color }"></span>
+                {{ category.name }}
               </span>
             </td>
-            <td class="desc-col">{{ truncateText(tag.description, 30) }}</td>
+            <td class="desc-col">{{ truncateText(category.description, 30) }}</td>
             <td>
-              <span v-if="tag.color" class="color-preview" :style="{ backgroundColor: tag.color }">{{ tag.color }}</span>
+              <span v-if="category.color" class="color-preview" :style="{ backgroundColor: category.color }">{{ category.color }}</span>
               <span v-else class="text-muted">-</span>
             </td>
-            <td>{{ tag.icon || '-' }}</td>
+            <td>{{ category.icon || '-' }}</td>
+            <td>{{ category.sortOrder != null ? category.sortOrder : '-' }}</td>
             <td>
               <span 
                 class="post-count-badge clickable" 
-                :class="getPostCountClass(tag.postCount)"
-                @click="toggleExpandPosts(tag)"
-                :title="tag.postCount > 0 ? '点击展开/收起关联文章' : ''"
+                :class="getPostCountClass(category.postCount)"
+                @click="toggleExpandPosts(category)"
+                :title="category.postCount > 0 ? '点击展开/收起关联文章' : ''"
               >
-                {{ tag.postCount }}
-                <span v-if="tag.postCount > 0" class="expand-arrow">{{ isTagExpanded(tag.id) ? '▲' : '▼' }}</span>
+                {{ category.postCount }}
+                <span v-if="category.postCount > 0" class="expand-arrow">{{ isCategoryExpanded(category.id) ? '▲' : '▼' }}</span>
               </span>
-              <div v-if="isTagExpanded(tag.id) && expandedPostsMap[tag.id]" class="expanded-posts">
-                <div v-for="post in expandedPostsMap[tag.id]" :key="post.postId" class="expanded-post-item">
+              <div v-if="isCategoryExpanded(category.id) && expandedPostsMap[category.id]" class="expanded-posts">
+                <div v-for="post in expandedPostsMap[category.id]" :key="post.postId" class="expanded-post-item">
                   <router-link :to="`/post/${post.postId}`" class="post-link-sm" target="_blank">
                     <span class="post-id-badge-sm">#{{ post.postId }}</span>
                     {{ truncateText(post.postTitle, 20) }}
                   </router-link>
                 </div>
               </div>
-              <div v-if="isTagExpanded(tag.id) && expandedPostsLoading[tag.id]" class="expanded-posts">
+              <div v-if="isCategoryExpanded(category.id) && expandedPostsLoading[category.id]" class="expanded-posts">
                 <span class="text-muted">加载中...</span>
               </div>
             </td>
-            <td>{{ tag.createdByNickname || tag.createdByUsername || '-' }}</td>
-            <td>{{ tag.sortOrder != null ? tag.sortOrder : '-' }}</td>
-            <td>{{ formatDate(tag.createdAt) }}</td>
+            <td>{{ category.createdByNickname || category.createdByUsername || '-' }}</td>
+            <td>{{ formatDate(category.createdAt) }}</td>
             <td class="actions">
-              <button class="action-btn" @click="viewTagDetail(tag)">详情</button>
-              <button class="action-btn success" @click="openEditModal(tag)">编辑</button>
-              <button class="action-btn warning" @click="openDeleteModal(tag, 'SOFT_DELETE')">软删除</button>
-              <button class="action-btn danger" @click="openDeleteModal(tag, 'HARD_DELETE')">硬删除</button>
+              <button class="action-btn" @click="viewCategoryDetail(category)">详情</button>
+              <button class="action-btn success" @click="openEditModal(category)">编辑</button>
+              <button class="action-btn danger" @click="openDeleteModal(category)">删除</button>
             </td>
           </tr>
         </tbody>
@@ -153,61 +151,79 @@
       </div>
     </div>
 
-    <!-- Tag Detail Modal -->
+    <!-- Category Detail Modal -->
     <div v-if="showDetailModal" class="modal-overlay" @click.self="closeDetailModal">
       <div class="modal-content modal-lg">
         <div class="modal-header">
-          <h3>标签详情</h3>
+          <h3>分类详情</h3>
           <button class="close-btn" @click="closeDetailModal">&times;</button>
         </div>
-        <div class="modal-body" v-if="selectedTag">
+        <div class="modal-body" v-if="selectedCategory">
           <div class="detail-row">
             <span class="label">ID:</span>
-            <span class="value">{{ selectedTag.id }}</span>
+            <span class="value">{{ selectedCategory.id }}</span>
           </div>
           <div class="detail-row">
             <span class="label">名称:</span>
             <span class="value">
-              <span v-if="selectedTag.color" class="tag-color-dot" :style="{ backgroundColor: selectedTag.color }"></span>
-              {{ selectedTag.name }}
+              <span v-if="selectedCategory.color" class="tag-color-dot" :style="{ backgroundColor: selectedCategory.color }"></span>
+              {{ selectedCategory.name }}
             </span>
           </div>
           <div class="detail-row">
             <span class="label">描述:</span>
-            <span class="value">{{ selectedTag.description || '-' }}</span>
+            <span class="value">{{ selectedCategory.description || '-' }}</span>
           </div>
           <div class="detail-row">
             <span class="label">颜色:</span>
             <span class="value">
-              <span v-if="selectedTag.color" class="color-preview" :style="{ backgroundColor: selectedTag.color }">{{ selectedTag.color }}</span>
+              <span v-if="selectedCategory.color" class="color-preview" :style="{ backgroundColor: selectedCategory.color }">{{ selectedCategory.color }}</span>
               <span v-else>-</span>
             </span>
           </div>
           <div class="detail-row">
             <span class="label">图标:</span>
-            <span class="value">{{ selectedTag.icon || '-' }}</span>
+            <span class="value">{{ selectedCategory.icon || '-' }}</span>
           </div>
           <div class="detail-row">
             <span class="label">排序:</span>
-            <span class="value">{{ selectedTag.sortOrder != null ? selectedTag.sortOrder : '-' }}</span>
+            <span class="value">{{ selectedCategory.sortOrder != null ? selectedCategory.sortOrder : '-' }}</span>
           </div>
           <div class="detail-row">
             <span class="label">文章数:</span>
             <span class="value">
-              <span class="post-count-badge" :class="getPostCountClass(selectedTag.postCount)">
-                {{ selectedTag.postCount }}
+              <span class="post-count-badge" :class="getPostCountClass(selectedCategory.postCount)">
+                {{ selectedCategory.postCount }}
               </span>
             </span>
           </div>
+          <!-- 添加文章 -->
+          <div class="detail-row detail-row-block">
+            <span class="label">添加文章:</span>
+            <div class="assign-post-row">
+              <div class="post-search-wrapper">
+                <input type="text" v-model="postSearchQuery" class="form-input assign-post-input" placeholder="输入文章ID或搜索标题" @input="handlePostSearchInput" @focus="showPostSearchResults = postSearchResults.length > 0">
+                <div v-if="postSearchLoading" class="post-search-loading">搜索中...</div>
+                <div v-if="showPostSearchResults && postSearchResults.length > 0" class="post-search-dropdown">
+                  <div v-for="post in postSearchResults" :key="post.postId" class="post-search-item" @click="selectPostFromSearch(post)">
+                    <span class="post-id-badge">#{{ post.postId }}</span>
+                    <span class="post-search-title">{{ post.postTitle }}</span>
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-sm" @click="handleAssignPost" :disabled="!assignPostId">添加</button>
+            </div>
+          </div>
           <!-- 关联文章列表 -->
-          <div v-if="selectedTag.posts && selectedTag.posts.length > 0" class="detail-row detail-row-block">
+          <div v-if="selectedCategory.posts && selectedCategory.posts.length > 0" class="detail-row detail-row-block">
             <span class="label">关联文章:</span>
             <div class="associated-posts-list">
-              <div v-for="post in selectedTag.posts" :key="post.postId" class="associated-post-item">
+              <div v-for="post in selectedCategory.posts" :key="post.postId" class="associated-post-item">
                 <router-link :to="`/post/${post.postId}`" class="post-link" target="_blank">
                   <span class="post-id-badge">#{{ post.postId }}</span>
                   {{ post.postTitle }}
                 </router-link>
+                <button class="action-btn danger" @click="handleRemovePost(post.postId)">移除</button>
               </div>
             </div>
           </div>
@@ -217,21 +233,20 @@
           </div>
           <div class="detail-row">
             <span class="label">创建者:</span>
-            <span class="value">{{ selectedTag.createdByNickname || selectedTag.createdByUsername || '-' }} (@{{ selectedTag.createdByUsername }})</span>
+            <span class="value">{{ selectedCategory.createdByNickname || selectedCategory.createdByUsername || '-' }} (@{{ selectedCategory.createdByUsername }})</span>
           </div>
           <div class="detail-row">
             <span class="label">创建时间:</span>
-            <span class="value">{{ formatDateTime(selectedTag.createdAt) }}</span>
+            <span class="value">{{ formatDateTime(selectedCategory.createdAt) }}</span>
           </div>
           <div class="detail-row">
             <span class="label">更新时间:</span>
-            <span class="value">{{ formatDateTime(selectedTag.updatedAt) }}</span>
+            <span class="value">{{ formatDateTime(selectedCategory.updatedAt) }}</span>
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-primary" @click="openEditModalFromDetail">编辑</button>
-          <button class="btn btn-warning" @click="openDeleteModalFromDetail('SOFT_DELETE')">软删除</button>
-          <button class="btn btn-danger" @click="openDeleteModalFromDetail('HARD_DELETE')">硬删除</button>
+          <button class="btn btn-danger" @click="openDeleteModalFromDetail">删除</button>
           <button class="btn btn-secondary" @click="closeDetailModal">关闭</button>
         </div>
       </div>
@@ -241,33 +256,33 @@
     <div v-if="showFormModal" class="modal-overlay" @click.self="closeFormModal">
       <div class="modal-content modal-lg">
         <div class="modal-header">
-          <h3>{{ isEditMode ? '编辑标签' : '创建标签' }}</h3>
+          <h3>{{ isEditMode ? '编辑分类' : '创建分类' }}</h3>
           <button class="close-btn" @click="closeFormModal">&times;</button>
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label>标签名称 <span class="required">*</span></label>
-            <input type="text" v-model="tagForm.name" class="form-input" placeholder="请输入标签名称">
+            <label>分类名称 <span class="required">*</span></label>
+            <input type="text" v-model="categoryForm.name" class="form-input" placeholder="请输入分类名称">
           </div>
           <div class="form-group">
-            <label>标签描述 <span class="optional">(可选)</span></label>
-            <textarea v-model="tagForm.description" class="form-input form-textarea" placeholder="请输入标签描述" rows="3"></textarea>
+            <label>分类描述 <span class="optional">(可选)</span></label>
+            <textarea v-model="categoryForm.description" class="form-input form-textarea" placeholder="请输入分类描述" rows="3"></textarea>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label>颜色 <span class="optional">(可选)</span></label>
               <div class="color-input-group">
                 <input type="color" v-model="colorPickerValue" class="color-picker" @input="onColorPick">
-                <input type="text" v-model="tagForm.color" class="form-input" placeholder="#FF5733" maxlength="7">
+                <input type="text" v-model="categoryForm.color" class="form-input" placeholder="#FF5733" maxlength="7">
               </div>
             </div>
             <div class="form-group">
               <label>图标 <span class="optional">(可选)</span></label>
               <div class="icon-picker-wrapper">
                 <div class="icon-picker-display" tabindex="0" role="button" @click="showIconPicker = !showIconPicker" @keydown.enter.prevent="showIconPicker = !showIconPicker" @keydown.space.prevent="showIconPicker = !showIconPicker">
-                  <span v-if="tagForm.icon" class="icon-preview">
-                    <i :class="tagForm.icon"></i>
-                    <span class="icon-class-text">{{ tagForm.icon }}</span>
+                  <span v-if="categoryForm.icon" class="icon-preview">
+                    <i :class="categoryForm.icon"></i>
+                    <span class="icon-class-text">{{ categoryForm.icon }}</span>
                   </span>
                   <span v-else class="icon-placeholder">点击选择图标</span>
                   <span class="icon-picker-arrow">▼</span>
@@ -279,7 +294,7 @@
                       v-for="icon in filteredIcons"
                       :key="icon.value"
                       class="icon-grid-item"
-                      :class="{ 'icon-selected': tagForm.icon === icon.value }"
+                      :class="{ 'icon-selected': categoryForm.icon === icon.value }"
                       tabindex="0"
                       role="button"
                       @click="selectIcon(icon.value)"
@@ -299,7 +314,7 @@
             </div>
             <div class="form-group">
               <label>排序 <span class="optional">(可选)</span></label>
-              <input type="number" v-model.number="tagForm.sortOrder" class="form-input" placeholder="数字越小越靠前" min="0">
+              <input type="number" v-model.number="categoryForm.sortOrder" class="form-input" placeholder="数字越小越靠前" min="0">
             </div>
           </div>
         </div>
@@ -307,9 +322,9 @@
           <button class="btn btn-secondary" @click="closeFormModal">取消</button>
           <button 
             class="btn btn-primary" 
-            @click="submitTagForm"
-            :disabled="!tagForm.name || tagForm.name.trim() === ''"
-          >{{ isEditMode ? '保存修改' : '创建标签' }}</button>
+            @click="submitCategoryForm"
+            :disabled="!categoryForm.name || categoryForm.name.trim() === ''"
+          >{{ isEditMode ? '保存修改' : '创建分类' }}</button>
         </div>
       </div>
     </div>
@@ -318,72 +333,31 @@
     <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
       <div class="modal-content modal-lg">
         <div class="modal-header">
-          <h3>{{ getDeleteModalTitle() }}</h3>
+          <h3>{{ isBatchDelete ? '批量删除分类' : '删除分类' }}</h3>
           <button class="close-btn" @click="closeDeleteModal">&times;</button>
         </div>
         <div class="modal-body">
           <p class="warning-text">
             {{ isBatchDelete 
-              ? `确定要${deleteAction === 'SOFT_DELETE' ? '软' : '硬'}删除选中的 ${selectedTagIds.length} 个标签吗？` 
-              : `确定要${deleteAction === 'SOFT_DELETE' ? '软' : '硬'}删除此标签吗？` 
+              ? `确定要删除选中的 ${selectedCategoryIds.length} 个分类吗？` 
+              : '确定要删除此分类吗？' 
             }}
           </p>
-          <p class="sub-text" v-if="deleteAction === 'SOFT_DELETE'">
-            软删除仅移除标签与文章的关联关系，标签本身仍然保留。您可以选择要解除关联的文章，不选则解除所有关联。
-          </p>
-          <p class="sub-text" v-else>
-            硬删除将永久删除标签及其与文章的所有关联，此操作不可恢复。
+          <p class="sub-text">
+            删除分类将永久移除该分类，关联文章的分类字段将被清空，此操作不可恢复。
           </p>
 
-          <!-- 软删除时显示关联文章选择 -->
-          <div v-if="deleteAction === 'SOFT_DELETE' && !isBatchDelete && deletePostsList.length > 0" class="form-group">
-            <label>选择要解除关联的文章 <span class="optional">(不选则全部解除)</span></label>
-            <div class="post-selection-list">
-              <div class="post-selection-header">
-                <label class="checkbox-label">
-                  <input type="checkbox" :checked="isAllDeletePostsSelected" @change="toggleSelectAllDeletePosts">
-                  <span>全选 ({{ deletePostsList.length }} 篇文章)</span>
-                </label>
-                <span v-if="selectedDeletePostIds.length > 0" class="selected-info">
-                  已选择 {{ selectedDeletePostIds.length }} 篇
-                </span>
-              </div>
-              <div class="post-selection-items">
-                <label v-for="post in deletePostsList" :key="post.postId" class="checkbox-label post-checkbox-item">
-                  <input 
-                    type="checkbox" 
-                    :value="post.postId" 
-                    v-model="selectedDeletePostIds"
-                  >
-                  <span class="post-id-badge-sm">#{{ post.postId }}</span>
-                  <span class="post-checkbox-title">{{ post.postTitle }}</span>
-                </label>
-              </div>
-            </div>
+          <!-- 单个删除时显示关联文章数量警告 -->
+          <div v-if="!isBatchDelete && deleteTargetCategory" class="form-group">
+            <p v-if="deleteTargetCategory.postCount > 0" class="warning-text">
+              ⚠ 此分类下有 {{ deleteTargetCategory.postCount }} 篇关联文章，删除后这些文章的分类将被清空。
+            </p>
+            <p v-else class="text-muted">此分类暂无关联文章。</p>
           </div>
-          <div v-if="deleteAction === 'SOFT_DELETE' && !isBatchDelete && deletePostsList.length === 0 && deletePostsLoading" class="form-group">
-            <p class="text-muted">加载关联文章中...</p>
-          </div>
-          <div v-if="deleteAction === 'SOFT_DELETE' && !isBatchDelete && deletePostsList.length === 0 && !deletePostsLoading" class="form-group">
-            <p class="text-muted">此标签暂无关联文章</p>
-          </div>
-          
-          <div class="form-group">
-            <label>通知标题 <span class="optional">(可选)</span></label>
-            <input type="text" v-model="deleteForm.formTitle" class="form-input" :placeholder="deleteAction === 'SOFT_DELETE' ? '标签关联移除通知' : '标签删除通知'">
-          </div>
+
           <div class="form-group">
             <label>删除理由 <span class="required">*</span></label>
             <textarea v-model="deleteForm.reason" class="form-input form-textarea" placeholder="请填写删除理由" rows="3"></textarea>
-          </div>
-          <div class="form-group">
-            <label>扩展信息 <span class="optional">(可选)</span></label>
-            <div v-for="(field, index) in deleteForm.extraFieldsList" :key="index" class="extra-field-row">
-              <input type="text" v-model="field.fieldName" class="form-input extra-field-input" placeholder="字段名">
-              <input type="text" v-model="field.fieldValue" class="form-input extra-field-input" placeholder="字段值">
-              <button class="btn btn-sm btn-danger" @click="removeExtraField(index)">删除</button>
-            </div>
-            <button class="btn btn-sm btn-secondary" @click="addExtraField">+ 添加扩展字段</button>
           </div>
         </div>
         <div class="modal-footer">
@@ -392,7 +366,7 @@
             class="btn btn-danger" 
             @click="confirmDelete"
             :disabled="!deleteForm.reason || deleteForm.reason.trim() === ''"
-          >确认{{ deleteAction === 'SOFT_DELETE' ? '软' : '硬' }}删除</button>
+          >确认删除</button>
         </div>
       </div>
     </div>
@@ -416,14 +390,14 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
-import { getAdminTags, getAdminTagDetail, createAdminTag, updateAdminTag, executeTagAction } from '@/api/admin'
+import { getAdminCategories, getAdminCategoryDetail, createAdminCategory, updateAdminCategory, assignPostToCategory, removePostFromCategory, executeCategoryAction, searchPostsForCategory } from '@/api/admin'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
 export default {
-  name: 'AdminTagManagement',
+  name: 'AdminCategoryManagement',
   components: {
     AdminLayout
   },
@@ -432,7 +406,7 @@ export default {
     const router = useRouter()
 
     // ======================= State =======================
-    const tagList = ref([])
+    const categoryList = ref([])
     const loading = ref(false)
     const pagination = ref({
       page: 0,
@@ -448,18 +422,24 @@ export default {
     })
 
     // Selection state
-    const selectedTagIds = ref([])
+    const selectedCategoryIds = ref([])
 
     // Detail modal state
     const showDetailModal = ref(false)
-    const selectedTag = ref(null)
+    const selectedCategory = ref(null)
+    const assignPostId = ref(null)
+    const postSearchQuery = ref('')
+    const postSearchResults = ref([])
+    const postSearchLoading = ref(false)
+    const showPostSearchResults = ref(false)
+    let postSearchTimer = null
 
     // Create/Edit modal state
     const showFormModal = ref(false)
     const isEditMode = ref(false)
-    const editingTagId = ref(null)
+    const editingCategoryId = ref(null)
     const colorPickerValue = ref('#1890ff')
-    const tagForm = ref({
+    const categoryForm = ref({
       name: '',
       description: '',
       color: '',
@@ -467,33 +447,15 @@ export default {
       sortOrder: null
     })
 
-    // Delete modal state
-    const showDeleteModal = ref(false)
-    const isBatchDelete = ref(false)
-    const deleteAction = ref('SOFT_DELETE')
-    const deleteTargetTag = ref(null)
-    const deleteForm = ref({
-      formTitle: '',
-      reason: '',
-      extraFieldsList: []
-    })
-    // Soft delete post selection state
-    const deletePostsList = ref([])
-    const deletePostsLoading = ref(false)
-    const selectedDeletePostIds = ref([])
-
-    // Expanded posts in table
-    const expandedTagIds = ref([])
-    const expandedPostsMap = ref({})
-
     // Icon picker state
     const showIconPicker = ref(false)
     const iconSearchQuery = ref('')
 
-    // Common Font Awesome 6 icons for tags
-    // Brand icons use "fa-brands" prefix, solid icons use "fa-solid" prefix
+    // Common Font Awesome 6 icons for categories
     const iconList = [
       // Solid icons (fa-solid)
+      { value: 'fa-solid fa-folder', label: '文件夹' },
+      { value: 'fa-solid fa-folder-open', label: '打开文件夹' },
       { value: 'fa-solid fa-tag', label: '标签' },
       { value: 'fa-solid fa-tags', label: '多标签' },
       { value: 'fa-solid fa-code', label: '代码' },
@@ -580,12 +542,25 @@ export default {
     })
 
     const selectIcon = (iconValue) => {
-      tagForm.value.icon = iconValue
+      categoryForm.value.icon = iconValue
       if (iconValue) {
         showIconPicker.value = false
       }
       iconSearchQuery.value = ''
     }
+
+    // Delete modal state
+    const showDeleteModal = ref(false)
+    const isBatchDelete = ref(false)
+    const deleteTargetCategory = ref(null)
+    const deleteForm = ref({
+      reason: ''
+    })
+
+    // Expanded posts in table
+    const expandedCategoryIds = ref([])
+    const expandedPostsMap = ref({})
+    const expandedPostsLoading = ref({})
 
     // Menu items (consistent with other admin views)
     const menuItems = [
@@ -600,7 +575,7 @@ export default {
     ]
 
     const isActiveRoute = (id) => {
-      return id === 'tags'
+      return id === 'categories'
     }
 
     const handleLogout = () => {
@@ -634,14 +609,9 @@ export default {
       return 'count-low'
     }
 
-    const getDeleteModalTitle = () => {
-      const typeStr = deleteAction.value === 'SOFT_DELETE' ? '软删除' : '硬删除'
-      return isBatchDelete.value ? `批量${typeStr}标签` : `${typeStr}标签`
-    }
-
     // ======================= Data Loading =======================
 
-    const loadTags = async () => {
+    const loadCategories = async () => {
       loading.value = true
       try {
         const params = {
@@ -652,23 +622,22 @@ export default {
           startDate: searchForm.value.startDate || undefined,
           endDate: searchForm.value.endDate || undefined
         }
-        const response = await getAdminTags(params)
-        tagList.value = response.content || []
+        const response = await getAdminCategories(params)
+        categoryList.value = response.content || []
         pagination.value.total = response.totalElements || 0
         pagination.value.totalPages = response.totalPages || 0
-        // Clear selections when page changes
-        selectedTagIds.value = []
+        selectedCategoryIds.value = []
       } catch (error) {
-        console.error('Failed to load tags:', error)
-        alert('加载标签列表失败: ' + (error.message || '未知错误'))
+        console.error('Failed to load categories:', error)
+        alert('加载分类列表失败: ' + (error.message || '未知错误'))
       } finally {
         loading.value = false
       }
     }
 
-    const searchTags = () => {
+    const searchCategories = () => {
       pagination.value.page = 0
-      loadTags()
+      loadCategories()
     }
 
     const resetSearch = () => {
@@ -679,189 +648,222 @@ export default {
         endDate: ''
       }
       pagination.value.page = 0
-      loadTags()
+      loadCategories()
     }
 
     const changePage = (newPage) => {
       pagination.value.page = newPage
-      loadTags()
+      loadCategories()
     }
 
     // ======================= Detail Modal =======================
 
-    const viewTagDetail = async (tag) => {
+    const viewCategoryDetail = async (category) => {
       try {
-        const detail = await getAdminTagDetail(tag.id)
-        selectedTag.value = detail
+        const detail = await getAdminCategoryDetail(category.id)
+        selectedCategory.value = detail
+        assignPostId.value = null
+        postSearchQuery.value = ''
+        postSearchResults.value = []
+        showPostSearchResults.value = false
         showDetailModal.value = true
       } catch (error) {
-        console.error('Failed to load tag detail:', error)
-        alert('加载标签详情失败')
+        console.error('Failed to load category detail:', error)
+        alert('加载分类详情失败')
       }
     }
 
     const closeDetailModal = () => {
       showDetailModal.value = false
-      selectedTag.value = null
+      selectedCategory.value = null
+      assignPostId.value = null
+      postSearchQuery.value = ''
+      postSearchResults.value = []
+      showPostSearchResults.value = false
+    }
+
+    const handlePostSearchInput = () => {
+      const query = postSearchQuery.value.trim()
+      if (!query) {
+        postSearchResults.value = []
+        showPostSearchResults.value = false
+        assignPostId.value = null
+        return
+      }
+
+      // If input is a pure number, treat as post ID
+      if (/^\d+$/.test(query)) {
+        assignPostId.value = parseInt(query)
+        postSearchResults.value = []
+        showPostSearchResults.value = false
+        return
+      }
+
+      // Otherwise search by title with debounce
+      assignPostId.value = null
+      if (postSearchTimer) clearTimeout(postSearchTimer)
+      postSearchTimer = setTimeout(async () => {
+        if (query.length < 2) return
+        postSearchLoading.value = true
+        try {
+          const results = await searchPostsForCategory(query)
+          postSearchResults.value = results || []
+          showPostSearchResults.value = postSearchResults.value.length > 0
+        } catch (error) {
+          console.error('Failed to search posts:', error)
+          postSearchResults.value = []
+        } finally {
+          postSearchLoading.value = false
+        }
+      }, 300)
+    }
+
+    const selectPostFromSearch = (post) => {
+      assignPostId.value = post.postId
+      postSearchQuery.value = `#${post.postId} ${post.postTitle}`
+      postSearchResults.value = []
+      showPostSearchResults.value = false
+    }
+
+    const handleAssignPost = async () => {
+      if (!assignPostId.value || !selectedCategory.value) return
+      try {
+        await assignPostToCategory(selectedCategory.value.id, assignPostId.value)
+        alert('文章添加成功')
+        const detail = await getAdminCategoryDetail(selectedCategory.value.id)
+        selectedCategory.value = detail
+        assignPostId.value = null
+        postSearchQuery.value = ''
+        postSearchResults.value = []
+        showPostSearchResults.value = false
+        await loadCategories()
+      } catch (error) {
+        console.error('Failed to assign post:', error)
+        alert('添加文章失败: ' + (error.response?.data || error.message))
+      }
+    }
+
+    const handleRemovePost = async (postId) => {
+      if (!selectedCategory.value) return
+      try {
+        await removePostFromCategory(selectedCategory.value.id, postId)
+        alert('文章已移除')
+        const detail = await getAdminCategoryDetail(selectedCategory.value.id)
+        selectedCategory.value = detail
+        await loadCategories()
+      } catch (error) {
+        console.error('Failed to remove post:', error)
+        alert('移除文章失败: ' + (error.response?.data || error.message))
+      }
     }
 
     // ======================= Create/Edit Modal =======================
 
     const openCreateModal = () => {
       isEditMode.value = false
-      editingTagId.value = null
-      tagForm.value = { name: '', description: '', color: '', icon: '', sortOrder: null }
+      editingCategoryId.value = null
+      categoryForm.value = { name: '', description: '', color: '', icon: '', sortOrder: null }
       colorPickerValue.value = '#1890ff'
+      showIconPicker.value = false
+      iconSearchQuery.value = ''
       showFormModal.value = true
     }
 
-    const openEditModal = (tag) => {
+    const openEditModal = (category) => {
       isEditMode.value = true
-      editingTagId.value = tag.id
-      tagForm.value = {
-        name: tag.name,
-        description: tag.description || '',
-        color: tag.color || '',
-        icon: tag.icon || '',
-        sortOrder: tag.sortOrder
+      editingCategoryId.value = category.id
+      categoryForm.value = {
+        name: category.name,
+        description: category.description || '',
+        color: category.color || '',
+        icon: category.icon || '',
+        sortOrder: category.sortOrder
       }
-      colorPickerValue.value = tag.color || '#1890ff'
+      colorPickerValue.value = category.color || '#1890ff'
+      showIconPicker.value = false
+      iconSearchQuery.value = ''
       showFormModal.value = true
     }
 
     const openEditModalFromDetail = () => {
-      if (!selectedTag.value) return
+      if (!selectedCategory.value) return
       closeDetailModal()
-      openEditModal(selectedTag.value)
+      openEditModal(selectedCategory.value)
     }
 
     const closeFormModal = () => {
       showFormModal.value = false
       isEditMode.value = false
-      editingTagId.value = null
+      editingCategoryId.value = null
+      showIconPicker.value = false
+      iconSearchQuery.value = ''
     }
 
     const onColorPick = () => {
-      tagForm.value.color = colorPickerValue.value
+      categoryForm.value.color = colorPickerValue.value
     }
 
-    const submitTagForm = async () => {
-      if (!tagForm.value.name || tagForm.value.name.trim() === '') {
-        alert('请填写标签名称')
+    const submitCategoryForm = async () => {
+      if (!categoryForm.value.name || categoryForm.value.name.trim() === '') {
+        alert('请填写分类名称')
         return
       }
 
       const data = {
-        name: tagForm.value.name.trim(),
-        description: tagForm.value.description || undefined,
-        color: tagForm.value.color || undefined,
-        icon: tagForm.value.icon || undefined,
-        sortOrder: tagForm.value.sortOrder != null ? tagForm.value.sortOrder : undefined
+        name: categoryForm.value.name.trim(),
+        description: categoryForm.value.description || undefined,
+        color: categoryForm.value.color || undefined,
+        icon: categoryForm.value.icon || undefined,
+        sortOrder: categoryForm.value.sortOrder != null ? categoryForm.value.sortOrder : undefined
       }
 
       try {
         if (isEditMode.value) {
-          await updateAdminTag(editingTagId.value, data)
-          alert('标签更新成功')
+          await updateAdminCategory(editingCategoryId.value, data)
+          alert('分类更新成功')
         } else {
-          await createAdminTag(data)
-          alert('标签创建成功')
+          await createAdminCategory(data)
+          alert('分类创建成功')
         }
         closeFormModal()
-        await loadTags()
+        await loadCategories()
       } catch (error) {
-        console.error('Failed to save tag:', error)
-        alert((isEditMode.value ? '更新' : '创建') + '标签失败: ' + (error.response?.data || error.message))
+        console.error('Failed to save category:', error)
+        alert((isEditMode.value ? '更新' : '创建') + '分类失败: ' + (error.response?.data || error.message))
       }
     }
 
     // ======================= Delete Modal =======================
 
-    const openDeleteModal = async (tag, action) => {
-      deleteTargetTag.value = tag
-      deleteAction.value = action
+    const openDeleteModal = (category) => {
+      deleteTargetCategory.value = category
       isBatchDelete.value = false
-      deleteForm.value = { formTitle: '', reason: '', extraFieldsList: [] }
-      deletePostsList.value = []
-      selectedDeletePostIds.value = []
+      deleteForm.value = { reason: '' }
       showDeleteModal.value = true
-
-      // 软删除时加载关联文章列表供选择
-      if (action === 'SOFT_DELETE' && tag.postCount > 0) {
-        deletePostsLoading.value = true
-        try {
-          const detail = await getAdminTagDetail(tag.id)
-          deletePostsList.value = detail.posts || []
-        } catch (error) {
-          console.error('Failed to load tag posts for delete:', error)
-        } finally {
-          deletePostsLoading.value = false
-        }
-      }
     }
 
-    const openDeleteModalFromDetail = (action) => {
-      if (!selectedTag.value) return
-      const tag = selectedTag.value
+    const openDeleteModalFromDetail = () => {
+      if (!selectedCategory.value) return
+      const category = selectedCategory.value
       closeDetailModal()
-      // 如果详情中已有posts数据，直接使用
-      deleteTargetTag.value = tag
-      deleteAction.value = action
+      deleteTargetCategory.value = category
       isBatchDelete.value = false
-      deleteForm.value = { formTitle: '', reason: '', extraFieldsList: [] }
-      selectedDeletePostIds.value = []
-      if (action === 'SOFT_DELETE' && tag.posts && tag.posts.length > 0) {
-        deletePostsList.value = tag.posts
-      } else {
-        deletePostsList.value = []
-      }
+      deleteForm.value = { reason: '' }
       showDeleteModal.value = true
     }
 
-    const openBatchDeleteModal = (action) => {
-      if (selectedTagIds.value.length === 0) return
-      deleteAction.value = action
+    const openBatchDeleteModal = () => {
+      if (selectedCategoryIds.value.length === 0) return
       isBatchDelete.value = true
-      deleteForm.value = { formTitle: '', reason: '', extraFieldsList: [] }
-      deletePostsList.value = []
-      selectedDeletePostIds.value = []
+      deleteTargetCategory.value = null
+      deleteForm.value = { reason: '' }
       showDeleteModal.value = true
     }
 
     const closeDeleteModal = () => {
       showDeleteModal.value = false
-      deleteTargetTag.value = null
+      deleteTargetCategory.value = null
       isBatchDelete.value = false
-      deletePostsList.value = []
-      selectedDeletePostIds.value = []
-    }
-
-    const isAllDeletePostsSelected = computed(() => {
-      return deletePostsList.value.length > 0 && 
-             deletePostsList.value.every(p => selectedDeletePostIds.value.includes(p.postId))
-    })
-
-    const toggleSelectAllDeletePosts = () => {
-      if (isAllDeletePostsSelected.value) {
-        selectedDeletePostIds.value = []
-      } else {
-        selectedDeletePostIds.value = deletePostsList.value.map(p => p.postId)
-      }
-    }
-
-    const addExtraField = () => {
-      deleteForm.value.extraFieldsList.push({ fieldName: '', fieldValue: '' })
-    }
-
-    const removeExtraField = (index) => {
-      deleteForm.value.extraFieldsList.splice(index, 1)
-    }
-
-    const getExtraFieldsJson = () => {
-      const validFields = deleteForm.value.extraFieldsList.filter(
-        f => f.fieldName && f.fieldName.trim() !== ''
-      )
-      return validFields.length > 0 ? JSON.stringify(validFields) : null
     }
 
     const confirmDelete = async () => {
@@ -870,111 +872,102 @@ export default {
         return
       }
 
-      const ids = isBatchDelete.value ? selectedTagIds.value : [deleteTargetTag.value.id]
-      
-      // 构造请求
-      const requestData = {
-        action: deleteAction.value,
-        tagIds: ids,
-        formTitle: deleteForm.value.formTitle || undefined,
-        reason: deleteForm.value.reason,
-        extraFields: getExtraFieldsJson()
-      }
+      const ids = isBatchDelete.value ? selectedCategoryIds.value : [deleteTargetCategory.value.id]
 
-      // 软删除时，如果选择了特定文章，则传递postIds
-      if (deleteAction.value === 'SOFT_DELETE' && selectedDeletePostIds.value.length > 0) {
-        requestData.postIds = selectedDeletePostIds.value
+      const requestData = {
+        action: 'DELETE',
+        categoryIds: ids,
+        reason: deleteForm.value.reason
       }
 
       try {
-        await executeTagAction(requestData)
+        await executeCategoryAction(requestData)
         closeDeleteModal()
-        selectedTagIds.value = []
-        await loadTags()
-        const typeStr = deleteAction.value === 'SOFT_DELETE' ? '软' : '硬'
-        alert(`成功${typeStr}删除 ${ids.length} 个标签`)
+        selectedCategoryIds.value = []
+        await loadCategories()
+        alert(`成功删除 ${ids.length} 个分类`)
       } catch (error) {
-        console.error('Failed to delete tags:', error)
+        console.error('Failed to delete categories:', error)
         alert('删除失败: ' + (error.response?.data || error.message))
       }
     }
 
     // ======================= Expand Posts in Table =======================
 
-    // State for tracking loading status per tag
-    const expandedPostsLoading = ref({})
-
-    const isTagExpanded = (tagId) => {
-      return expandedTagIds.value.includes(tagId)
+    const isCategoryExpanded = (categoryId) => {
+      return expandedCategoryIds.value.includes(categoryId)
     }
 
-    const toggleExpandPosts = async (tag) => {
-      if (tag.postCount === 0) return
+    const toggleExpandPosts = async (category) => {
+      if (category.postCount === 0) return
 
-      const idx = expandedTagIds.value.indexOf(tag.id)
+      const idx = expandedCategoryIds.value.indexOf(category.id)
       if (idx !== -1) {
-        expandedTagIds.value.splice(idx, 1)
+        expandedCategoryIds.value.splice(idx, 1)
         return
       }
 
-      // Load posts if not already loaded
-      if (!expandedPostsMap.value[tag.id]) {
-        expandedPostsLoading.value = { ...expandedPostsLoading.value, [tag.id]: true }
+      if (!expandedPostsMap.value[category.id]) {
+        expandedPostsLoading.value = { ...expandedPostsLoading.value, [category.id]: true }
         try {
-          const detail = await getAdminTagDetail(tag.id)
-          expandedPostsMap.value = { ...expandedPostsMap.value, [tag.id]: detail.posts || [] }
+          const detail = await getAdminCategoryDetail(category.id)
+          expandedPostsMap.value = { ...expandedPostsMap.value, [category.id]: detail.posts || [] }
         } catch (error) {
-          console.error('Failed to load tag posts:', error)
-          expandedPostsMap.value = { ...expandedPostsMap.value, [tag.id]: [] }
+          console.error('Failed to load category posts:', error)
+          expandedPostsMap.value = { ...expandedPostsMap.value, [category.id]: [] }
         } finally {
-          expandedPostsLoading.value = { ...expandedPostsLoading.value, [tag.id]: false }
+          expandedPostsLoading.value = { ...expandedPostsLoading.value, [category.id]: false }
         }
       }
-      expandedTagIds.value.push(tag.id)
+      expandedCategoryIds.value.push(category.id)
     }
 
     // ======================= Batch Selection =======================
 
-    const isTagSelected = (tagId) => {
-      return selectedTagIds.value.includes(tagId)
+    const isCategorySelected = (categoryId) => {
+      return selectedCategoryIds.value.includes(categoryId)
     }
 
-    const toggleTagSelection = (tagId) => {
-      const index = selectedTagIds.value.indexOf(tagId)
+    const toggleCategorySelection = (categoryId) => {
+      const index = selectedCategoryIds.value.indexOf(categoryId)
       if (index === -1) {
-        selectedTagIds.value.push(tagId)
+        selectedCategoryIds.value.push(categoryId)
       } else {
-        selectedTagIds.value.splice(index, 1)
+        selectedCategoryIds.value.splice(index, 1)
       }
     }
 
     const isAllSelected = computed(() => {
-      return tagList.value.length > 0 && tagList.value.every(t => selectedTagIds.value.includes(t.id))
+      return categoryList.value.length > 0 && categoryList.value.every(c => selectedCategoryIds.value.includes(c.id))
     })
 
     const isPartialSelected = computed(() => {
-      const selectedCount = tagList.value.filter(t => selectedTagIds.value.includes(t.id)).length
-      return selectedCount > 0 && selectedCount < tagList.value.length
+      const selectedCount = categoryList.value.filter(c => selectedCategoryIds.value.includes(c.id)).length
+      return selectedCount > 0 && selectedCount < categoryList.value.length
     })
 
     const toggleSelectAll = () => {
       if (isAllSelected.value) {
-        selectedTagIds.value = []
+        selectedCategoryIds.value = []
       } else {
-        selectedTagIds.value = tagList.value.map(t => t.id)
+        selectedCategoryIds.value = categoryList.value.map(c => c.id)
       }
     }
 
     onMounted(() => {
-      loadTags()
+      loadCategories()
+    })
+
+    onBeforeUnmount(() => {
+      if (postSearchTimer) clearTimeout(postSearchTimer)
     })
 
     return {
       menuItems,
       isActiveRoute,
       handleLogout,
-      // Tag list
-      tagList,
+      // Category list
+      categoryList,
       loading,
       pagination,
       searchForm,
@@ -982,57 +975,57 @@ export default {
       formatDateTime,
       truncateText,
       getPostCountClass,
-      searchTags,
+      searchCategories,
       resetSearch,
       changePage,
       // Detail modal
       showDetailModal,
-      selectedTag,
-      viewTagDetail,
+      selectedCategory,
+      assignPostId,
+      postSearchQuery,
+      postSearchResults,
+      postSearchLoading,
+      showPostSearchResults,
+      viewCategoryDetail,
       closeDetailModal,
+      handlePostSearchInput,
+      selectPostFromSearch,
+      handleAssignPost,
+      handleRemovePost,
       // Create/Edit modal
       showFormModal,
       isEditMode,
-      tagForm,
+      categoryForm,
       colorPickerValue,
+      showIconPicker,
+      iconSearchQuery,
+      filteredIcons,
+      selectIcon,
       openCreateModal,
       openEditModal,
       openEditModalFromDetail,
       closeFormModal,
       onColorPick,
-      submitTagForm,
-      // Icon picker
-      showIconPicker,
-      iconSearchQuery,
-      filteredIcons,
-      selectIcon,
+      submitCategoryForm,
       // Delete modal
       showDeleteModal,
       isBatchDelete,
-      deleteAction,
+      deleteTargetCategory,
       deleteForm,
-      deletePostsList,
-      deletePostsLoading,
-      selectedDeletePostIds,
-      isAllDeletePostsSelected,
-      toggleSelectAllDeletePosts,
-      getDeleteModalTitle,
       openDeleteModal,
       openDeleteModalFromDetail,
       openBatchDeleteModal,
       closeDeleteModal,
-      addExtraField,
-      removeExtraField,
       confirmDelete,
       // Expand posts in table
       expandedPostsMap,
       expandedPostsLoading,
-      isTagExpanded,
+      isCategoryExpanded,
       toggleExpandPosts,
       // Batch selection
-      selectedTagIds,
-      isTagSelected,
-      toggleTagSelection,
+      selectedCategoryIds,
+      isCategorySelected,
+      toggleCategorySelection,
       isAllSelected,
       isPartialSelected,
       toggleSelectAll
@@ -1145,17 +1138,6 @@ export default {
   border-radius: 6px;
   cursor: pointer;
   padding: 2px;
-}
-
-.extra-field-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-  align-items: center;
-}
-
-.extra-field-input {
-  flex: 1;
 }
 
 .search-btn-group {
@@ -1617,6 +1599,61 @@ export default {
   height: 18px;
 }
 
+/* Associated posts in detail modal */
+.detail-row-block {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-row-block .label {
+  width: auto;
+}
+
+.associated-posts-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  padding: 4px;
+}
+
+.associated-post-item {
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.associated-post-item:hover {
+  background: #f5f5f5;
+}
+
+.post-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1890ff;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.post-link:hover {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+.post-id-badge {
+  display: inline-block;
+  background: #e6f7ff;
+  color: #1890ff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
 /* Icon Picker */
 .icon-picker-wrapper {
   position: relative;
@@ -1728,56 +1765,65 @@ export default {
   border-top: 1px solid #e8e8e8;
 }
 
-/* Associated posts in detail modal */
-.detail-row-block {
-  flex-direction: column;
+/* Assign post input */
+.assign-post-row {
+  display: flex;
   gap: 8px;
+  align-items: center;
 }
 
-.detail-row-block .label {
-  width: auto;
+.post-search-wrapper {
+  position: relative;
+  flex: 1;
 }
 
-.associated-posts-list {
-  max-height: 200px;
+.assign-post-input {
+  width: 100%;
+}
+
+.post-search-loading {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: #999;
+}
+
+.post-search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  max-height: 240px;
   overflow-y: auto;
-  border: 1px solid #e8e8e8;
-  border-radius: 6px;
-  padding: 4px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.associated-post-item {
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.associated-post-item:hover {
-  background: #f5f5f5;
-}
-
-.post-link {
+.post-search-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #1890ff;
-  text-decoration: none;
-  font-size: 14px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 13px;
 }
 
-.post-link:hover {
-  color: #40a9ff;
-  text-decoration: underline;
+.post-search-item:hover {
+  background: #f0f5ff;
 }
 
-.post-id-badge {
-  display: inline-block;
-  background: #e6f7ff;
-  color: #1890ff;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  flex-shrink: 0;
+.post-search-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Expanded posts in table */
@@ -1827,56 +1873,5 @@ export default {
   font-size: 11px;
   font-weight: 500;
   flex-shrink: 0;
-}
-
-/* Post selection in delete modal */
-.post-selection-list {
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.post-selection-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: #fafafa;
-  border-bottom: 1px solid #e8e8e8;
-}
-
-.selected-info {
-  font-size: 12px;
-  color: #1890ff;
-  font-weight: 500;
-}
-
-.post-selection-items {
-  max-height: 200px;
-  overflow-y: auto;
-  padding: 4px 0;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.post-checkbox-item {
-  padding: 6px 12px;
-  transition: background 0.15s;
-}
-
-.post-checkbox-item:hover {
-  background: #f5f5f5;
-}
-
-.post-checkbox-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 </style>

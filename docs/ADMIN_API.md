@@ -940,6 +940,251 @@ Content-Type: application/json
 
 ---
 
+## 分类管理
+
+### 获取分类列表
+
+获取分类列表，支持分页和多条件搜索过滤。按分类关联的文章数量降序排列。
+
+```http
+GET /api/admin/categories
+Authorization: Bearer {admin-token}
+```
+
+**查询参数:**
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| page | int | 否 | 页码（从0开始），默认0 |
+| size | int | 否 | 每页数量，默认10 |
+| name | string | 否 | 分类名称搜索（模糊匹配） |
+| createdBy | string | 否 | 创建者用户名搜索（模糊匹配） |
+| startDate | string | 否 | 创建开始日期（yyyy-MM-dd） |
+| endDate | string | 否 | 创建结束日期（yyyy-MM-dd） |
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "name": "技术",
+      "description": "技术类文章",
+      "color": "#1890ff",
+      "icon": "fa-solid fa-code",
+      "sortOrder": 0,
+      "postCount": 15,
+      "createdById": 1,
+      "createdByUsername": "admin",
+      "createdByNickname": "管理员",
+      "createdAt": "2024-01-01T00:00:00",
+      "updatedAt": null
+    }
+  ],
+  "totalElements": 10,
+  "totalPages": 1,
+  "size": 10,
+  "number": 0
+}
+```
+
+---
+
+### 获取分类详情
+
+获取指定分类的详细信息，包含关联的文章列表。
+
+```http
+GET /api/admin/categories/{id}
+Authorization: Bearer {admin-token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 1,
+  "name": "技术",
+  "description": "技术类文章",
+  "color": "#1890ff",
+  "icon": "fa-solid fa-code",
+  "sortOrder": 0,
+  "postCount": 2,
+  "posts": [
+    { "postId": 1, "postTitle": "Spring Boot入门" },
+    { "postId": 5, "postTitle": "Vue3实践指南" }
+  ],
+  "createdById": 1,
+  "createdByUsername": "admin",
+  "createdByNickname": "管理员",
+  "createdAt": "2024-01-01T00:00:00",
+  "updatedAt": null
+}
+```
+
+**错误响应:**
+- `404 Not Found` - 分类不存在
+
+---
+
+### 创建分类
+
+创建新分类。
+
+```http
+POST /api/admin/categories
+Authorization: Bearer {admin-token}
+Content-Type: application/json
+```
+
+**请求体:**
+```json
+{
+  "name": "技术",
+  "description": "技术类文章",
+  "color": "#1890ff",
+  "icon": "fa-solid fa-code",
+  "sortOrder": 0
+}
+```
+
+**参数说明:**
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 是 | 分类名称（唯一，1-50字符，支持中英文、数字、下划线、连字符） |
+| description | string | 否 | 分类描述（最多200字符） |
+| color | string | 否 | 颜色值（格式 #RRGGBB，如 #FF5733） |
+| icon | string | 否 | 图标类名（最多50字符） |
+| sortOrder | integer | 否 | 排序值（≥0，越小越靠前） |
+
+**成功响应:** `201 Created`
+
+**错误响应:**
+- `400 Bad Request` - 分类名称已存在或参数验证失败
+
+---
+
+### 更新分类
+
+更新已有分类信息。
+
+```http
+PUT /api/admin/categories/{id}
+Authorization: Bearer {admin-token}
+Content-Type: application/json
+```
+
+**请求体:** 同创建分类
+
+**成功响应:** `200 OK`（响应格式同分类详情）
+
+**错误响应:**
+- `404 Not Found` - 分类不存在
+- `400 Bad Request` - 分类名称已存在
+
+---
+
+### 按标题搜索文章
+
+按标题关键词搜索文章，用于分类管理时将文章归入分类。返回最多20条匹配结果。
+
+```http
+GET /api/admin/categories/search-posts?title={keyword}
+Authorization: Bearer {admin-token}
+```
+
+**查询参数:**
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| title | string | 是 | 文章标题关键词（模糊匹配） |
+
+**成功响应:** `200 OK`
+```json
+[
+  { "postId": 1, "postTitle": "Spring Boot入门" },
+  { "postId": 5, "postTitle": "Spring Cloud实战" }
+]
+```
+
+---
+
+### 将文章归入分类
+
+将指定文章归入指定分类。文章只能属于一个分类（1:N关系），如果文章已有分类会被覆盖。
+
+```http
+POST /api/admin/categories/{id}/posts/{postId}
+Authorization: Bearer {admin-token}
+```
+
+**成功响应:** `200 OK`（返回更新后的分类详情，含最新文章列表）
+
+**错误响应:**
+- `404 Not Found` - 分类或文章不存在
+
+---
+
+### 将文章从分类移除
+
+将指定文章从分类中移除（将文章的 `category_id` 设为 NULL）。
+
+```http
+DELETE /api/admin/categories/{id}/posts/{postId}
+Authorization: Bearer {admin-token}
+```
+
+**成功响应:** `200 OK`（返回更新后的分类详情）
+
+**错误响应:**
+- `404 Not Found` - 分类或文章不存在
+- `400 Bad Request` - 文章不属于该分类
+
+---
+
+### 批量删除分类
+
+对一个或多个分类执行删除操作。删除分类时会将所有使用该分类的文章的 `category_id` 设为 NULL，并向分类创建者发送通知。
+
+```http
+POST /api/admin/categories/action
+Authorization: Bearer {admin-token}
+Content-Type: application/json
+```
+
+**请求体:**
+```json
+{
+  "action": "DELETE",
+  "categoryIds": [1, 2, 3],
+  "reason": "分类合并整理",
+  "extraFields": "[{\"fieldName\":\"备注\",\"fieldValue\":\"已迁移至新分类\"}]"
+}
+```
+
+**参数说明:**
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| action | string | 是 | 操作类型：DELETE |
+| categoryIds | array | 是 | 分类ID列表（支持批量操作） |
+| reason | string | 是 | 删除原因 |
+| extraFields | string | 否 | 扩展字段JSON数组，格式：`[{"fieldName":"字段名","fieldValue":"字段值"}]` |
+
+**操作说明:**
+- **DELETE**: 删除分类，清除文章关联（`category_id` 设为 NULL），保存删除表单并向分类创建者发送 `CATEGORY_DELETED` 通知
+
+**成功响应:** `200 OK`
+```json
+{
+  "successCount": 3,
+  "failureCount": 0,
+  "successIds": [1, 2, 3],
+  "failures": []
+}
+```
+
+**错误响应:**
+- `400 Bad Request` - 参数验证失败（如未填写理由）
+
+---
+
 ## 后续规划
 
 管理后台 API 将陆续增加以下功能：

@@ -34,4 +34,10 @@ export default [
         component: () => import("@/modules/admin/views/AdminTagManagement.vue"),
         meta: { title: "标签管理 - 管理后台", requiresAdmin: true },
     },
+    {
+        path: "/admin/categories",
+        name: "AdminCategoryManagement",
+        component: () => import("@/modules/admin/views/AdminCategoryManagement.vue"),
+        meta: { title: "分类管理 - 管理后台", requiresAdmin: true },
+    },
 ];

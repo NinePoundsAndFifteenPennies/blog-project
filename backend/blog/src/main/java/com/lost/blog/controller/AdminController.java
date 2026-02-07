@@ -8,6 +8,7 @@ import com.lost.blog.security.JwtTokenProvider;
 import com.lost.blog.service.AdminCommentService;
 import com.lost.blog.service.AdminPostService;
 import com.lost.blog.service.AdminTagService;
+import com.lost.blog.service.AdminCategoryService;
 import com.lost.blog.service.AdminUserService;
 import com.lost.blog.service.UserService;
 import jakarta.validation.Valid;
@@ -48,6 +49,7 @@ public class AdminController {
     private final AdminPostService adminPostService;
     private final AdminCommentService adminCommentService;
     private final AdminTagService adminTagService;
+    private final AdminCategoryService adminCategoryService;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
 
@@ -57,6 +59,7 @@ public class AdminController {
                           AdminPostService adminPostService,
                           AdminCommentService adminCommentService,
                           AdminTagService adminTagService,
+                          AdminCategoryService adminCategoryService,
                           AuthenticationManager authenticationManager,
                           JwtTokenProvider tokenProvider) {
         this.userService = userService;
@@ -64,6 +67,7 @@ public class AdminController {
         this.adminPostService = adminPostService;
         this.adminCommentService = adminCommentService;
         this.adminTagService = adminTagService;
+        this.adminCategoryService = adminCategoryService;
         this.authenticationManager = authenticationManager;
         this.tokenProvider = tokenProvider;
     }
@@ -590,6 +594,173 @@ public class AdminController {
                         request.getExtraFields(),
                         admin);
                 logger.info("管理员 {} 批量硬删除 {} 个标签", currentUser.getUsername(), result.getSuccessCount());
+                break;
+                
+            default:
+                return ResponseEntity.badRequest().body("不支持的操作类型: " + action);
+        }
+        
+        return ResponseEntity.ok(result);
+    }
+
+    // ======================= 分类管理接口 =======================
+
+    /**
+     * 获取分类列表（支持分页和多条件搜索，按文章数排序）
+     * 
+     * @param page 页码（从0开始）
+     * @param size 每页数量
+     * @param name 分类名称搜索（模糊匹配）
+     * @param createdBy 创建者用户名搜索（模糊匹配）
+     * @param startDate 创建开始日期（yyyy-MM-dd）
+     * @param endDate 创建结束日期（yyyy-MM-dd）
+     */
+    @GetMapping("/categories")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<AdminCategoryResponse>> getCategories(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String createdBy,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        
+        AdminCategoryQueryRequest query = new AdminCategoryQueryRequest();
+        query.setName(name);
+        query.setCreatedBy(createdBy);
+        query.setStartDate(startDate);
+        query.setEndDate(endDate);
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<AdminCategoryResponse> categories = adminCategoryService.searchCategories(query, pageable);
+        
+        return ResponseEntity.ok(categories);
+    }
+
+    /**
+     * 获取分类详细信息
+     * 
+     * @param id 分类ID
+     */
+    @GetMapping("/categories/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AdminCategoryResponse> getCategoryDetail(@PathVariable Long id) {
+        AdminCategoryResponse category = adminCategoryService.getCategoryDetail(id);
+        return ResponseEntity.ok(category);
+    }
+
+    /**
+     * 管理员创建分类
+     * 
+     * @param categoryRequest 分类创建请求
+     */
+    @PostMapping("/categories")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AdminCategoryResponse> createCategory(
+            @Valid @RequestBody CategoryRequest categoryRequest,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        User admin = userService.findByUsername(currentUser.getUsername());
+        AdminCategoryResponse category = adminCategoryService.createCategory(categoryRequest, admin);
+        logger.info("管理员 {} 创建分类: {}", currentUser.getUsername(), categoryRequest.getName());
+        return new ResponseEntity<>(category, HttpStatus.CREATED);
+    }
+
+    /**
+     * 管理员更新分类
+     * 
+     * @param id 分类ID
+     * @param categoryRequest 分类更新请求
+     */
+    @PutMapping("/categories/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AdminCategoryResponse> updateCategory(
+            @PathVariable Long id,
+            @Valid @RequestBody CategoryRequest categoryRequest,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        AdminCategoryResponse category = adminCategoryService.updateCategory(id, categoryRequest);
+        logger.info("管理员 {} 更新分类 {}", currentUser.getUsername(), id);
+        return ResponseEntity.ok(category);
+    }
+
+    /**
+     * 按标题搜索文章（用于分类管理时添加文章）
+     * 
+     * @param title 文章标题关键词
+     */
+    @GetMapping("/categories/search-posts")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<AdminCategoryResponse.PostInfo>> searchPostsForCategory(
+            @RequestParam String title) {
+        List<AdminCategoryResponse.PostInfo> posts = adminCategoryService.searchPostsByTitle(title);
+        return ResponseEntity.ok(posts);
+    }
+
+    /**
+     * 将文章归入指定分类
+     * 
+     * @param id 分类ID
+     * @param postId 文章ID
+     */
+    @PostMapping("/categories/{id}/posts/{postId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AdminCategoryResponse> assignPostToCategory(
+            @PathVariable Long id,
+            @PathVariable Long postId,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        User admin = userService.findByUsername(currentUser.getUsername());
+        AdminCategoryResponse category = adminCategoryService.assignPostToCategory(id, postId, admin);
+        logger.info("管理员 {} 将文章 {} 归入分类 {}", currentUser.getUsername(), postId, id);
+        return ResponseEntity.ok(category);
+    }
+
+    /**
+     * 将文章从指定分类移除
+     * 
+     * @param id 分类ID
+     * @param postId 文章ID
+     */
+    @DeleteMapping("/categories/{id}/posts/{postId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AdminCategoryResponse> removePostFromCategory(
+            @PathVariable Long id,
+            @PathVariable Long postId,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        User admin = userService.findByUsername(currentUser.getUsername());
+        AdminCategoryResponse category = adminCategoryService.removePostFromCategory(id, postId, admin);
+        logger.info("管理员 {} 将文章 {} 从分类 {} 移除", currentUser.getUsername(), postId, id);
+        return ResponseEntity.ok(category);
+    }
+
+    /**
+     * 执行分类操作（删除）
+     * 支持批量操作，删除分类时会清除文章表中对应的分类ID
+     * 
+     * @param request 操作请求
+     */
+    @PostMapping("/categories/action")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> executeCategoryAction(
+            @Valid @RequestBody AdminCategoryActionRequest request,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        
+        User admin = userService.findByUsername(currentUser.getUsername());
+        String action = request.getAction().toUpperCase();
+        
+        // 验证删除操作需要理由
+        if (request.getReason() == null || request.getReason().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("删除操作需要填写理由");
+        }
+        
+        AdminBatchActionResponse result;
+        
+        switch (action) {
+            case "DELETE":
+                result = adminCategoryService.deleteCategories(
+                        request.getCategoryIds(),
+                        request.getReason(),
+                        request.getExtraFields(),
+                        admin);
+                logger.info("管理员 {} 批量删除 {} 个分类", currentUser.getUsername(), result.getSuccessCount());
                 break;
                 
             default:

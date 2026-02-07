@@ -103,7 +103,10 @@ Controller ──► Service ──► Repository ──► Database
 | DTO | └── AdminTagQueryRequest.java | 管理后台标签查询请求体 |
 | DTO | └── AdminTagResponse.java | 管理后台标签响应体（含文章使用数） |
 | DTO | └── AdminTagActionRequest.java | 管理后台标签操作请求体（软删除/硬删除） |
-| DTO | └── AdminFormResponse.java | 管理表单响应体（含标签信息、受影响文章） |
+| DTO | └── AdminCategoryQueryRequest.java | 管理后台分类查询请求体 |
+| DTO | └── AdminCategoryResponse.java | 管理后台分类响应体（含文章数、关联文章列表） |
+| DTO | └── AdminCategoryActionRequest.java | 管理后台分类操作请求体（批量删除） |
+| DTO | └── AdminFormResponse.java | 管理表单响应体（含标签/分类信息、受影响文章） |
 | 拦截器层 | **interceptor/** | HTTP 请求拦截器 |
 | 拦截器 | └── UserActivityInterceptor.java | 用户活跃追踪拦截器（可选，配合Redis使用） |
 | 异常层 | **exception/** | 自定义异常类与全局异常处理 |
@@ -130,11 +133,11 @@ Controller ──► Service ──► Repository ──► Database
 | 实体 | └── VisibilitySetting.java | 可嵌入的可见性设置类 |
 | 实体 | └── PrivateMessage.java | 私信消息实体 |
 | 实体 | └── Notification.java | 通知实体 |
-| 实体 | └── AdminForm.java | 管理表单实体（审核拒绝、文章删除、评论删除、标签删除的通知表单） |
+| 实体 | └── AdminForm.java | 管理表单实体（审核拒绝、文章删除、评论删除、标签删除、分类删除的通知表单） |
 | 枚举 | └── ContentType.java | 内容类型枚举 |
 | 枚举 | └── FollowInfoType.java | 关注信息类型枚举（FOLLOWING/FOLLOWERS/FRIENDS/STATS） |
-| 枚举 | └── NotificationType.java | 通知类型枚举（POST_LIKED/POST_COMMENTED/FOLLOWED/COMMENT_LIKED/COMMENT_REPLIED/MESSAGE_RECEIVED/COMMENT_DELETED/TAG_REMOVED/TAG_DELETED） |
-| 枚举 | └── AdminFormType.java | 管理表单类型枚举（REJECTION/DELETION/COMMENT_DELETION/TAG_SOFT_DELETION/TAG_HARD_DELETION） |
+| 枚举 | └── NotificationType.java | 通知类型枚举（POST_LIKED/POST_COMMENTED/FOLLOWED/COMMENT_LIKED/COMMENT_REPLIED/MESSAGE_RECEIVED/COMMENT_DELETED/TAG_REMOVED/TAG_DELETED/CATEGORY_DELETED） |
+| 枚举 | └── AdminFormType.java | 管理表单类型枚举（REJECTION/DELETION/COMMENT_DELETION/TAG_SOFT_DELETION/TAG_HARD_DELETION/CATEGORY_DELETION） |
 | 枚举 | └── CommentStatus.java | 评论状态枚举（PENDING/APPROVED） |
 | 枚举 | └── Role.java | 用户角色枚举（USER/ADMIN） |
 | 数据访问层 | **repository/** | 提供数据库操作接口 |
@@ -186,6 +189,8 @@ Controller ──► Service ──► Repository ──► Database
 | 实现类 | └── AdminCommentServiceImpl.java | 管理后台评论服务实现（评论列表、批量审核、批量删除） |
 | 接口 | └── AdminTagService.java | 管理后台标签服务接口 |
 | 实现类 | └── AdminTagServiceImpl.java | 管理后台标签服务实现（标签列表、创建、更新、软删除、硬删除） |
+| 接口 | └── AdminCategoryService.java | 管理后台分类服务接口 |
+| 实现类 | └── AdminCategoryServiceImpl.java | 管理后台分类服务实现（分类列表、创建、更新、文章归类/移除、批量删除） |
 | 配置文件 | **resources/** | 存放应用的资源文件 |
 | 配置文件 | └── application.properties | 应用配置（数据库、JWT密钥等） |
 
