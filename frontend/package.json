@@ -9,11 +9,13 @@
   },
   "dependencies": {
     "axios": "^0.27.2",
+    "chart.js": "^4.5.1",
     "core-js": "^3.8.3",
     "highlight.js": "^11.8.0",
     "jwt-decode": "^4.0.0",
     "marked": "^4.3.0",
     "vue": "^3.2.13",
+    "vue-chartjs": "^5.3.3",
     "vue-router": "^4.0.3",
     "vuex": "^4.0.2"
   },

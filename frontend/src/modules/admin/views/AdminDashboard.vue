@@ -25,59 +25,109 @@
             </div>
           </transition>
 
-          <!-- Stats Grid -->
-          <div class="stats-grid">
-            <div class="stat-card" v-for="stat in statsData" :key="stat.label">
-              <div class="stat-info">
-                <span class="stat-label">{{ stat.label }}</span>
-                <span class="stat-value">{{ stat.value }}</span>
-                <span :class="['stat-trend', stat.trendUp ? 'trend-up' : 'trend-down']">
-                  <span class="trend-arrow">{{ stat.trendUp ? '↑' : '↓' }}</span>
-                  {{ stat.trend }}
-                </span>
-              </div>
-              <div :class="['stat-icon', stat.iconClass]" v-html="stat.icon"></div>
-            </div>
+          <!-- Loading State -->
+          <div v-if="dashboardLoading" class="loading-container">
+            <span class="loading-spinner">加载仪表盘数据中...</span>
           </div>
 
-          <!-- Recent Articles -->
-          <div class="card">
-            <div class="card-header">
-              <h3>最新文章</h3>
-              <button class="btn btn-primary">
-                <span>+ 新建文章</span>
-              </button>
+          <template v-else>
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+              <StatCard
+                label="用户总数"
+                :value="dashboard.totalUsers"
+                :today-value="dashboard.todayNewUsers"
+                icon-class="icon-green"
+                :icon="icons.users"
+              />
+              <StatCard
+                label="文章总数"
+                :value="dashboard.totalPosts"
+                :today-value="dashboard.todayNewPosts"
+                icon-class="icon-blue"
+                :icon="icons.posts"
+              />
+              <StatCard
+                label="评论总数"
+                :value="dashboard.totalComments"
+                :today-value="dashboard.todayNewComments"
+                icon-class="icon-yellow"
+                :icon="icons.comments"
+              />
+              <StatCard
+                label="总浏览量"
+                :value="dashboard.totalViews"
+                :today-value="dashboard.todayViews"
+                icon-class="icon-purple"
+                :icon="icons.views"
+              />
             </div>
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>标题</th>
-                  <th>作者</th>
-                  <th>分类</th>
-                  <th>状态</th>
-                  <th>发布日期</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="article in recentArticles" :key="article.id">
-                  <td>{{ article.title }}</td>
-                  <td>{{ article.author }}</td>
-                  <td>{{ article.category }}</td>
-                  <td>
-                    <span :class="['badge', getBadgeClass(article.status)]">
-                      {{ article.statusText }}
-                    </span>
-                  </td>
-                  <td>{{ article.date }}</td>
-                  <td class="actions">
-                    <button class="action-btn">编辑</button>
-                    <button class="action-btn danger">删除</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+
+            <!-- Charts Row 1: User Growth + Post Publish Trend -->
+            <div class="charts-row">
+              <div class="chart-card">
+                <div class="chart-header">
+                  <h3>用户增长趋势</h3>
+                  <span class="chart-subtitle">最近30天</span>
+                </div>
+                <div class="chart-body">
+                  <LineChart :chart-data="userTrendChartData" />
+                </div>
+              </div>
+              <div class="chart-card">
+                <div class="chart-header">
+                  <h3>文章发布趋势</h3>
+                  <span class="chart-subtitle">最近30天</span>
+                </div>
+                <div class="chart-body">
+                  <BarChart :chart-data="postTrendChartData" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Charts Row 2: Comment Activity + View Trend -->
+            <div class="charts-row">
+              <div class="chart-card">
+                <div class="chart-header">
+                  <h3>评论活跃度</h3>
+                  <span class="chart-subtitle">最近30天</span>
+                </div>
+                <div class="chart-body">
+                  <LineChart :chart-data="commentTrendChartData" />
+                </div>
+              </div>
+              <div class="chart-card">
+                <div class="chart-header">
+                  <h3>浏览量趋势</h3>
+                  <span class="chart-subtitle">最近30天</span>
+                </div>
+                <div class="chart-body">
+                  <LineChart :chart-data="viewTrendChartData" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Charts Row 3: Hot Posts TOP10 + Post Status Distribution -->
+            <div class="charts-row">
+              <div class="chart-card chart-card-wide">
+                <div class="chart-header">
+                  <h3>热门文章 TOP10</h3>
+                  <span class="chart-subtitle">按浏览量排序</span>
+                </div>
+                <div class="chart-body chart-body-tall">
+                  <HorizontalBarChart :chart-data="hotPostsChartData" />
+                </div>
+              </div>
+              <div class="chart-card chart-card-narrow">
+                <div class="chart-header">
+                  <h3>文章状态分布</h3>
+                </div>
+                <div class="chart-body chart-body-tall">
+                  <DoughnutChart :chart-data="postStatusChartData" />
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
 
         <!-- Articles View -->
@@ -301,15 +351,27 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import AdminLayout from '@/layouts/AdminLayout.vue'
+import StatCard from '@/modules/admin/components/StatCard.vue'
+import LineChart from '@/modules/admin/components/charts/LineChart.vue'
+import BarChart from '@/modules/admin/components/charts/BarChart.vue'
+import DoughnutChart from '@/modules/admin/components/charts/DoughnutChart.vue'
+import HorizontalBarChart from '@/modules/admin/components/charts/HorizontalBarChart.vue'
+import { getDashboard } from '@/api/admin'
+import { COLORS, createAreaDataset, createBarDataset, generateBarColors, hexToRgba } from '@/modules/admin/utils/chartUtils'
 
 export default {
   name: 'AdminDashboard',
   components: {
-    AdminLayout
+    AdminLayout,
+    StatCard,
+    LineChart,
+    BarChart,
+    DoughnutChart,
+    HorizontalBarChart,
   },
   setup() {
     const store = useStore()
@@ -317,6 +379,36 @@ export default {
     const currentView = ref('dashboard')
     const currentFilter = ref('all')
     const currentCommentFilter = ref('all')
+    const dashboardLoading = ref(true)
+
+    // ======================= Dashboard Data =======================
+    const dashboard = reactive({
+      totalUsers: 0,
+      todayNewUsers: 0,
+      totalPosts: 0,
+      todayNewPosts: 0,
+      totalComments: 0,
+      todayNewComments: 0,
+      totalViews: 0,
+      todayViews: 0,
+      userTrend: [],
+      postTrend: [],
+      commentTrend: [],
+      viewTrend: [],
+      hotPosts: [],
+      publishedPosts: 0,
+      draftPosts: 0,
+      pendingPosts: 0,
+      rejectedPosts: 0,
+    })
+
+    // SVG 图标
+    const icons = {
+      users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>',
+      posts: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>',
+      comments: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>',
+      views: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>',
+    }
 
     // ======================= Welcome Animation State =======================
     const showWelcome = ref(true)
@@ -354,13 +446,62 @@ export default {
       { id: 'settings', label: '系统设置', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>' }
     ]
 
-    const statsData = [
-      { label: '总文章数', value: '128', trend: '+12%', trendUp: true, iconClass: 'icon-blue', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>' },
-      { label: '总用户数', value: '1,024', trend: '+8%', trendUp: true, iconClass: 'icon-green', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>' },
-      { label: '总评论数', value: '2,456', trend: '+15%', trendUp: true, iconClass: 'icon-yellow', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>' },
-      { label: '今日访问', value: '342', trend: '-3%', trendUp: false, iconClass: 'icon-purple', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>' }
-    ]
+    // ======================= Chart Data Computed =======================
+    const userTrendChartData = computed(() => ({
+      labels: dashboard.userTrend.map(i => i.date),
+      datasets: [createAreaDataset('新增用户', dashboard.userTrend.map(i => i.count), COLORS.success)],
+    }))
 
+    const postTrendChartData = computed(() => ({
+      labels: dashboard.postTrend.map(i => i.date),
+      datasets: [createBarDataset('发布文章', dashboard.postTrend.map(i => i.count), COLORS.primary)],
+    }))
+
+    const commentTrendChartData = computed(() => ({
+      labels: dashboard.commentTrend.map(i => i.date),
+      datasets: [createAreaDataset('新增评论', dashboard.commentTrend.map(i => i.count), COLORS.warning)],
+    }))
+
+    const viewTrendChartData = computed(() => ({
+      labels: dashboard.viewTrend.map(i => i.date),
+      datasets: [createAreaDataset('浏览量', dashboard.viewTrend.map(i => i.count), COLORS.purple)],
+    }))
+
+    const hotPostsChartData = computed(() => {
+      const posts = dashboard.hotPosts
+      const labels = posts.map(p => p.title.length > 18 ? p.title.slice(0, 18) + '...' : p.title)
+      return {
+        labels,
+        datasets: [{
+          label: '浏览量',
+          data: posts.map(p => p.viewCount),
+          backgroundColor: generateBarColors(posts.length),
+          borderRadius: 4,
+          borderSkipped: false,
+        }],
+      }
+    })
+
+    const postStatusChartData = computed(() => ({
+      labels: ['已发布', '草稿', '待审核', '已拒绝'],
+      datasets: [{
+        data: [
+          dashboard.publishedPosts,
+          dashboard.draftPosts,
+          dashboard.pendingPosts,
+          dashboard.rejectedPosts,
+        ],
+        backgroundColor: [
+          hexToRgba(COLORS.success, 0.8),
+          hexToRgba(COLORS.warning, 0.8),
+          hexToRgba(COLORS.primary, 0.8),
+          hexToRgba(COLORS.danger, 0.8),
+        ],
+        borderWidth: 0,
+      }],
+    }))
+
+    // ======================= Other View Data (mock) =======================
     const articleFilters = [
       { id: 'all', label: '全部' },
       { id: 'published', label: '已发布' },
@@ -448,8 +589,22 @@ export default {
       }, 100)
     }
 
+    // ======================= Dashboard Data Fetching =======================
+    const fetchDashboardData = async () => {
+      dashboardLoading.value = true
+      try {
+        const data = await getDashboard()
+        Object.assign(dashboard, data)
+      } catch (error) {
+        console.error('获取仪表盘数据失败:', error)
+      } finally {
+        dashboardLoading.value = false
+      }
+    }
+
     onMounted(() => {
       startTypingAnimation()
+      fetchDashboardData()
     })
 
     onUnmounted(() => {
@@ -465,7 +620,17 @@ export default {
       adminName,
       currentPageTitle,
       menuItems,
-      statsData,
+      icons,
+      dashboard,
+      dashboardLoading,
+      // Chart data
+      userTrendChartData,
+      postTrendChartData,
+      commentTrendChartData,
+      viewTrendChartData,
+      hotPostsChartData,
+      postStatusChartData,
+      // Other views
       articleFilters,
       commentFilters,
       recentArticles,
@@ -493,87 +658,57 @@ export default {
   margin-bottom: 24px;
 }
 
-.stat-card {
+/* Charts Layout */
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.chart-card {
   background: #fff;
   border-radius: 12px;
-  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.chart-card-wide {
+  grid-column: span 1;
+}
+
+.chart-card-narrow {
+  grid-column: span 1;
+}
+
+.chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.stat-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 8px;
-}
-
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
+.chart-header h3 {
+  font-size: 16px;
+  font-weight: 600;
   color: #1a1d2e;
-  margin-bottom: 4px;
+  margin: 0;
 }
 
-.stat-trend {
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.chart-subtitle {
+  font-size: 12px;
+  color: #999;
 }
 
-.trend-up {
-  color: #52c41a;
+.chart-body {
+  padding: 16px 20px;
+  height: 280px;
+  position: relative;
 }
 
-.trend-down {
-  color: #ff4d4f;
-}
-
-.stat-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stat-icon svg {
-  width: 28px;
-  height: 28px;
-}
-
-.icon-blue {
-  background: rgba(24, 144, 255, 0.1);
-  color: #1890ff;
-}
-
-.icon-green {
-  background: rgba(82, 196, 26, 0.1);
-  color: #52c41a;
-}
-
-.icon-yellow {
-  background: rgba(250, 173, 20, 0.1);
-  color: #faad14;
-}
-
-.icon-purple {
-  background: rgba(114, 46, 209, 0.1);
-  color: #722ed1;
+.chart-body-tall {
+  height: 380px;
 }
 
 /* Card */

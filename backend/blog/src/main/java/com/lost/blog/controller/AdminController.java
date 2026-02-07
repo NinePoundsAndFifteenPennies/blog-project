@@ -10,6 +10,7 @@ import com.lost.blog.service.AdminPostService;
 import com.lost.blog.service.AdminTagService;
 import com.lost.blog.service.AdminCategoryService;
 import com.lost.blog.service.AdminUserService;
+import com.lost.blog.service.DashboardService;
 import com.lost.blog.service.UserService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -50,6 +51,7 @@ public class AdminController {
     private final AdminCommentService adminCommentService;
     private final AdminTagService adminTagService;
     private final AdminCategoryService adminCategoryService;
+    private final DashboardService dashboardService;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
 
@@ -60,6 +62,7 @@ public class AdminController {
                           AdminCommentService adminCommentService,
                           AdminTagService adminTagService,
                           AdminCategoryService adminCategoryService,
+                          DashboardService dashboardService,
                           AuthenticationManager authenticationManager,
                           JwtTokenProvider tokenProvider) {
         this.userService = userService;
@@ -68,6 +71,7 @@ public class AdminController {
         this.adminCommentService = adminCommentService;
         this.adminTagService = adminTagService;
         this.adminCategoryService = adminCategoryService;
+        this.dashboardService = dashboardService;
         this.authenticationManager = authenticationManager;
         this.tokenProvider = tokenProvider;
     }
@@ -118,17 +122,13 @@ public class AdminController {
     }
 
     /**
-     * 管理员仪表盘数据（示例接口）
-     * 可以根据需要扩展返回更多统计数据
+     * 管理员仪表盘数据
+     * 返回核心统计、趋势图表数据、热门文章等
      */
     @GetMapping("/dashboard")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails currentUser) {
-        // 返回简单的仪表盘数据，后续可以扩展
-        return ResponseEntity.ok(java.util.Map.of(
-            "message", "欢迎进入管理后台",
-            "admin", currentUser.getUsername()
-        ));
+        return ResponseEntity.ok(dashboardService.getDashboardData(currentUser.getUsername()));
     }
 
     // ======================= 用户管理接口 =======================

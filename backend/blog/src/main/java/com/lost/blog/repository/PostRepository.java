@@ -398,4 +398,28 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      * 统计各状态文章数量
      */
     long countByStatus(com.lost.blog.model.PostStatus status);
+
+    // ======================= 仪表盘统计方法 =======================
+
+    // 统计指定时间范围内创建的文章数
+    long countByCreatedAtBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
+
+    // 统计总浏览量（所有文章viewCount之和）
+    @Query("SELECT COALESCE(SUM(p.viewCount), 0) FROM Post p")
+    long sumAllViewCount();
+
+    // 查询热门文章TOP N（按viewCount降序，只含已发布文章）
+    @Query(value = """
+        SELECT p.id, p.title, u.nickname, p.view_count,
+               COALESCE(l.like_count, 0) as like_count,
+               COALESCE(c.comment_count, 0) as comment_count
+        FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM likes WHERE post_id IS NOT NULL GROUP BY post_id) l ON p.id = l.post_id
+        LEFT JOIN (SELECT post_id, COUNT(*) as comment_count FROM comments GROUP BY post_id) c ON p.id = c.post_id
+        WHERE p.status = 'PUBLISHED' AND p.is_draft = false
+        ORDER BY p.view_count DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    java.util.List<Object[]> findTopHotPosts(@Param("limit") int limit);
 }
