@@ -683,6 +683,19 @@ public class AdminController {
     }
 
     /**
+     * 按标题搜索文章（用于分类管理时添加文章）
+     * 
+     * @param title 文章标题关键词
+     */
+    @GetMapping("/categories/search-posts")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<AdminCategoryResponse.PostInfo>> searchPostsForCategory(
+            @RequestParam String title) {
+        List<AdminCategoryResponse.PostInfo> posts = adminCategoryService.searchPostsByTitle(title);
+        return ResponseEntity.ok(posts);
+    }
+
+    /**
      * 将文章归入指定分类
      * 
      * @param id 分类ID

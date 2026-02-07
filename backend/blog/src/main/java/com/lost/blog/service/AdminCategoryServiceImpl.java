@@ -199,6 +199,20 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public java.util.List<AdminCategoryResponse.PostInfo> searchPostsByTitle(String title) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 20);
+        List<Object[]> results = postRepository.searchPostsByTitle(title, pageable);
+        List<AdminCategoryResponse.PostInfo> postInfos = new ArrayList<>();
+        for (Object[] row : results) {
+            Long postId = (Long) row[0];
+            String postTitle = (String) row[1];
+            postInfos.add(new AdminCategoryResponse.PostInfo(postId, postTitle));
+        }
+        return postInfos;
+    }
+
+    @Override
     @Transactional
     public AdminBatchActionResponse deleteCategories(List<Long> categoryIds, String reason,
                                                       String extraFields, User admin) {

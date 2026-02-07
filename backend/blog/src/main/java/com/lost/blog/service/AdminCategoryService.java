@@ -61,6 +61,13 @@ public interface AdminCategoryService {
     AdminCategoryResponse removePostFromCategory(Long categoryId, Long postId, User admin);
 
     /**
+     * 按标题搜索文章（用于分类管理时选择文章）
+     * @param title 文章标题关键词
+     * @return 匹配的文章列表（ID和标题）
+     */
+    java.util.List<AdminCategoryResponse.PostInfo> searchPostsByTitle(String title);
+
+    /**
      * 批量删除分类（删除分类并清除文章关联的分类ID）
      * @param categoryIds 分类ID列表
      * @param reason 删除理由

@@ -46,6 +46,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // 查找使用某个分类的所有文章
     java.util.List<Post> findByCategory(com.lost.blog.model.Category category);
 
+    // 按标题模糊搜索文章（返回ID和标题，用于分类管理时选择文章）
+    @Query("SELECT p.id, p.title FROM Post p WHERE LOWER(p.title) LIKE LOWER(CONCAT('%', :title, '%')) ORDER BY p.createdAt DESC")
+    java.util.List<Object[]> searchPostsByTitle(@Param("title") String title, Pageable pageable);
+
     // 按创建时间排序获取已发布文章（升序）
     @Query("SELECT p FROM Post p WHERE p.status IN :statuses ORDER BY p.createdAt ASC")
     Page<Post> findByStatusInOrderByCreatedAtAsc(@Param("statuses") java.util.Collection<PostStatus> statuses,

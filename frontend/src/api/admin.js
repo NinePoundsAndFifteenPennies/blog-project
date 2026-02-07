@@ -453,6 +453,20 @@ export async function removePostFromCategory(categoryId, postId) {
 }
 
 /**
+ * 按标题搜索文章（用于分类管理时添加文章）
+ * @param {string} title - 文章标题关键词
+ * @returns {Promise<Array>} - 返回匹配的文章列表 [{ postId, postTitle }]
+ */
+export async function searchPostsForCategory(title) {
+    const response = await request({
+        url: "/admin/categories/search-posts",
+        method: "get",
+        params: { title },
+    });
+    return response;
+}
+
+/**
  * 执行分类操作（删除）
  * @param {Object} data - 操作数据
  * @param {string} data.action - 操作类型: DELETE

@@ -201,8 +201,17 @@
           <div class="detail-row detail-row-block">
             <span class="label">添加文章:</span>
             <div class="assign-post-row">
-              <input type="number" v-model.number="assignPostId" class="form-input assign-post-input" placeholder="输入文章ID" min="1">
-              <button class="btn btn-primary btn-sm" @click="handleAssignPost" :disabled="!assignPostId">添加文章</button>
+              <div class="post-search-wrapper">
+                <input type="text" v-model="postSearchQuery" class="form-input assign-post-input" placeholder="输入文章ID或搜索标题" @input="handlePostSearchInput" @focus="showPostSearchResults = postSearchResults.length > 0">
+                <div v-if="postSearchLoading" class="post-search-loading">搜索中...</div>
+                <div v-if="showPostSearchResults && postSearchResults.length > 0" class="post-search-dropdown">
+                  <div v-for="post in postSearchResults" :key="post.postId" class="post-search-item" @click="selectPostFromSearch(post)">
+                    <span class="post-id-badge">#{{ post.postId }}</span>
+                    <span class="post-search-title">{{ post.postTitle }}</span>
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-sm" @click="handleAssignPost" :disabled="!assignPostId">添加</button>
             </div>
           </div>
           <!-- 关联文章列表 -->
@@ -352,7 +361,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
-import { getAdminCategories, getAdminCategoryDetail, createAdminCategory, updateAdminCategory, assignPostToCategory, removePostFromCategory, executeCategoryAction } from '@/api/admin'
+import { getAdminCategories, getAdminCategoryDetail, createAdminCategory, updateAdminCategory, assignPostToCategory, removePostFromCategory, executeCategoryAction, searchPostsForCategory } from '@/api/admin'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
 export default {
@@ -387,6 +396,11 @@ export default {
     const showDetailModal = ref(false)
     const selectedCategory = ref(null)
     const assignPostId = ref(null)
+    const postSearchQuery = ref('')
+    const postSearchResults = ref([])
+    const postSearchLoading = ref(false)
+    const showPostSearchResults = ref(false)
+    let postSearchTimer = null
 
     // Create/Edit modal state
     const showFormModal = ref(false)
@@ -515,6 +529,9 @@ export default {
         const detail = await getAdminCategoryDetail(category.id)
         selectedCategory.value = detail
         assignPostId.value = null
+        postSearchQuery.value = ''
+        postSearchResults.value = []
+        showPostSearchResults.value = false
         showDetailModal.value = true
       } catch (error) {
         console.error('Failed to load category detail:', error)
@@ -526,6 +543,52 @@ export default {
       showDetailModal.value = false
       selectedCategory.value = null
       assignPostId.value = null
+      postSearchQuery.value = ''
+      postSearchResults.value = []
+      showPostSearchResults.value = false
+    }
+
+    const handlePostSearchInput = () => {
+      const query = postSearchQuery.value.trim()
+      if (!query) {
+        postSearchResults.value = []
+        showPostSearchResults.value = false
+        assignPostId.value = null
+        return
+      }
+
+      // If input is a pure number, treat as post ID
+      if (/^\d+$/.test(query)) {
+        assignPostId.value = parseInt(query)
+        postSearchResults.value = []
+        showPostSearchResults.value = false
+        return
+      }
+
+      // Otherwise search by title with debounce
+      assignPostId.value = null
+      if (postSearchTimer) clearTimeout(postSearchTimer)
+      postSearchTimer = setTimeout(async () => {
+        if (query.length < 2) return
+        postSearchLoading.value = true
+        try {
+          const results = await searchPostsForCategory(query)
+          postSearchResults.value = results || []
+          showPostSearchResults.value = postSearchResults.value.length > 0
+        } catch (error) {
+          console.error('Failed to search posts:', error)
+          postSearchResults.value = []
+        } finally {
+          postSearchLoading.value = false
+        }
+      }, 300)
+    }
+
+    const selectPostFromSearch = (post) => {
+      assignPostId.value = post.postId
+      postSearchQuery.value = `#${post.postId} ${post.postTitle}`
+      postSearchResults.value = []
+      showPostSearchResults.value = false
     }
 
     const handleAssignPost = async () => {
@@ -536,6 +599,9 @@ export default {
         const detail = await getAdminCategoryDetail(selectedCategory.value.id)
         selectedCategory.value = detail
         assignPostId.value = null
+        postSearchQuery.value = ''
+        postSearchResults.value = []
+        showPostSearchResults.value = false
         await loadCategories()
       } catch (error) {
         console.error('Failed to assign post:', error)
@@ -772,8 +838,14 @@ export default {
       showDetailModal,
       selectedCategory,
       assignPostId,
+      postSearchQuery,
+      postSearchResults,
+      postSearchLoading,
+      showPostSearchResults,
       viewCategoryDetail,
       closeDetailModal,
+      handlePostSearchInput,
+      selectPostFromSearch,
       handleAssignPost,
       handleRemovePost,
       // Create/Edit modal
@@ -1441,9 +1513,58 @@ export default {
   align-items: center;
 }
 
+.post-search-wrapper {
+  position: relative;
+  flex: 1;
+}
+
 .assign-post-input {
-  width: 160px;
-  flex: none;
+  width: 100%;
+}
+
+.post-search-loading {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: #999;
+}
+
+.post-search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.post-search-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 13px;
+}
+
+.post-search-item:hover {
+  background: #f0f5ff;
+}
+
+.post-search-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Expanded posts in table */
