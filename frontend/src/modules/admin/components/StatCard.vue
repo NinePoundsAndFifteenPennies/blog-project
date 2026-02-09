@@ -16,6 +16,8 @@
 </template>
 
 <script>
+import { formatLargeNumber } from '@/modules/admin/utils/chartUtils'
+
 export default {
   name: 'StatCard',
   props: {
@@ -29,10 +31,7 @@ export default {
   emits: ['click'],
   computed: {
     formattedValue() {
-      if (this.value >= 10000) {
-        return (this.value / 10000).toFixed(1) + '万'
-      }
-      return this.value.toLocaleString()
+      return formatLargeNumber(this.value)
     },
   },
   methods: {

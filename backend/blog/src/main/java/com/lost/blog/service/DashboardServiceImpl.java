@@ -40,6 +40,22 @@ public class DashboardServiceImpl implements DashboardService {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("MM-dd HH:mm");
     private static final int TREND_DAYS = 30;
 
+    // 雷达图评分归一化因子
+    private static final double VIEWS_SCORE_DIVISOR = 10.0;       // 1000浏览量 = 满分100
+    private static final double COMMENTS_SCORE_MULTIPLIER = 2.0;  // 50条评论 = 满分100
+    private static final double ENGAGEMENT_MULTIPLIER = 10.0;     // 用户参与度缩放因子
+    private static final double FRESHNESS_BOOST_FACTOR = 4.0;     // 内容新鲜度增幅（25%为基准线）
+
+    // 热力图颜色方案
+    private static final String[] TAG_COLORS = {
+        "#1890ff", "#52c41a", "#faad14", "#ff4d4f", "#722ed1",
+        "#13c2c2", "#eb2f96", "#2f54eb", "#fa8c16", "#a0d911"
+    };
+    private static final String[] CATEGORY_COLORS = {
+        "#2f54eb", "#1890ff", "#13c2c2", "#52c41a", "#a0d911",
+        "#faad14", "#fa8c16", "#ff4d4f", "#eb2f96", "#722ed1"
+    };
+
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
@@ -187,8 +203,6 @@ public class DashboardServiceImpl implements DashboardService {
         // 标签统计
         List<Tag> popularTags = tagRepository.findPopularTags();
         List<TagCategoryItem> tagStats = new ArrayList<>();
-        String[] tagColors = {"#1890ff", "#52c41a", "#faad14", "#ff4d4f", "#722ed1",
-                              "#13c2c2", "#eb2f96", "#2f54eb", "#fa8c16", "#a0d911"};
 
         for (int i = 0; i < popularTags.size(); i++) {
             Tag tag = popularTags.get(i);
@@ -197,7 +211,7 @@ public class DashboardServiceImpl implements DashboardService {
                 tag.getId(),
                 tag.getName(),
                 postCount,
-                tag.getColor() != null ? tag.getColor() : tagColors[i % tagColors.length]
+                tag.getColor() != null ? tag.getColor() : TAG_COLORS[i % TAG_COLORS.length]
             ));
         }
         response.setTagStats(tagStats);
@@ -205,8 +219,6 @@ public class DashboardServiceImpl implements DashboardService {
         // 分类统计
         List<Category> popularCategories = categoryRepository.findPopularCategories();
         List<TagCategoryItem> categoryStats = new ArrayList<>();
-        String[] catColors = {"#2f54eb", "#1890ff", "#13c2c2", "#52c41a", "#a0d911",
-                              "#faad14", "#fa8c16", "#ff4d4f", "#eb2f96", "#722ed1"};
 
         for (int i = 0; i < popularCategories.size(); i++) {
             Category cat = popularCategories.get(i);
@@ -217,7 +229,7 @@ public class DashboardServiceImpl implements DashboardService {
                 cat.getId(),
                 cat.getName(),
                 postCount,
-                cat.getColor() != null ? cat.getColor() : catColors[i % catColors.length]
+                cat.getColor() != null ? cat.getColor() : CATEGORY_COLORS[i % CATEGORY_COLORS.length]
             ));
         }
         response.setCategoryStats(categoryStats);
@@ -288,13 +300,13 @@ public class DashboardServiceImpl implements DashboardService {
         long publishedPosts = postRepository.countByStatus(PostStatus.PUBLISHED);
 
         if (totalPosts > 0) {
-            // 平均浏览量（归一化到0-100，假设1000为满分）
+            // 平均浏览量（归一化到0-100）
             double avgViews = (double) totalViews / totalPosts;
-            radar.setAvgViewsPerPost(Math.min(avgViews / 10.0, 100));
+            radar.setAvgViewsPerPost(Math.min(avgViews / VIEWS_SCORE_DIVISOR, 100));
 
-            // 平均评论数（归一化，假设50为满分）
+            // 平均评论数（归一化到0-100）
             double avgComments = (double) totalComments / totalPosts;
-            radar.setAvgCommentsPerPost(Math.min(avgComments * 2.0, 100));
+            radar.setAvgCommentsPerPost(Math.min(avgComments * COMMENTS_SCORE_MULTIPLIER, 100));
 
             // 平均点赞数（归一化，假设100为满分）
             double avgLikes = (double) totalLikes / totalPosts;
@@ -307,7 +319,7 @@ public class DashboardServiceImpl implements DashboardService {
         // 用户参与度（有评论或点赞的比率）
         long totalUsers = userRepository.count();
         if (totalUsers > 0) {
-            radar.setUserEngagement(Math.min((double)(totalComments + totalLikes) / totalUsers * 10, 100));
+            radar.setUserEngagement(Math.min((double)(totalComments + totalLikes) / totalUsers * ENGAGEMENT_MULTIPLIER, 100));
         }
 
         // 内容新鲜度（最近7天发布的文章占比）
@@ -315,7 +327,7 @@ public class DashboardServiceImpl implements DashboardService {
         LocalDateTime now = LocalDate.now().atTime(LocalTime.MAX);
         long recentPosts = postRepository.countByCreatedAtBetween(weekAgo, now);
         if (totalPosts > 0) {
-            radar.setContentFreshness(Math.min((double) recentPosts / totalPosts * 100 * 4, 100));
+            radar.setContentFreshness(Math.min((double) recentPosts / totalPosts * 100 * FRESHNESS_BOOST_FACTOR, 100));
         }
 
         response.setContentRadar(radar);

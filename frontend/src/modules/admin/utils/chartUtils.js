@@ -23,6 +23,14 @@ export function hexToRgba(hex, alpha = 1) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
+// 格式化大数字（10000以上转换为"万"）
+export function formatLargeNumber(value) {
+  if (value >= 10000) {
+    return (value / 10000).toFixed(1) + '万'
+  }
+  return value.toLocaleString()
+}
+
 // 面积折线图数据集默认配置
 export function createAreaDataset(label, data, color) {
   return {

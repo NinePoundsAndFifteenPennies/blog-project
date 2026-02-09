@@ -605,7 +605,7 @@ import DoughnutChart from '@/modules/admin/components/charts/DoughnutChart.vue'
 import HorizontalBarChart from '@/modules/admin/components/charts/HorizontalBarChart.vue'
 import RadarChart from '@/modules/admin/components/charts/RadarChart.vue'
 import { getDashboard } from '@/api/admin'
-import { COLORS, createAreaDataset, createBarDataset, generateBarColors, hexToRgba } from '@/modules/admin/utils/chartUtils'
+import { COLORS, createAreaDataset, createBarDataset, generateBarColors, hexToRgba, formatLargeNumber } from '@/modules/admin/utils/chartUtils'
 
 export default {
   name: 'AdminDashboard',
@@ -798,9 +798,7 @@ export default {
     })
 
     const formattedTotalViews = computed(() => {
-      const v = dashboard.totalViews
-      if (v >= 10000) return (v / 10000).toFixed(1) + '万'
-      return v.toLocaleString()
+      return formatLargeNumber(dashboard.totalViews)
     })
 
     const getHeatmapCellStyle = (item, maxCount) => {
