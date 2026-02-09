@@ -33,6 +33,22 @@ public class DashboardResponse {
     private long pendingPosts;
     private long rejectedPosts;
 
+    // ======================= 标签/分类热力图数据 =======================
+    private List<TagCategoryItem> tagStats;
+    private List<TagCategoryItem> categoryStats;
+
+    // ======================= 系统概览 =======================
+    private long totalTags;
+    private long totalCategories;
+    private long enabledUsers;
+    private long disabledUsers;
+
+    // ======================= 最近活动 =======================
+    private List<RecentActivityItem> recentActivities;
+
+    // ======================= 内容质量雷达图 =======================
+    private ContentRadarData contentRadar;
+
     // ======================= 管理员信息 =======================
     private String admin;
     private String message;
@@ -93,6 +109,89 @@ public class DashboardResponse {
         public void setCommentCount(long commentCount) { this.commentCount = commentCount; }
     }
 
+    /**
+     * 标签/分类统计项（名称 + 文章数 + 颜色）
+     */
+    public static class TagCategoryItem {
+        private Long id;
+        private String name;
+        private long postCount;
+        private String color;
+
+        public TagCategoryItem() {}
+
+        public TagCategoryItem(Long id, String name, long postCount, String color) {
+            this.id = id;
+            this.name = name;
+            this.postCount = postCount;
+            this.color = color;
+        }
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public long getPostCount() { return postCount; }
+        public void setPostCount(long postCount) { this.postCount = postCount; }
+        public String getColor() { return color; }
+        public void setColor(String color) { this.color = color; }
+    }
+
+    /**
+     * 最近活动项
+     */
+    public static class RecentActivityItem {
+        private String type;
+        private String description;
+        private String time;
+        private String icon;
+
+        public RecentActivityItem() {}
+
+        public RecentActivityItem(String type, String description, String time, String icon) {
+            this.type = type;
+            this.description = description;
+            this.time = time;
+            this.icon = icon;
+        }
+
+        public String getType() { return type; }
+        public void setType(String type) { this.type = type; }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        public String getTime() { return time; }
+        public void setTime(String time) { this.time = time; }
+        public String getIcon() { return icon; }
+        public void setIcon(String icon) { this.icon = icon; }
+    }
+
+    /**
+     * 内容质量雷达图数据
+     */
+    public static class ContentRadarData {
+        private double avgViewsPerPost;
+        private double avgCommentsPerPost;
+        private double avgLikesPerPost;
+        private double publishRate;
+        private double userEngagement;
+        private double contentFreshness;
+
+        public ContentRadarData() {}
+
+        public double getAvgViewsPerPost() { return avgViewsPerPost; }
+        public void setAvgViewsPerPost(double avgViewsPerPost) { this.avgViewsPerPost = avgViewsPerPost; }
+        public double getAvgCommentsPerPost() { return avgCommentsPerPost; }
+        public void setAvgCommentsPerPost(double avgCommentsPerPost) { this.avgCommentsPerPost = avgCommentsPerPost; }
+        public double getAvgLikesPerPost() { return avgLikesPerPost; }
+        public void setAvgLikesPerPost(double avgLikesPerPost) { this.avgLikesPerPost = avgLikesPerPost; }
+        public double getPublishRate() { return publishRate; }
+        public void setPublishRate(double publishRate) { this.publishRate = publishRate; }
+        public double getUserEngagement() { return userEngagement; }
+        public void setUserEngagement(double userEngagement) { this.userEngagement = userEngagement; }
+        public double getContentFreshness() { return contentFreshness; }
+        public void setContentFreshness(double contentFreshness) { this.contentFreshness = contentFreshness; }
+    }
+
     // ======================= Getters and Setters =======================
     public long getTotalUsers() { return totalUsers; }
     public void setTotalUsers(long totalUsers) { this.totalUsers = totalUsers; }
@@ -128,6 +227,22 @@ public class DashboardResponse {
     public void setPendingPosts(long pendingPosts) { this.pendingPosts = pendingPosts; }
     public long getRejectedPosts() { return rejectedPosts; }
     public void setRejectedPosts(long rejectedPosts) { this.rejectedPosts = rejectedPosts; }
+    public List<TagCategoryItem> getTagStats() { return tagStats; }
+    public void setTagStats(List<TagCategoryItem> tagStats) { this.tagStats = tagStats; }
+    public List<TagCategoryItem> getCategoryStats() { return categoryStats; }
+    public void setCategoryStats(List<TagCategoryItem> categoryStats) { this.categoryStats = categoryStats; }
+    public long getTotalTags() { return totalTags; }
+    public void setTotalTags(long totalTags) { this.totalTags = totalTags; }
+    public long getTotalCategories() { return totalCategories; }
+    public void setTotalCategories(long totalCategories) { this.totalCategories = totalCategories; }
+    public long getEnabledUsers() { return enabledUsers; }
+    public void setEnabledUsers(long enabledUsers) { this.enabledUsers = enabledUsers; }
+    public long getDisabledUsers() { return disabledUsers; }
+    public void setDisabledUsers(long disabledUsers) { this.disabledUsers = disabledUsers; }
+    public List<RecentActivityItem> getRecentActivities() { return recentActivities; }
+    public void setRecentActivities(List<RecentActivityItem> recentActivities) { this.recentActivities = recentActivities; }
+    public ContentRadarData getContentRadar() { return contentRadar; }
+    public void setContentRadar(ContentRadarData contentRadar) { this.contentRadar = contentRadar; }
     public String getAdmin() { return admin; }
     public void setAdmin(String admin) { this.admin = admin; }
     public String getMessage() { return message; }

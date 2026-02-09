@@ -1,12 +1,20 @@
 package com.lost.blog.service;
 
 import com.lost.blog.dto.DashboardResponse;
+import com.lost.blog.dto.DashboardResponse.ContentRadarData;
 import com.lost.blog.dto.DashboardResponse.HotPostItem;
+import com.lost.blog.dto.DashboardResponse.RecentActivityItem;
+import com.lost.blog.dto.DashboardResponse.TagCategoryItem;
 import com.lost.blog.dto.DashboardResponse.TrendItem;
+import com.lost.blog.model.Category;
 import com.lost.blog.model.PostStatus;
+import com.lost.blog.model.Tag;
+import com.lost.blog.repository.CategoryRepository;
 import com.lost.blog.repository.CommentRepository;
+import com.lost.blog.repository.LikeRepository;
 import com.lost.blog.repository.PostRepository;
 import com.lost.blog.repository.PostViewLogRepository;
+import com.lost.blog.repository.TagRepository;
 import com.lost.blog.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,22 +37,32 @@ public class DashboardServiceImpl implements DashboardService {
 
     private static final Logger logger = LoggerFactory.getLogger(DashboardServiceImpl.class);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MM-dd");
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("MM-dd HH:mm");
     private static final int TREND_DAYS = 30;
 
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final PostViewLogRepository postViewLogRepository;
+    private final TagRepository tagRepository;
+    private final CategoryRepository categoryRepository;
+    private final LikeRepository likeRepository;
 
     @Autowired
     public DashboardServiceImpl(UserRepository userRepository,
                                 PostRepository postRepository,
                                 CommentRepository commentRepository,
-                                PostViewLogRepository postViewLogRepository) {
+                                PostViewLogRepository postViewLogRepository,
+                                TagRepository tagRepository,
+                                CategoryRepository categoryRepository,
+                                LikeRepository likeRepository) {
         this.userRepository = userRepository;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
         this.postViewLogRepository = postViewLogRepository;
+        this.tagRepository = tagRepository;
+        this.categoryRepository = categoryRepository;
+        this.likeRepository = likeRepository;
     }
 
     @Override
@@ -67,6 +85,18 @@ public class DashboardServiceImpl implements DashboardService {
 
         // 热门文章 TOP10
         populateHotPosts(response);
+
+        // 标签/分类热力图
+        populateTagCategoryStats(response);
+
+        // 系统概览
+        populateSystemOverview(response);
+
+        // 最近活动
+        populateRecentActivities(response, todayStart);
+
+        // 内容质量雷达图
+        populateContentRadar(response);
 
         return response;
     }
@@ -148,5 +178,146 @@ public class DashboardServiceImpl implements DashboardService {
         }
 
         response.setHotPosts(hotPosts);
+    }
+
+    /**
+     * 填充标签和分类统计数据（用于热力图）
+     */
+    private void populateTagCategoryStats(DashboardResponse response) {
+        // 标签统计
+        List<Tag> popularTags = tagRepository.findPopularTags();
+        List<TagCategoryItem> tagStats = new ArrayList<>();
+        String[] tagColors = {"#1890ff", "#52c41a", "#faad14", "#ff4d4f", "#722ed1",
+                              "#13c2c2", "#eb2f96", "#2f54eb", "#fa8c16", "#a0d911"};
+
+        for (int i = 0; i < popularTags.size(); i++) {
+            Tag tag = popularTags.get(i);
+            long postCount = tag.getPosts() != null ? tag.getPosts().size() : 0;
+            tagStats.add(new TagCategoryItem(
+                tag.getId(),
+                tag.getName(),
+                postCount,
+                tag.getColor() != null ? tag.getColor() : tagColors[i % tagColors.length]
+            ));
+        }
+        response.setTagStats(tagStats);
+
+        // 分类统计
+        List<Category> popularCategories = categoryRepository.findPopularCategories();
+        List<TagCategoryItem> categoryStats = new ArrayList<>();
+        String[] catColors = {"#2f54eb", "#1890ff", "#13c2c2", "#52c41a", "#a0d911",
+                              "#faad14", "#fa8c16", "#ff4d4f", "#eb2f96", "#722ed1"};
+
+        for (int i = 0; i < popularCategories.size(); i++) {
+            Category cat = popularCategories.get(i);
+            // For categories, count posts using the repository query
+            List<Object[]> catPosts = categoryRepository.findPostsByCategoryId(cat.getId());
+            long postCount = catPosts != null ? catPosts.size() : 0;
+            categoryStats.add(new TagCategoryItem(
+                cat.getId(),
+                cat.getName(),
+                postCount,
+                cat.getColor() != null ? cat.getColor() : catColors[i % catColors.length]
+            ));
+        }
+        response.setCategoryStats(categoryStats);
+    }
+
+    /**
+     * 填充系统概览数据
+     */
+    private void populateSystemOverview(DashboardResponse response) {
+        response.setTotalTags(tagRepository.count());
+        response.setTotalCategories(categoryRepository.count());
+        response.setEnabledUsers(userRepository.countByEnabled(true));
+        response.setDisabledUsers(userRepository.countByEnabled(false));
+    }
+
+    /**
+     * 填充最近活动
+     */
+    private void populateRecentActivities(DashboardResponse response, LocalDateTime todayStart) {
+        List<RecentActivityItem> activities = new ArrayList<>();
+
+        // 获取今日新用户数
+        LocalDateTime todayEnd = LocalDate.now().atTime(LocalTime.MAX);
+        long newUsersToday = userRepository.countByCreatedAtBetween(todayStart, todayEnd);
+        if (newUsersToday > 0) {
+            activities.add(new RecentActivityItem("user", newUsersToday + " 位新用户注册", LocalDate.now().format(DATE_FORMATTER), "👤"));
+        }
+
+        // 获取今日新文章数
+        long newPostsToday = postRepository.countByCreatedAtBetween(todayStart, todayEnd);
+        if (newPostsToday > 0) {
+            activities.add(new RecentActivityItem("post", newPostsToday + " 篇新文章发布", LocalDate.now().format(DATE_FORMATTER), "📝"));
+        }
+
+        // 获取今日新评论数
+        long newCommentsToday = commentRepository.countByCreatedAtBetween(todayStart, todayEnd);
+        if (newCommentsToday > 0) {
+            activities.add(new RecentActivityItem("comment", newCommentsToday + " 条新评论", LocalDate.now().format(DATE_FORMATTER), "💬"));
+        }
+
+        // 获取待审核文章数
+        long pendingPosts = postRepository.countByStatus(PostStatus.PENDING_REVIEW);
+        if (pendingPosts > 0) {
+            activities.add(new RecentActivityItem("pending", pendingPosts + " 篇文章待审核", "待处理", "⏳"));
+        }
+
+        // 获取昨日数据
+        LocalDateTime yesterdayStart = LocalDate.now().minusDays(1).atStartOfDay();
+        LocalDateTime yesterdayEnd = LocalDate.now().minusDays(1).atTime(LocalTime.MAX);
+        long yesterdayViews = postViewLogRepository.countByCreateTimeBetween(yesterdayStart, yesterdayEnd);
+        if (yesterdayViews > 0) {
+            activities.add(new RecentActivityItem("view", "昨日 " + yesterdayViews + " 次浏览", LocalDate.now().minusDays(1).format(DATE_FORMATTER), "👁"));
+        }
+
+        response.setRecentActivities(activities);
+    }
+
+    /**
+     * 填充内容质量雷达图数据（0-100分制）
+     */
+    private void populateContentRadar(DashboardResponse response) {
+        ContentRadarData radar = new ContentRadarData();
+
+        long totalPosts = postRepository.count();
+        long totalComments = commentRepository.count();
+        long totalViews = postRepository.sumAllViewCount();
+        long totalLikes = likeRepository.count();
+        long publishedPosts = postRepository.countByStatus(PostStatus.PUBLISHED);
+
+        if (totalPosts > 0) {
+            // 平均浏览量（归一化到0-100，假设1000为满分）
+            double avgViews = (double) totalViews / totalPosts;
+            radar.setAvgViewsPerPost(Math.min(avgViews / 10.0, 100));
+
+            // 平均评论数（归一化，假设50为满分）
+            double avgComments = (double) totalComments / totalPosts;
+            radar.setAvgCommentsPerPost(Math.min(avgComments * 2.0, 100));
+
+            // 平均点赞数（归一化，假设100为满分）
+            double avgLikes = (double) totalLikes / totalPosts;
+            radar.setAvgLikesPerPost(Math.min(avgLikes, 100));
+
+            // 发布率
+            radar.setPublishRate((double) publishedPosts / totalPosts * 100);
+        }
+
+        // 用户参与度（有评论或点赞的比率）
+        long totalUsers = userRepository.count();
+        if (totalUsers > 0) {
+            radar.setUserEngagement(Math.min((double)(totalComments + totalLikes) / totalUsers * 10, 100));
+        }
+
+        // 内容新鲜度（最近7天发布的文章占比）
+        LocalDateTime weekAgo = LocalDate.now().minusDays(7).atStartOfDay();
+        LocalDateTime now = LocalDate.now().atTime(LocalTime.MAX);
+        long recentPosts = postRepository.countByCreatedAtBetween(weekAgo, now);
+        if (totalPosts > 0) {
+            radar.setContentFreshness(Math.min((double) recentPosts / totalPosts * 100 * 4, 100));
+        }
+
+        response.setContentRadar(radar);
     }
 }

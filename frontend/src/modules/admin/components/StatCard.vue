@@ -1,5 +1,5 @@
 <template>
-  <div class="stat-card">
+  <div :class="['stat-card', { clickable: clickable }]" @click="handleClick">
     <div class="stat-info">
       <span class="stat-label">{{ label }}</span>
       <span class="stat-value">{{ formattedValue }}</span>
@@ -8,7 +8,10 @@
         <span class="today-count">+{{ todayValue }}</span>
       </span>
     </div>
-    <div :class="['stat-icon', iconClass]" v-html="icon"></div>
+    <div class="stat-right">
+      <div :class="['stat-icon', iconClass]" v-html="icon"></div>
+      <span v-if="clickable" class="stat-detail-hint">点击查看详情 →</span>
+    </div>
   </div>
 </template>
 
@@ -21,13 +24,22 @@ export default {
     todayValue: { type: Number, default: null },
     iconClass: { type: String, default: 'icon-blue' },
     icon: { type: String, default: '' },
+    clickable: { type: Boolean, default: false },
   },
+  emits: ['click'],
   computed: {
     formattedValue() {
       if (this.value >= 10000) {
         return (this.value / 10000).toFixed(1) + '万'
       }
       return this.value.toLocaleString()
+    },
+  },
+  methods: {
+    handleClick() {
+      if (this.clickable) {
+        this.$emit('click')
+      }
     },
   },
 }
@@ -42,12 +54,22 @@ export default {
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  border: 2px solid transparent;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card.clickable {
+  cursor: pointer;
+}
+
+.stat-card.clickable:hover {
+  border-color: rgba(24, 144, 255, 0.3);
+  box-shadow: 0 6px 20px rgba(24, 144, 255, 0.15);
 }
 
 .stat-info {
@@ -81,6 +103,13 @@ export default {
   font-weight: 600;
 }
 
+.stat-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
 .stat-icon {
   width: 56px;
   height: 56px;
@@ -93,6 +122,17 @@ export default {
 .stat-icon :deep(svg) {
   width: 28px;
   height: 28px;
+}
+
+.stat-detail-hint {
+  font-size: 11px;
+  color: #bbb;
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+
+.stat-card.clickable:hover .stat-detail-hint {
+  color: #1890ff;
 }
 
 .icon-blue {

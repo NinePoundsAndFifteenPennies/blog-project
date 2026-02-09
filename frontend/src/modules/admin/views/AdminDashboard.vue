@@ -31,7 +31,7 @@
           </div>
 
           <template v-else>
-            <!-- Stats Grid -->
+            <!-- Stats Grid (clickable) -->
             <div class="stats-grid">
               <StatCard
                 label="用户总数"
@@ -39,6 +39,8 @@
                 :today-value="dashboard.todayNewUsers"
                 icon-class="icon-green"
                 :icon="icons.users"
+                :clickable="true"
+                @click="openStatDetail('users')"
               />
               <StatCard
                 label="文章总数"
@@ -46,6 +48,8 @@
                 :today-value="dashboard.todayNewPosts"
                 icon-class="icon-blue"
                 :icon="icons.posts"
+                :clickable="true"
+                @click="openStatDetail('posts')"
               />
               <StatCard
                 label="评论总数"
@@ -53,6 +57,8 @@
                 :today-value="dashboard.todayNewComments"
                 icon-class="icon-yellow"
                 :icon="icons.comments"
+                :clickable="true"
+                @click="openStatDetail('comments')"
               />
               <StatCard
                 label="总浏览量"
@@ -60,24 +66,26 @@
                 :today-value="dashboard.todayViews"
                 icon-class="icon-purple"
                 :icon="icons.views"
+                :clickable="true"
+                @click="openStatDetail('views')"
               />
             </div>
 
             <!-- Charts Row 1: User Growth + Post Publish Trend -->
             <div class="charts-row">
-              <div class="chart-card">
+              <div class="chart-card chart-card-interactive" @click="openChartDetail('userTrend')">
                 <div class="chart-header">
-                  <h3>用户增长趋势</h3>
-                  <span class="chart-subtitle">最近30天</span>
+                  <h3>📈 用户增长趋势</h3>
+                  <span class="chart-expand-hint">点击放大</span>
                 </div>
                 <div class="chart-body">
                   <LineChart :chart-data="userTrendChartData" />
                 </div>
               </div>
-              <div class="chart-card">
+              <div class="chart-card chart-card-interactive" @click="openChartDetail('postTrend')">
                 <div class="chart-header">
-                  <h3>文章发布趋势</h3>
-                  <span class="chart-subtitle">最近30天</span>
+                  <h3>📊 文章发布趋势</h3>
+                  <span class="chart-expand-hint">点击放大</span>
                 </div>
                 <div class="chart-body">
                   <BarChart :chart-data="postTrendChartData" />
@@ -87,19 +95,19 @@
 
             <!-- Charts Row 2: Comment Activity + View Trend -->
             <div class="charts-row">
-              <div class="chart-card">
+              <div class="chart-card chart-card-interactive" @click="openChartDetail('commentTrend')">
                 <div class="chart-header">
-                  <h3>评论活跃度</h3>
-                  <span class="chart-subtitle">最近30天</span>
+                  <h3>💬 评论活跃度</h3>
+                  <span class="chart-expand-hint">点击放大</span>
                 </div>
                 <div class="chart-body">
                   <LineChart :chart-data="commentTrendChartData" />
                 </div>
               </div>
-              <div class="chart-card">
+              <div class="chart-card chart-card-interactive" @click="openChartDetail('viewTrend')">
                 <div class="chart-header">
-                  <h3>浏览量趋势</h3>
-                  <span class="chart-subtitle">最近30天</span>
+                  <h3>👁 浏览量趋势</h3>
+                  <span class="chart-expand-hint">点击放大</span>
                 </div>
                 <div class="chart-body">
                   <LineChart :chart-data="viewTrendChartData" />
@@ -107,28 +115,262 @@
               </div>
             </div>
 
-            <!-- Charts Row 3: Hot Posts TOP10 + Post Status Distribution -->
+            <!-- Charts Row 3: Tag Heatmap + Category Heatmap -->
             <div class="charts-row">
-              <div class="chart-card chart-card-wide">
+              <div class="chart-card chart-card-interactive" @click="openChartDetail('tagHeatmap')">
                 <div class="chart-header">
-                  <h3>热门文章 TOP10</h3>
-                  <span class="chart-subtitle">按浏览量排序</span>
+                  <h3>🏷️ 标签热力图</h3>
+                  <span class="chart-expand-hint">点击放大</span>
+                </div>
+                <div class="chart-body">
+                  <div class="heatmap-container">
+                    <div
+                      v-for="tag in dashboard.tagStats"
+                      :key="tag.id"
+                      class="heatmap-cell"
+                      :style="getHeatmapCellStyle(tag, maxTagCount)"
+                      :title="`${tag.name}: ${tag.postCount} 篇文章`"
+                    >
+                      <span class="heatmap-name">{{ tag.name }}</span>
+                      <span class="heatmap-count">{{ tag.postCount }}</span>
+                    </div>
+                    <div v-if="!dashboard.tagStats || dashboard.tagStats.length === 0" class="heatmap-empty">
+                      暂无标签数据
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="chart-card chart-card-interactive" @click="openChartDetail('categoryHeatmap')">
+                <div class="chart-header">
+                  <h3>📂 分类热力图</h3>
+                  <span class="chart-expand-hint">点击放大</span>
+                </div>
+                <div class="chart-body">
+                  <div class="heatmap-container">
+                    <div
+                      v-for="cat in dashboard.categoryStats"
+                      :key="cat.id"
+                      class="heatmap-cell"
+                      :style="getHeatmapCellStyle(cat, maxCategoryCount)"
+                    >
+                      <span class="heatmap-name">{{ cat.name }}</span>
+                      <span class="heatmap-count">{{ cat.postCount }}</span>
+                    </div>
+                    <div v-if="!dashboard.categoryStats || dashboard.categoryStats.length === 0" class="heatmap-empty">
+                      暂无分类数据
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Charts Row 4: Hot Posts + Post Status + Radar -->
+            <div class="charts-row charts-row-triple">
+              <div class="chart-card chart-card-interactive" @click="openChartDetail('hotPosts')">
+                <div class="chart-header">
+                  <h3>🔥 热门文章 TOP10</h3>
+                  <span class="chart-expand-hint">点击放大</span>
                 </div>
                 <div class="chart-body chart-body-tall">
                   <HorizontalBarChart :chart-data="hotPostsChartData" />
                 </div>
               </div>
-              <div class="chart-card chart-card-narrow">
+              <div class="chart-card chart-card-interactive" @click="openChartDetail('postStatus')">
                 <div class="chart-header">
-                  <h3>文章状态分布</h3>
+                  <h3>📋 文章状态分布</h3>
+                  <span class="chart-expand-hint">点击放大</span>
                 </div>
                 <div class="chart-body chart-body-tall">
                   <DoughnutChart :chart-data="postStatusChartData" />
                 </div>
               </div>
+              <div class="chart-card chart-card-interactive" @click="openChartDetail('radar')">
+                <div class="chart-header">
+                  <h3>🎯 内容质量分析</h3>
+                  <span class="chart-expand-hint">点击放大</span>
+                </div>
+                <div class="chart-body chart-body-tall">
+                  <RadarChart :chart-data="contentRadarChartData" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Row: Recent Activity + System Info -->
+            <div class="charts-row">
+              <div class="chart-card">
+                <div class="chart-header">
+                  <h3>🕐 最近动态</h3>
+                </div>
+                <div class="activity-list">
+                  <div v-for="(activity, index) in dashboard.recentActivities" :key="index" class="activity-item">
+                    <span class="activity-icon">{{ activity.icon }}</span>
+                    <div class="activity-content">
+                      <span class="activity-desc">{{ activity.description }}</span>
+                      <span class="activity-time">{{ activity.time }}</span>
+                    </div>
+                  </div>
+                  <div v-if="!dashboard.recentActivities || dashboard.recentActivities.length === 0" class="activity-empty">
+                    暂无最近动态
+                  </div>
+                </div>
+              </div>
+              <div class="chart-card">
+                <div class="chart-header">
+                  <h3>🖥️ 系统概览</h3>
+                </div>
+                <div class="system-info-grid">
+                  <div class="system-info-item">
+                    <span class="system-info-label">标签总数</span>
+                    <span class="system-info-value">{{ dashboard.totalTags || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-label">分类总数</span>
+                    <span class="system-info-value">{{ dashboard.totalCategories || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-label">活跃用户</span>
+                    <span class="system-info-value system-info-success">{{ dashboard.enabledUsers || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-label">禁用用户</span>
+                    <span class="system-info-value system-info-danger">{{ dashboard.disabledUsers || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-label">已发布文章</span>
+                    <span class="system-info-value">{{ dashboard.publishedPosts || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-label">待审核文章</span>
+                    <span class="system-info-value system-info-warning">{{ dashboard.pendingPosts || 0 }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </template>
         </div>
+
+        <!-- Chart Detail Modal -->
+        <ChartDetailModal
+          :visible="chartModalVisible"
+          :title="chartModalTitle"
+          :subtitle="chartModalSubtitle"
+          @close="chartModalVisible = false"
+        >
+          <div class="modal-chart-container" v-if="chartModalType === 'userTrend'">
+            <LineChart :chart-data="userTrendChartData" />
+          </div>
+          <div class="modal-chart-container" v-else-if="chartModalType === 'postTrend'">
+            <BarChart :chart-data="postTrendChartData" />
+          </div>
+          <div class="modal-chart-container" v-else-if="chartModalType === 'commentTrend'">
+            <LineChart :chart-data="commentTrendChartData" />
+          </div>
+          <div class="modal-chart-container" v-else-if="chartModalType === 'viewTrend'">
+            <LineChart :chart-data="viewTrendChartData" />
+          </div>
+          <div class="modal-chart-container" v-else-if="chartModalType === 'hotPosts'">
+            <HorizontalBarChart :chart-data="hotPostsChartData" />
+          </div>
+          <div class="modal-chart-container" v-else-if="chartModalType === 'postStatus'">
+            <DoughnutChart :chart-data="postStatusChartData" />
+          </div>
+          <div class="modal-chart-container" v-else-if="chartModalType === 'radar'">
+            <RadarChart :chart-data="contentRadarChartData" />
+          </div>
+          <div v-else-if="chartModalType === 'tagHeatmap'" class="modal-heatmap-detail">
+            <div class="heatmap-detail-grid">
+              <div
+                v-for="tag in dashboard.tagStats"
+                :key="tag.id"
+                class="heatmap-detail-cell"
+                :style="getHeatmapCellStyle(tag, maxTagCount)"
+              >
+                <span class="heatmap-detail-name">{{ tag.name }}</span>
+                <span class="heatmap-detail-count">{{ tag.postCount }} 篇</span>
+              </div>
+            </div>
+          </div>
+          <div v-else-if="chartModalType === 'categoryHeatmap'" class="modal-heatmap-detail">
+            <div class="heatmap-detail-grid">
+              <div
+                v-for="cat in dashboard.categoryStats"
+                :key="cat.id"
+                class="heatmap-detail-cell"
+                :style="getHeatmapCellStyle(cat, maxCategoryCount)"
+              >
+                <span class="heatmap-detail-name">{{ cat.name }}</span>
+                <span class="heatmap-detail-count">{{ cat.postCount }} 篇</span>
+              </div>
+            </div>
+          </div>
+          <!-- Stat detail modals -->
+          <div v-else-if="chartModalType === 'stat-users'" class="stat-detail-body">
+            <div class="stat-detail-summary">
+              <div class="stat-detail-big">{{ dashboard.totalUsers }}</div>
+              <div class="stat-detail-label">用户总数</div>
+            </div>
+            <div class="stat-detail-breakdown">
+              <div class="stat-detail-row"><span>今日新增</span><span class="stat-detail-val success">+{{ dashboard.todayNewUsers }}</span></div>
+              <div class="stat-detail-row"><span>活跃用户</span><span class="stat-detail-val">{{ dashboard.enabledUsers || 0 }}</span></div>
+              <div class="stat-detail-row"><span>禁用用户</span><span class="stat-detail-val danger">{{ dashboard.disabledUsers || 0 }}</span></div>
+            </div>
+            <div class="stat-detail-chart">
+              <h4>用户增长趋势（30天）</h4>
+              <div class="modal-chart-container-sm">
+                <LineChart :chart-data="userTrendChartData" />
+              </div>
+            </div>
+          </div>
+          <div v-else-if="chartModalType === 'stat-posts'" class="stat-detail-body">
+            <div class="stat-detail-summary">
+              <div class="stat-detail-big">{{ dashboard.totalPosts }}</div>
+              <div class="stat-detail-label">文章总数</div>
+            </div>
+            <div class="stat-detail-breakdown">
+              <div class="stat-detail-row"><span>今日新增</span><span class="stat-detail-val success">+{{ dashboard.todayNewPosts }}</span></div>
+              <div class="stat-detail-row"><span>已发布</span><span class="stat-detail-val">{{ dashboard.publishedPosts }}</span></div>
+              <div class="stat-detail-row"><span>草稿</span><span class="stat-detail-val warning">{{ dashboard.draftPosts }}</span></div>
+              <div class="stat-detail-row"><span>待审核</span><span class="stat-detail-val">{{ dashboard.pendingPosts }}</span></div>
+              <div class="stat-detail-row"><span>已拒绝</span><span class="stat-detail-val danger">{{ dashboard.rejectedPosts }}</span></div>
+            </div>
+            <div class="stat-detail-chart">
+              <h4>发布趋势（30天）</h4>
+              <div class="modal-chart-container-sm">
+                <BarChart :chart-data="postTrendChartData" />
+              </div>
+            </div>
+          </div>
+          <div v-else-if="chartModalType === 'stat-comments'" class="stat-detail-body">
+            <div class="stat-detail-summary">
+              <div class="stat-detail-big">{{ dashboard.totalComments }}</div>
+              <div class="stat-detail-label">评论总数</div>
+            </div>
+            <div class="stat-detail-breakdown">
+              <div class="stat-detail-row"><span>今日新增</span><span class="stat-detail-val success">+{{ dashboard.todayNewComments }}</span></div>
+            </div>
+            <div class="stat-detail-chart">
+              <h4>评论活跃度（30天）</h4>
+              <div class="modal-chart-container-sm">
+                <LineChart :chart-data="commentTrendChartData" />
+              </div>
+            </div>
+          </div>
+          <div v-else-if="chartModalType === 'stat-views'" class="stat-detail-body">
+            <div class="stat-detail-summary">
+              <div class="stat-detail-big">{{ formattedTotalViews }}</div>
+              <div class="stat-detail-label">总浏览量</div>
+            </div>
+            <div class="stat-detail-breakdown">
+              <div class="stat-detail-row"><span>今日浏览</span><span class="stat-detail-val success">+{{ dashboard.todayViews }}</span></div>
+            </div>
+            <div class="stat-detail-chart">
+              <h4>浏览量趋势（30天）</h4>
+              <div class="modal-chart-container-sm">
+                <LineChart :chart-data="viewTrendChartData" />
+              </div>
+            </div>
+          </div>
+        </ChartDetailModal>
 
         <!-- Articles View -->
         <div v-if="currentView === 'articles'" class="view-articles">
@@ -356,10 +598,12 @@ import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import StatCard from '@/modules/admin/components/StatCard.vue'
+import ChartDetailModal from '@/modules/admin/components/ChartDetailModal.vue'
 import LineChart from '@/modules/admin/components/charts/LineChart.vue'
 import BarChart from '@/modules/admin/components/charts/BarChart.vue'
 import DoughnutChart from '@/modules/admin/components/charts/DoughnutChart.vue'
 import HorizontalBarChart from '@/modules/admin/components/charts/HorizontalBarChart.vue'
+import RadarChart from '@/modules/admin/components/charts/RadarChart.vue'
 import { getDashboard } from '@/api/admin'
 import { COLORS, createAreaDataset, createBarDataset, generateBarColors, hexToRgba } from '@/modules/admin/utils/chartUtils'
 
@@ -368,10 +612,12 @@ export default {
   components: {
     AdminLayout,
     StatCard,
+    ChartDetailModal,
     LineChart,
     BarChart,
     DoughnutChart,
     HorizontalBarChart,
+    RadarChart,
   },
   setup() {
     const store = useStore()
@@ -400,7 +646,21 @@ export default {
       draftPosts: 0,
       pendingPosts: 0,
       rejectedPosts: 0,
+      tagStats: [],
+      categoryStats: [],
+      totalTags: 0,
+      totalCategories: 0,
+      enabledUsers: 0,
+      disabledUsers: 0,
+      recentActivities: [],
+      contentRadar: null,
     })
+
+    // ======================= Chart Modal State =======================
+    const chartModalVisible = ref(false)
+    const chartModalType = ref('')
+    const chartModalTitle = ref('')
+    const chartModalSubtitle = ref('')
 
     // SVG 图标
     const icons = {
@@ -500,6 +760,97 @@ export default {
         borderWidth: 0,
       }],
     }))
+
+    // ======================= Radar Chart Data =======================
+    const contentRadarChartData = computed(() => {
+      const radar = dashboard.contentRadar || {}
+      return {
+        labels: ['平均浏览量', '平均评论数', '平均点赞数', '发布率', '用户参与度', '内容新鲜度'],
+        datasets: [{
+          label: '内容质量',
+          data: [
+            radar.avgViewsPerPost || 0,
+            radar.avgCommentsPerPost || 0,
+            radar.avgLikesPerPost || 0,
+            radar.publishRate || 0,
+            radar.userEngagement || 0,
+            radar.contentFreshness || 0,
+          ],
+          backgroundColor: hexToRgba(COLORS.primary, 0.15),
+          borderColor: COLORS.primary,
+          borderWidth: 2,
+          pointBackgroundColor: COLORS.primary,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        }],
+      }
+    })
+
+    // ======================= Heatmap Helpers =======================
+    const maxTagCount = computed(() => {
+      const stats = dashboard.tagStats || []
+      return stats.length > 0 ? Math.max(...stats.map(t => t.postCount), 1) : 1
+    })
+
+    const maxCategoryCount = computed(() => {
+      const stats = dashboard.categoryStats || []
+      return stats.length > 0 ? Math.max(...stats.map(c => c.postCount), 1) : 1
+    })
+
+    const formattedTotalViews = computed(() => {
+      const v = dashboard.totalViews
+      if (v >= 10000) return (v / 10000).toFixed(1) + '万'
+      return v.toLocaleString()
+    })
+
+    const getHeatmapCellStyle = (item, maxCount) => {
+      const intensity = maxCount > 0 ? item.postCount / maxCount : 0
+      const minSize = 60
+      const maxSize = 140
+      const size = minSize + (maxSize - minSize) * intensity
+      return {
+        width: size + 'px',
+        height: size + 'px',
+        backgroundColor: item.color || COLORS.primary,
+        opacity: 0.3 + intensity * 0.7,
+        fontSize: (11 + intensity * 5) + 'px',
+      }
+    }
+
+    // ======================= Chart Detail Modal =======================
+    const chartDetailConfig = {
+      userTrend: { title: '📈 用户增长趋势', subtitle: '最近30天用户注册数据详细分析' },
+      postTrend: { title: '📊 文章发布趋势', subtitle: '最近30天文章发布数据详细分析' },
+      commentTrend: { title: '💬 评论活跃度', subtitle: '最近30天评论数据详细分析' },
+      viewTrend: { title: '👁 浏览量趋势', subtitle: '最近30天浏览数据详细分析' },
+      hotPosts: { title: '🔥 热门文章 TOP10', subtitle: '按浏览量排序的热门文章详情' },
+      postStatus: { title: '📋 文章状态分布', subtitle: '各状态文章数量详细统计' },
+      radar: { title: '🎯 内容质量分析', subtitle: '基于多维度指标的内容质量综合评分' },
+      tagHeatmap: { title: '🏷️ 标签热力图', subtitle: '各标签下关联文章数量分布' },
+      categoryHeatmap: { title: '📂 分类热力图', subtitle: '各分类下关联文章数量分布' },
+    }
+
+    const openChartDetail = (type) => {
+      const config = chartDetailConfig[type] || {}
+      chartModalType.value = type
+      chartModalTitle.value = config.title || ''
+      chartModalSubtitle.value = config.subtitle || ''
+      chartModalVisible.value = true
+    }
+
+    const openStatDetail = (statType) => {
+      const configs = {
+        users: { title: '👥 用户统计详情', subtitle: '用户数据全面分析' },
+        posts: { title: '📝 文章统计详情', subtitle: '文章数据全面分析' },
+        comments: { title: '💬 评论统计详情', subtitle: '评论数据全面分析' },
+        views: { title: '👁 浏览统计详情', subtitle: '浏览数据全面分析' },
+      }
+      const config = configs[statType] || {}
+      chartModalType.value = 'stat-' + statType
+      chartModalTitle.value = config.title || ''
+      chartModalSubtitle.value = config.subtitle || ''
+      chartModalVisible.value = true
+    }
 
     // ======================= Other View Data (mock) =======================
     const articleFilters = [
@@ -630,6 +981,19 @@ export default {
       viewTrendChartData,
       hotPostsChartData,
       postStatusChartData,
+      contentRadarChartData,
+      // Heatmap helpers
+      maxTagCount,
+      maxCategoryCount,
+      getHeatmapCellStyle,
+      formattedTotalViews,
+      // Chart detail modal
+      chartModalVisible,
+      chartModalType,
+      chartModalTitle,
+      chartModalSubtitle,
+      openChartDetail,
+      openStatDetail,
       // Other views
       articleFilters,
       commentFilters,
@@ -666,11 +1030,30 @@ export default {
   margin-bottom: 20px;
 }
 
+.charts-row-triple {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
 .chart-card {
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.chart-card-interactive {
+  cursor: pointer;
+}
+
+.chart-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.chart-card-interactive:hover .chart-expand-hint {
+  opacity: 1;
+  color: #1890ff;
 }
 
 .chart-card-wide {
@@ -690,7 +1073,7 @@ export default {
 }
 
 .chart-header h3 {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: #1a1d2e;
   margin: 0;
@@ -701,6 +1084,13 @@ export default {
   color: #999;
 }
 
+.chart-expand-hint {
+  font-size: 12px;
+  color: #ccc;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+}
+
 .chart-body {
   padding: 16px 20px;
   height: 280px;
@@ -709,6 +1099,256 @@ export default {
 
 .chart-body-tall {
   height: 380px;
+}
+
+/* Heatmap */
+.heatmap-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 8px;
+}
+
+.heatmap-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: default;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.heatmap-name {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.heatmap-count {
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.heatmap-empty {
+  color: #ccc;
+  font-size: 14px;
+  text-align: center;
+  width: 100%;
+}
+
+/* Activity List */
+.activity-list {
+  padding: 8px 20px 20px;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.activity-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+}
+
+.activity-desc {
+  font-size: 14px;
+  color: #333;
+}
+
+.activity-time {
+  font-size: 12px;
+  color: #999;
+  flex-shrink: 0;
+}
+
+.activity-empty {
+  text-align: center;
+  color: #ccc;
+  font-size: 14px;
+  padding: 30px 0;
+}
+
+/* System Info Grid */
+.system-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 20px;
+}
+
+.system-info-item {
+  background: #f8f9fc;
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.system-info-item:hover {
+  transform: translateY(-1px);
+}
+
+.system-info-label {
+  display: block;
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.system-info-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1d2e;
+}
+
+.system-info-success {
+  color: #52c41a;
+}
+
+.system-info-danger {
+  color: #ff4d4f;
+}
+
+.system-info-warning {
+  color: #faad14;
+}
+
+/* Modal Chart Container */
+.modal-chart-container {
+  height: 450px;
+  position: relative;
+}
+
+.modal-chart-container-sm {
+  height: 280px;
+  position: relative;
+}
+
+/* Heatmap Detail in Modal */
+.modal-heatmap-detail {
+  padding: 8px 0;
+}
+
+.heatmap-detail-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+}
+
+.heatmap-detail-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  min-width: 80px;
+  min-height: 80px;
+}
+
+.heatmap-detail-name {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.heatmap-detail-count {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+/* Stat Detail Modal */
+.stat-detail-body {
+  padding: 0;
+}
+
+.stat-detail-summary {
+  text-align: center;
+  padding: 24px 0 16px;
+}
+
+.stat-detail-big {
+  font-size: 48px;
+  font-weight: 700;
+  color: #1a1d2e;
+}
+
+.stat-detail-label {
+  font-size: 14px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.stat-detail-breakdown {
+  background: #f8f9fc;
+  border-radius: 10px;
+  padding: 4px 20px;
+  margin: 0 0 20px;
+}
+
+.stat-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+  color: #555;
+}
+
+.stat-detail-row:last-child {
+  border-bottom: none;
+}
+
+.stat-detail-val {
+  font-weight: 600;
+  color: #333;
+}
+
+.stat-detail-val.success {
+  color: #52c41a;
+}
+
+.stat-detail-val.danger {
+  color: #ff4d4f;
+}
+
+.stat-detail-val.warning {
+  color: #faad14;
+}
+
+.stat-detail-chart h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1d2e;
+  margin: 0 0 12px;
 }
 
 /* Card */
