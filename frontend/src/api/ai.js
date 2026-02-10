@@ -87,8 +87,10 @@ export function assistWriting(prompt, content, onChunk, onDone, onError) {
                 const lines = text.split('\n')
                 for (const line of lines) {
                     if (line.startsWith('data:')) {
-                        const data = line.slice(5)
-                        onChunk && onChunk(data)
+                        const data = line.slice(5).trimStart()
+                        if (data && data !== '[DONE]') {
+                            onChunk && onChunk(data)
+                        }
                     }
                 }
                 read()

@@ -70,7 +70,7 @@
 ```properties
 # OpenAI API Settings
 # 通过环境变量设置 API Key（推荐）
-spring.ai.openai.api-key=${SPRING_AI_OPENAI_API_KEY:sk-placeholder}
+spring.ai.openai.api-key=${SPRING_AI_OPENAI_API_KEY:}
 # 如需使用国内兼容 API（如 DeepSeek），修改 base-url
 spring.ai.openai.base-url=${SPRING_AI_OPENAI_BASE_URL:https://api.openai.com}
 

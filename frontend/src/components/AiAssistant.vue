@@ -247,7 +247,7 @@ export default {
           loading.value = false
           streamController.value = null
         },
-        (err) => {  // eslint-disable-line no-unused-vars
+        () => {
           loading.value = false
           streamController.value = null
           errorMessage.value = '写作辅助失败，请稍后重试'
@@ -274,8 +274,9 @@ export default {
 
     const appendToContent = () => {
       if (aiResult.value) {
-        const separator = props.content && !props.content.endsWith('\n') ? '\n\n' : ''
-        emit('update-content', props.content + separator + aiResult.value)
+        const currentContent = props.content || ''
+        const separator = currentContent.trim() ? '\n\n' : ''
+        emit('update-content', currentContent + separator + aiResult.value)
       }
     }
 
