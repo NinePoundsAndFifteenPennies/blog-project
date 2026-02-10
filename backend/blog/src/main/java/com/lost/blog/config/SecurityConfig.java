@@ -80,6 +80,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/authors/hot").permitAll()
                         // 允许对上传文件（包括头像）的匿名访问
                         .requestMatchers("/uploads/**").permitAll()
+                        // 允许对AI状态检查的匿名访问
+                        .requestMatchers(HttpMethod.GET, "/api/ai/status").permitAll()
                         // 其他所有请求都需要认证
                         .anyRequest().authenticated()
                 );

@@ -414,6 +414,17 @@
                   <span>保存草稿</span>
                 </button>
               </div>
+
+              <!-- AI 助手 -->
+              <div class="mt-4">
+                <AiAssistant
+                  :title="formData.title"
+                  :content="formData.content"
+                  @update-title="handleAiTitle"
+                  @update-content="handleAiContent"
+                  @add-tag="handleAiTag"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -475,6 +486,7 @@ import 'highlight.js/styles/atom-one-dark.css'
 import Header from '@/components/Header.vue'
 import TableEditorModal from '@/components/TableEditorModal.vue'
 import EmojiPicker from '@/components/EmojiPicker.vue'
+import AiAssistant from '@/components/AiAssistant.vue'
 import { getPostById, createPost, updatePost } from '@/api/posts'
 import { uploadCoverImage, deleteImage } from '@/api/files'
 
@@ -521,7 +533,8 @@ export default {
   components: {
     Header,
     TableEditorModal,
-    EmojiPicker
+    EmojiPicker,
+    AiAssistant
   },
   setup() {
     const route = useRoute()
@@ -1545,6 +1558,21 @@ export default {
       }, 0)
     }
 
+    // AI 助手事件处理
+    const handleAiTitle = (title) => {
+      formData.title = title
+    }
+
+    const handleAiContent = (content) => {
+      formData.content = content
+    }
+
+    const handleAiTag = (tag) => {
+      if (tag && !formData.tags.includes(tag)) {
+        formData.tags.push(tag)
+      }
+    }
+
     return {
       loading,
       formData,
@@ -1578,7 +1606,10 @@ export default {
       uploadingCover,
       handleCoverImageSelect,
       removeCoverImage,
-      getFullImageUrl
+      getFullImageUrl,
+      handleAiTitle,
+      handleAiContent,
+      handleAiTag
     }
   }
 }
