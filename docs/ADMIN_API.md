@@ -133,7 +133,7 @@ Authorization: Bearer {admin-token}
 
 ### 获取仪表盘数据
 
-获取管理后台仪表盘的统计数据。
+获取管理后台仪表盘的完整统计数据，包括核心指标、趋势图表、热门内容、标签/分类热力图等。
 
 ```http
 GET /api/admin/dashboard
@@ -143,18 +143,102 @@ Authorization: Bearer {admin-token}
 **成功响应:** `200 OK`
 ```json
 {
+  "admin": "admin",
   "message": "欢迎进入管理后台",
-  "admin": "admin"
+
+  "totalUsers": 150,
+  "todayNewUsers": 3,
+  "totalPosts": 420,
+  "todayNewPosts": 8,
+  "totalComments": 1200,
+  "todayNewComments": 25,
+  "totalViews": 56000,
+  "todayViews": 340,
+
+  "userTrend": [
+    { "date": "01-11", "count": 2 },
+    { "date": "01-12", "count": 5 }
+  ],
+  "postTrend": [
+    { "date": "01-11", "count": 3 },
+    { "date": "01-12", "count": 1 }
+  ],
+  "commentTrend": [
+    { "date": "01-11", "count": 10 },
+    { "date": "01-12", "count": 8 }
+  ],
+  "viewTrend": [
+    { "date": "01-11", "count": 200 },
+    { "date": "01-12", "count": 180 }
+  ],
+
+  "hotPosts": [
+    {
+      "id": 1,
+      "title": "Vue 3 入门指南",
+      "author": "张三",
+      "viewCount": 1200,
+      "likeCount": 45,
+      "commentCount": 18,
+      "heatScore": 32.5
+    }
+  ],
+
+  "publishedPosts": 350,
+  "draftPosts": 40,
+  "pendingPosts": 20,
+  "rejectedPosts": 10,
+
+  "tagStats": [
+    { "id": 1, "name": "Vue", "postCount": 24, "color": "#1890ff" },
+    { "id": 2, "name": "Spring", "postCount": 18, "color": "#52c41a" }
+  ],
+  "categoryStats": [
+    { "id": 1, "name": "前端", "postCount": 45, "color": "#2f54eb" },
+    { "id": 2, "name": "后端", "postCount": 32, "color": "#1890ff" }
+  ],
+
+  "totalTags": 25,
+  "totalCategories": 8,
+  "enabledUsers": 145,
+  "disabledUsers": 5,
+
+  "recentActivities": [
+    { "type": "user", "description": "3 位新用户注册", "time": "02-10", "icon": "👤" },
+    { "type": "post", "description": "8 篇新文章发布", "time": "02-10", "icon": "📝" },
+    { "type": "comment", "description": "25 条新评论", "time": "02-10", "icon": "💬" },
+    { "type": "pending", "description": "20 篇文章待审核", "time": "待处理", "icon": "⏳" },
+    { "type": "view", "description": "昨日 300 次浏览", "time": "02-09", "icon": "👁" }
+  ],
+
+  "contentRadar": {
+    "avgViewsPerPost": 65.0,
+    "avgCommentsPerPost": 42.0,
+    "avgLikesPerPost": 28.0,
+    "publishRate": 83.3,
+    "userEngagement": 55.0,
+    "contentFreshness": 30.0
+  }
 }
 ```
 
-> 注意：仪表盘 API 目前返回基础信息，后续将扩展支持：
-> - 用户总数统计
-> - 文章总数统计
-> - 评论总数统计
-> - 今日访问量
-> - 最新文章列表
-> - 待审核内容列表
+**响应字段说明:**
+
+| 字段 | 说明 |
+|------|------|
+| `totalUsers` / `todayNewUsers` | 用户总数 / 今日新增 |
+| `totalPosts` / `todayNewPosts` | 文章总数 / 今日新增 |
+| `totalComments` / `todayNewComments` | 评论总数 / 今日新增 |
+| `totalViews` / `todayViews` | 总浏览量 / 今日浏览 |
+| `userTrend` / `postTrend` / `commentTrend` / `viewTrend` | 最近30天每日趋势数据 |
+| `hotPosts` | 热门文章 TOP10（按热度公式排序） |
+| `hotPosts[].heatScore` | 热度值，公式：`(viewCount*0.1 + likeCount*5 + commentCount*10) / POW(hours+2, 1.2)` |
+| `publishedPosts` / `draftPosts` / `pendingPosts` / `rejectedPosts` | 各状态文章数量 |
+| `tagStats` / `categoryStats` | 标签/分类的文章数统计（热力图数据） |
+| `totalTags` / `totalCategories` | 标签/分类总数 |
+| `enabledUsers` / `disabledUsers` | 活跃/禁用用户数 |
+| `recentActivities` | 最近动态列表（今日新增、待处理、昨日浏览） |
+| `contentRadar` | 内容质量雷达图数据（0-100分，6个维度） |
 
 ---
 
@@ -1192,3 +1276,7 @@ Content-Type: application/json
 ### 系统设置
 - `GET /api/admin/settings` - 获取系统设置
 - `PUT /api/admin/settings` - 更新系统设置
+
+### 媒体管理
+- `GET /api/admin/media` - 获取媒体文件列表
+- `DELETE /api/admin/media/{id}` - 删除媒体文件
