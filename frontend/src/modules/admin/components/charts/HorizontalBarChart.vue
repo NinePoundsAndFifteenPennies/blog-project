@@ -54,7 +54,6 @@ export default {
             ticks: {
               font: { size: 11 },
               color: '#999',
-              precision: 0,
             },
           },
           y: {

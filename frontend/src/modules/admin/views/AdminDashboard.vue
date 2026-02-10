@@ -172,7 +172,7 @@
                   <span class="chart-expand-hint">点击放大</span>
                 </div>
                 <div class="chart-body chart-body-tall">
-                  <HorizontalBarChart :chart-data="hotPostsChartData" />
+                  <HorizontalBarChart :chart-data="hotPostsChartData" :options="hotPostsChartOptions" />
                 </div>
               </div>
               <div class="chart-card chart-card-interactive" @click="openChartDetail('postStatus')">
@@ -269,7 +269,7 @@
             <LineChart :chart-data="viewTrendChartData" />
           </div>
           <div class="modal-chart-container" v-else-if="chartModalType === 'hotPosts'">
-            <HorizontalBarChart :chart-data="hotPostsChartData" />
+            <HorizontalBarChart :chart-data="hotPostsChartData" :options="hotPostsChartOptions" />
           </div>
           <div class="modal-chart-container" v-else-if="chartModalType === 'postStatus'">
             <DoughnutChart :chart-data="postStatusChartData" />
@@ -742,6 +742,24 @@ export default {
       }
     })
 
+    const hotPostsChartOptions = computed(() => ({
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const idx = context.dataIndex
+              const post = dashboard.hotPosts[idx]
+              if (!post) return `热度: ${context.raw}`
+              return [
+                `热度: ${context.raw}`,
+                `浏览: ${post.viewCount}  点赞: ${post.likeCount}  评论: ${post.commentCount}`,
+              ]
+            },
+          },
+        },
+      },
+    }))
+
     const postStatusChartData = computed(() => ({
       labels: ['已发布', '草稿', '待审核', '已拒绝'],
       datasets: [{
@@ -978,6 +996,7 @@ export default {
       commentTrendChartData,
       viewTrendChartData,
       hotPostsChartData,
+      hotPostsChartOptions,
       postStatusChartData,
       contentRadarChartData,
       // Heatmap helpers
