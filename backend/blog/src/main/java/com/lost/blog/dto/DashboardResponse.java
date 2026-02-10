@@ -83,16 +83,18 @@ public class DashboardResponse {
         private long viewCount;
         private long likeCount;
         private long commentCount;
+        private double heatScore;
 
         public HotPostItem() {}
 
-        public HotPostItem(Long id, String title, String author, long viewCount, long likeCount, long commentCount) {
+        public HotPostItem(Long id, String title, String author, long viewCount, long likeCount, long commentCount, double heatScore) {
             this.id = id;
             this.title = title;
             this.author = author;
             this.viewCount = viewCount;
             this.likeCount = likeCount;
             this.commentCount = commentCount;
+            this.heatScore = heatScore;
         }
 
         public Long getId() { return id; }
@@ -107,6 +109,8 @@ public class DashboardResponse {
         public void setLikeCount(long likeCount) { this.likeCount = likeCount; }
         public long getCommentCount() { return commentCount; }
         public void setCommentCount(long commentCount) { this.commentCount = commentCount; }
+        public double getHeatScore() { return heatScore; }
+        public void setHeatScore(double heatScore) { this.heatScore = heatScore; }
     }
 
     /**

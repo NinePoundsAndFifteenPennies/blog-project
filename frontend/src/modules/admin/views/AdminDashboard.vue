@@ -733,8 +733,8 @@ export default {
       return {
         labels,
         datasets: [{
-          label: '浏览量',
-          data: posts.map(p => p.viewCount),
+          label: '热度',
+          data: posts.map(p => Math.round((p.heatScore || 0) * 100) / 100),
           backgroundColor: generateBarColors(posts.length),
           borderRadius: 4,
           borderSkipped: false,
@@ -821,7 +821,7 @@ export default {
       postTrend: { title: '📊 文章发布趋势', subtitle: '最近30天文章发布数据详细分析' },
       commentTrend: { title: '💬 评论活跃度', subtitle: '最近30天评论数据详细分析' },
       viewTrend: { title: '👁 浏览量趋势', subtitle: '最近30天浏览数据详细分析' },
-      hotPosts: { title: '🔥 热门文章 TOP10', subtitle: '按浏览量排序的热门文章详情' },
+      hotPosts: { title: '🔥 热门文章 TOP10', subtitle: '按热度公式排序（综合浏览量、点赞数、评论数及时间衰减）' },
       postStatus: { title: '📋 文章状态分布', subtitle: '各状态文章数量详细统计' },
       radar: { title: '🎯 内容质量分析', subtitle: '基于多维度指标的内容质量综合评分' },
       tagHeatmap: { title: '🏷️ 标签热力图', subtitle: '各标签下关联文章数量分布' },

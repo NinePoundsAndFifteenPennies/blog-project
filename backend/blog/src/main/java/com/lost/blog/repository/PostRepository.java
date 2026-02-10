@@ -408,17 +408,20 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT COALESCE(SUM(p.viewCount), 0) FROM Post p")
     long sumAllViewCount();
 
-    // 查询热门文章TOP N（按viewCount降序，只含已发布文章）
+    // 查询热门文章TOP N（按热度公式降序，只含已发布文章）
+    // 热度公式: (viewCount * 0.1 + likeCount * 5 + commentCount * 10) / POW(hours + 2, 1.2)
     @Query(value = """
         SELECT p.id, p.title, u.nickname, p.view_count,
                COALESCE(l.like_count, 0) as like_count,
-               COALESCE(c.comment_count, 0) as comment_count
+               COALESCE(c.comment_count, 0) as comment_count,
+               (p.view_count * 0.1 + COALESCE(l.like_count, 0) * 5 + COALESCE(c.comment_count, 0) * 10)
+                   / POW(TIMESTAMPDIFF(HOUR, p.created_at, NOW()) + 2, 1.2) as heat_score
         FROM posts p
         LEFT JOIN users u ON p.user_id = u.id
         LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM likes WHERE post_id IS NOT NULL GROUP BY post_id) l ON p.id = l.post_id
         LEFT JOIN (SELECT post_id, COUNT(*) as comment_count FROM comments GROUP BY post_id) c ON p.id = c.post_id
         WHERE p.status = 'PUBLISHED' AND p.is_draft = false
-        ORDER BY p.view_count DESC
+        ORDER BY heat_score DESC
         LIMIT :limit
         """, nativeQuery = true)
     java.util.List<Object[]> findTopHotPosts(@Param("limit") int limit);

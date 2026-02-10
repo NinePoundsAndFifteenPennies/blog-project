@@ -176,7 +176,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     /**
-     * 填充热门文章 TOP10
+     * 填充热门文章 TOP10（按热度公式排序）
      */
     private void populateHotPosts(DashboardResponse response) {
         List<Object[]> results = postRepository.findTopHotPosts(10);
@@ -190,6 +190,7 @@ public class DashboardServiceImpl implements DashboardService {
             item.setViewCount(((Number) row[3]).longValue());
             item.setLikeCount(((Number) row[4]).longValue());
             item.setCommentCount(((Number) row[5]).longValue());
+            item.setHeatScore(((Number) row[6]).doubleValue());
             hotPosts.add(item);
         }
 
