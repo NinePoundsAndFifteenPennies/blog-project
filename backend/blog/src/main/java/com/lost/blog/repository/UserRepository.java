@@ -80,4 +80,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // 根据启用状态统计用户数
     long countByEnabled(boolean enabled);
+
+    // ======================= 仪表盘统计方法 =======================
+
+    // 统计指定时间范围内注册的用户数
+    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 }

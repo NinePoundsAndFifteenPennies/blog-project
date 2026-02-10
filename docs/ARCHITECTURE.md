@@ -107,6 +107,7 @@ Controller ──► Service ──► Repository ──► Database
 | DTO | └── AdminCategoryResponse.java | 管理后台分类响应体（含文章数、关联文章列表） |
 | DTO | └── AdminCategoryActionRequest.java | 管理后台分类操作请求体（批量删除） |
 | DTO | └── AdminFormResponse.java | 管理表单响应体（含标签/分类信息、受影响文章） |
+| DTO | └── DashboardResponse.java | 仪表盘统计响应体（含核心指标、趋势、热门文章、热力图、雷达图） |
 | 拦截器层 | **interceptor/** | HTTP 请求拦截器 |
 | 拦截器 | └── UserActivityInterceptor.java | 用户活跃追踪拦截器（可选，配合Redis使用） |
 | 异常层 | **exception/** | 自定义异常类与全局异常处理 |
@@ -191,6 +192,8 @@ Controller ──► Service ──► Repository ──► Database
 | 实现类 | └── AdminTagServiceImpl.java | 管理后台标签服务实现（标签列表、创建、更新、软删除、硬删除） |
 | 接口 | └── AdminCategoryService.java | 管理后台分类服务接口 |
 | 实现类 | └── AdminCategoryServiceImpl.java | 管理后台分类服务实现（分类列表、创建、更新、文章归类/移除、批量删除） |
+| 接口 | └── DashboardService.java | 仪表盘统计服务接口 |
+| 实现类 | └── DashboardServiceImpl.java | 仪表盘统计服务实现（聚合核心指标、趋势、热门文章、热力图、雷达图） |
 | 配置文件 | **resources/** | 存放应用的资源文件 |
 | 配置文件 | └── application.properties | 应用配置（数据库、JWT密钥等） |
 
@@ -360,7 +363,7 @@ uploads/
 - **ReplyCreate**: 创建回复页面（支持Markdown工具栏和实时预览，与评论编辑页面体验一致）
 - **Messages**: 私信页面（实时聊天、会话列表、未读标记）
 - **Notifications**: 通知中心（通知列表、类型过滤、快捷操作、锚点导航）
-- **AdminDashboard**: 管理后台仪表盘（动态欢迎动画、统计卡片）
+- **AdminDashboard**: 管理后台仪表盘（核心指标统计卡片、30天趋势图表、热门文章TOP10、标签/分类热力图、文章状态分布、内容质量雷达图、最近动态、系统概览）
 - **AdminUserManagement**: 用户管理页面（分页列表、多条件搜索、批量操作）
 
 ### UI设计特点
@@ -482,10 +485,13 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 |------|------|------|
 | 角色枚举 | `model/Role.java` | 定义 USER 和 ADMIN 角色 |
 | 评论状态枚举 | `model/CommentStatus.java` | 定义 PENDING 和 APPROVED 状态 |
-| 管理员控制器 | `controller/AdminController.java` | 管理后台 API 端点（用户、文章、评论管理） |
+| 管理员控制器 | `controller/AdminController.java` | 管理后台 API 端点（用户、文章、评论、仪表盘管理） |
 | 用户管理服务 | `service/AdminUserService.java` | 用户管理业务逻辑（列表、状态、角色） |
 | 评论管理服务 | `service/AdminCommentService.java` | 评论管理业务逻辑（列表、审核、删除） |
 | 标签管理服务 | `service/AdminTagService.java` | 标签管理业务逻辑（列表、创建、更新、软删除、硬删除） |
+| 仪表盘服务 | `service/DashboardService.java` | 仪表盘统计接口 |
+| 仪表盘服务实现 | `service/DashboardServiceImpl.java` | 聚合多数据源生成仪表盘数据 |
+| 仪表盘DTO | `dto/DashboardResponse.java` | 仪表盘响应数据模型（含内部类 TrendItem、HotPostItem、TagCategoryItem、RecentActivityItem、ContentRadarData） |
 | 用户管理DTO | `dto/AdminUser*.java` | 用户管理请求/响应数据模型 |
 | 评论管理DTO | `dto/AdminComment*.java` | 评论管理请求/响应数据模型 |
 | 标签管理DTO | `dto/AdminTag*.java` | 标签管理请求/响应数据模型 |
@@ -496,8 +502,16 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 
 | 组件 | 路径 | 说明 |
 |------|------|------|
-| 管理后台API | `api/admin.js` | 管理后台 API 封装（用户、文章、评论、标签管理接口） |
-| 管理仪表盘 | `modules/admin/views/AdminDashboard.vue` | 管理后台主界面（动态欢迎动画） |
+| 管理后台API | `api/admin.js` | 管理后台 API 封装（用户、文章、评论、标签管理、仪表盘接口） |
+| 管理仪表盘 | `modules/admin/views/AdminDashboard.vue` | 仪表盘主页面（统计卡片、趋势图表、热力图、雷达图） |
+| 统计卡片 | `modules/admin/components/StatCard.vue` | 可复用统计卡片组件（支持点击展开详情） |
+| 图表详情弹窗 | `modules/admin/components/ChartDetailModal.vue` | 图表放大分析弹窗组件 |
+| 折线图 | `modules/admin/components/charts/LineChart.vue` | 折线/面积图组件（基于 vue-chartjs） |
+| 柱状图 | `modules/admin/components/charts/BarChart.vue` | 柱状图组件 |
+| 环形图 | `modules/admin/components/charts/DoughnutChart.vue` | 环形图组件 |
+| 水平柱状图 | `modules/admin/components/charts/HorizontalBarChart.vue` | 水平柱状图组件 |
+| 雷达图 | `modules/admin/components/charts/RadarChart.vue` | 雷达图组件 |
+| 图表工具 | `modules/admin/utils/chartUtils.js` | 图表配色、数据集工厂函数、数字格式化 |
 | 用户管理 | `modules/admin/views/AdminUserManagement.vue` | 用户管理页面（列表、搜索、批量操作） |
 | 文章管理 | `modules/admin/views/AdminPostManagement.vue` | 文章管理页面（审核、拒绝、删除） |
 | 评论管理 | `modules/admin/views/AdminCommentManagement.vue` | 评论管理页面（审核、删除、通知表单） |
@@ -516,16 +530,29 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 │   (240px)   │  │ 搜索框 | 通知 | 用户头像                  │    │
 │             │  └─────────────────────────────────────────┘    │
 │  - 仪表盘    ├────────────────────────────────────────────────┤
-│  - 文章管理  │                                                │
-│  - 分类管理  │              主内容区域                         │
-│  - 标签管理  │                                                │
-│  - 评论管理  │   ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐         │
-│  - 媒体库    │   │统计1 │ │统计2 │ │统计3 │ │统计4 │         │
-│  - 用户管理  │   └──────┘ └──────┘ └──────┘ └──────┘         │
-│  - 系统设置  │                                                │
-│             │   ┌─────────────────────────────────────────┐   │
-│             │   │              数据表格                     │   │
-│             │   └─────────────────────────────────────────┘   │
+│  - 文章管理  │  ┌──────────────────────────────────────────┐  │
+│  - 分类管理  │  │         欢迎横幅（打字动画）                │  │
+│  - 标签管理  │  └──────────────────────────────────────────┘  │
+│  - 评论管理  │                                                │
+│  - 媒体库    │  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐         │
+│  - 用户管理  │  │用户数 │ │文章数 │ │评论数 │ │浏览量 │         │
+│  - 系统设置  │  └──────┘ └──────┘ └──────┘ └──────┘         │
+│             │                                                │
+│             │  ┌─────────────┐  ┌─────────────┐             │
+│             │  │用户增长趋势  │  │文章发布趋势   │             │
+│             │  └─────────────┘  └─────────────┘             │
+│             │  ┌─────────────┐  ┌─────────────┐             │
+│             │  │评论活跃度    │  │浏览量趋势    │              │
+│             │  └─────────────┘  └─────────────┘             │
+│             │  ┌─────────────┐  ┌─────────────┐             │
+│             │  │标签热力图    │  │分类热力图    │              │
+│             │  └─────────────┘  └─────────────┘             │
+│             │  ┌────────┐ ┌────────┐ ┌────────┐             │
+│             │  │TOP10   │ │状态分布 │ │质量雷达 │              │
+│             │  └────────┘ └────────┘ └────────┘             │
+│             │  ┌─────────────┐  ┌─────────────┐             │
+│             │  │最近动态      │  │系统概览      │             │
+│             │  └─────────────┘  └─────────────┘             │
 └─────────────┴────────────────────────────────────────────────┘
 ```
 
@@ -535,7 +562,7 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 
 | 视图 | 布局类型 | 主要组件 |
 |------|----------|----------|
-| 仪表盘 | 统计卡片 + 表格 | 统计数据、最新文章、动态欢迎动画 |
+| 仪表盘 | 统计卡片 + 图表 + 热力图 | 核心指标、30天趋势图表、热门文章TOP10、标签/分类热力图、文章状态分布、内容质量雷达图、最近动态、系统概览；所有图表支持点击放大分析 |
 | 文章管理 | 搜索表单 + 表格 | 多条件筛选、文章列表、状态徽章、批量审核/拒绝/删除 |
 | 分类管理 | 卡片网格 | 分类卡片、文章计数 |
 | 标签管理 | 搜索表单 + 表格 | 标签列表（按热度排序）、多条件筛选、创建/编辑（含图标选择器）、软删除/硬删除、删除通知表单、批量操作 |

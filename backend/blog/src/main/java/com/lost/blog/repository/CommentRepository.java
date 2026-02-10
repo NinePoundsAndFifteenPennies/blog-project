@@ -92,6 +92,9 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     // ======================= 管理后台查询 =======================
 
+    // 统计指定时间范围内创建的评论数
+    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+
     /**
      * 管理后台搜索评论（支持多条件过滤）
      * @param content 评论内容关键词（模糊匹配）
