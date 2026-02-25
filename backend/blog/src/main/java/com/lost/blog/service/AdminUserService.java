@@ -31,10 +31,14 @@ public interface AdminUserService {
      * 更新用户启用状态（启用/禁用）
      * @param userId 用户ID
      * @param enabled 是否启用
+     * @param formTitle 表单标题（可选）
+     * @param reason 理由（必填）
+     * @param extraFields 扩展字段JSON（可选）
      * @param admin 执行操作的管理员
      * @return 更新后的用户信息
      */
-    AdminUserResponse updateUserStatus(Long userId, Boolean enabled, User admin);
+    AdminUserResponse updateUserStatus(Long userId, Boolean enabled, String formTitle, 
+                                        String reason, String extraFields, User admin);
     
     /**
      * 根据ID获取用户

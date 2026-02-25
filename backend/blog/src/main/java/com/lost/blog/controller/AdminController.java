@@ -208,7 +208,8 @@ public class AdminController {
         }
         
         User admin = userService.findByUsername(currentUser.getUsername());
-        AdminUserResponse user = adminUserService.updateUserStatus(id, request.getEnabled(), admin);
+        AdminUserResponse user = adminUserService.updateUserStatus(id, request.getEnabled(),
+                request.getFormTitle(), request.getReason(), request.getExtraFields(), admin);
         logger.info("管理员 {} 将用户 {} 状态更新为: {}", 
                 currentUser.getUsername(), id, request.getEnabled() ? "启用" : "禁用");
         

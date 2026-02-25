@@ -94,16 +94,21 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
-    public AdminUserResponse updateUserStatus(Long userId, Boolean enabled, User admin) {
+    public AdminUserResponse updateUserStatus(Long userId, Boolean enabled, String formTitle,
+                                               String reason, String extraFields, User admin) {
         User user = findById(userId);
         user.setEnabled(enabled);
         user = userRepository.save(user);
 
         // 创建状态变更表单记录
+        String defaultTitle = enabled ? "用户启用记录" : "用户禁用记录";
+        String defaultReason = enabled ? "管理员启用了用户 " + user.getUsername() : "管理员禁用了用户 " + user.getUsername();
+
         AdminForm form = new AdminForm();
-        form.setTitle(enabled ? "用户启用记录" : "用户禁用记录");
+        form.setTitle(formTitle != null && !formTitle.trim().isEmpty() ? formTitle : defaultTitle);
         form.setFormType(AdminFormType.USER_STATUS_CHANGE);
-        form.setReason(enabled ? "管理员启用了用户 " + user.getUsername() : "管理员禁用了用户 " + user.getUsername());
+        form.setReason(reason != null && !reason.trim().isEmpty() ? reason : defaultReason);
+        form.setExtraFields(extraFields);
         form.setTargetUser(user);
         form.setAdmin(admin);
         form.setSent(false);
