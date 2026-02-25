@@ -373,7 +373,7 @@ Authorization: Bearer {admin-token}
 
 ### 更新用户状态（启用/禁用）
 
-更新用户的启用状态。禁用后用户将无法登录，其个人主页和文章将对外隐藏。
+更新用户的启用状态。禁用后用户将无法登录，其个人主页和文章将对外隐藏。仅可操作非管理员用户。操作会在 `admin_forms` 表中记录日志（不会向用户发送通知）。
 
 ```http
 PUT /api/admin/users/{id}/status
@@ -384,9 +384,21 @@ Content-Type: application/json
 **请求体:**
 ```json
 {
-  "enabled": false
+  "enabled": false,
+  "formTitle": "用户禁用记录",
+  "reason": "违反社区规范",
+  "extraFields": "[{\"fieldName\":\"违规类型\",\"fieldValue\":\"恶意刷评论\"}]"
 }
 ```
+
+**参数说明:**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| enabled | boolean | 是 | 是否启用 |
+| formTitle | string | 否 | 表单标题（不超过100字符），默认为"用户启用记录"或"用户禁用记录" |
+| reason | string | 是 | 操作理由 |
+| extraFields | string | 否 | 扩展字段（JSON格式），格式: `[{"fieldName":"...", "fieldValue":"..."}]` |
 
 **成功响应:** `200 OK`
 ```json
@@ -400,44 +412,10 @@ Content-Type: application/json
 
 **错误响应:**
 - `400 Bad Request` - 不能禁用自己的账户
+- `400 Bad Request` - 不能修改管理员的状态
 - `404 Not Found` - 用户不存在
 
----
-
-### 更新用户角色
-
-修改用户的角色（普通用户/管理员）。
-
-```http
-PUT /api/admin/users/{id}/role
-Authorization: Bearer {admin-token}
-Content-Type: application/json
-```
-
-**请求体:**
-```json
-{
-  "role": "ADMIN"
-}
-```
-
-**参数说明:**
-- `role`: 角色，必须为 `USER` 或 `ADMIN`
-
-**成功响应:** `200 OK`
-```json
-{
-  "id": 2,
-  "username": "user1",
-  "role": "ADMIN",
-  ...
-}
-```
-
-**错误响应:**
-- `400 Bad Request` - 不能修改自己的角色
-- `400 Bad Request` - 角色必须为USER或ADMIN
-- `404 Not Found` - 用户不存在
+> 注意：管理员角色的分配只能通过数据库直接操作（SQL），不提供 API 接口。
 
 ---
 
@@ -451,6 +429,7 @@ Content-Type: application/json
    - 被封禁用户的文章列表将返回空
    - 直接访问其文章详情将返回 `404 Not Found`
 4. **评论**: 被封禁用户已发布的评论仍然可见（可根据需要扩展隐藏功能）
+5. **日志记录**: 操作会在 `admin_forms` 表中存储记录（含表单标题、理由、扩展字段），但不会向被操作用户发送通知
 
 ---
 
@@ -1237,7 +1216,7 @@ Authorization: Bearer {admin-token}
 
 ### 批量删除分类
 
-对一个或多个分类执行删除操作。删除分类时会将所有使用该分类的文章的 `category_id` 设为 NULL，并向分类创建者发送通知。
+对一个或多个分类执行删除操作。删除分类时会将所有使用该分类的文章的 `category_id` 设为 NULL，并在 `admin_forms` 表中记录操作日志（不向分类创建者发送通知）。
 
 ```http
 POST /api/admin/categories/action
@@ -1265,7 +1244,7 @@ Content-Type: application/json
 | extraFields | string | 否 | 扩展字段JSON数组，格式：`[{"fieldName":"字段名","fieldValue":"字段值"}]` |
 
 **操作说明:**
-- **DELETE**: 删除分类，清除文章关联（`category_id` 设为 NULL），保存删除表单并向分类创建者发送 `CATEGORY_DELETED` 通知
+- **DELETE**: 删除分类，清除文章关联（`category_id` 设为 NULL），保存删除表单记录（不发送通知）
 
 **成功响应:** `200 OK`
 ```json

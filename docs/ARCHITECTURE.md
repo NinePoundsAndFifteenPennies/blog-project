@@ -67,7 +67,7 @@ Controller ──► Service ──► Repository ──► Database
 | 控制器 | └── StatisticsController.java | 提供社区统计 API（用户总数、文章总数、活跃用户、今日访问） |
 | 控制器 | └── FollowController.java | 提供关注功能 API（关注/取消关注、列表查询、可见性设置） |
 | 控制器 | └── PrivateMessageController.java | 提供私信功能 API（发送消息、获取对话、未读数统计） |
-| 控制器 | └── NotificationController.java | 提供通知功能 API（通知列表、未读数、标记已读） |
+| 控制器 | └── NotificationController.java | 提供通知功能 API（通知列表、未读数、标记已读、批量软删除） |
 | 控制器 | └── HotAuthorController.java | 提供热门作者 API（按热度排序的作者列表） |
 | 控制器 | └── AdminController.java | 提供管理后台 API（登录、仪表盘、管理功能） |
 | 数据传输对象 | **dto/** | 定义请求和响应的数据模型 |
@@ -133,12 +133,12 @@ Controller ──► Service ──► Repository ──► Database
 | 实体 | └── FollowVisibility.java | 关注信息可见性设置实体 |
 | 实体 | └── VisibilitySetting.java | 可嵌入的可见性设置类 |
 | 实体 | └── PrivateMessage.java | 私信消息实体 |
-| 实体 | └── Notification.java | 通知实体 |
-| 实体 | └── AdminForm.java | 管理表单实体（审核拒绝、文章删除、评论删除、标签删除、分类删除的通知表单） |
+| 实体 | └── Notification.java | 通知实体（支持软删除） |
+| 实体 | └── AdminForm.java | 管理表单实体（审核拒绝、文章删除、评论删除、标签删除、分类删除、用户状态变更的操作记录） |
 | 枚举 | └── ContentType.java | 内容类型枚举 |
 | 枚举 | └── FollowInfoType.java | 关注信息类型枚举（FOLLOWING/FOLLOWERS/FRIENDS/STATS） |
 | 枚举 | └── NotificationType.java | 通知类型枚举（POST_LIKED/POST_COMMENTED/FOLLOWED/COMMENT_LIKED/COMMENT_REPLIED/MESSAGE_RECEIVED/COMMENT_DELETED/TAG_REMOVED/TAG_DELETED/CATEGORY_DELETED） |
-| 枚举 | └── AdminFormType.java | 管理表单类型枚举（REJECTION/DELETION/COMMENT_DELETION/TAG_SOFT_DELETION/TAG_HARD_DELETION/CATEGORY_DELETION） |
+| 枚举 | └── AdminFormType.java | 管理表单类型枚举（REJECTION/DELETION/COMMENT_DELETION/TAG_SOFT_DELETION/TAG_HARD_DELETION/CATEGORY_DELETION/USER_STATUS_CHANGE） |
 | 枚举 | └── CommentStatus.java | 评论状态枚举（PENDING/APPROVED） |
 | 枚举 | └── Role.java | 用户角色枚举（USER/ADMIN） |
 | 数据访问层 | **repository/** | 提供数据库操作接口 |
@@ -183,7 +183,7 @@ Controller ──► Service ──► Repository ──► Database
 | 接口 | └── PrivateMessageService.java | 私信服务接口 |
 | 实现类 | └── PrivateMessageServiceImpl.java | 私信服务实现（发送消息、防骚扰机制、已读状态，触发通知） |
 | 接口 | └── NotificationService.java | 通知服务接口 |
-| 实现类 | └── NotificationServiceImpl.java | 通知服务实现（创建通知、查询、标记已读、未读计数） |
+| 实现类 | └── NotificationServiceImpl.java | 通知服务实现（创建通知、查询、标记已读、批量软删除、未读计数） |
 | 接口 | └── HotAuthorService.java | 热门作者服务接口 |
 | 实现类 | └── HotAuthorServiceImpl.java | 热门作者服务实现（加权对数混合模型计算热度） |
 | 接口 | └── AdminCommentService.java | 管理后台评论服务接口 |
@@ -284,7 +284,7 @@ Service 层使用接口与实现分离：
 - **Follow**: 关注关系（关注者、被关注者、创建时间），用于存储单向关注关系
 - **FollowVisibility**: 关注可见性设置（用户、四种类型的独立可见性设置），控制关注信息对谁可见
 - **PrivateMessage**: 私信消息（发送者、接收者、内容、已读状态、创建时间）
-- **Notification**: 通知（类型、触发者、接收者、关联文章、关联评论、内容、已读状态、创建时间），用于消息中心
+- **Notification**: 通知（类型、触发者、接收者、关联文章、关联评论、内容、已读状态、软删除状态、创建时间），用于消息中心
 
 ### 关系设计
 
@@ -362,7 +362,7 @@ uploads/
 - **CommentEdit**: 编辑评论页面（支持Markdown工具栏和实时预览）
 - **ReplyCreate**: 创建回复页面（支持Markdown工具栏和实时预览，与评论编辑页面体验一致）
 - **Messages**: 私信页面（实时聊天、会话列表、未读标记）
-- **Notifications**: 通知中心（通知列表、类型过滤、快捷操作、锚点导航）
+- **Notifications**: 通知中心（通知列表、类型过滤、快捷操作、批量选择删除、锚点导航）
 - **AdminDashboard**: 管理后台仪表盘（核心指标统计卡片、30天趋势图表、热门文章TOP10、标签/分类热力图、文章状态分布、内容质量雷达图、最近动态、系统概览）
 - **AdminUserManagement**: 用户管理页面（分页列表、多条件搜索、批量操作）
 
@@ -462,7 +462,7 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 | 角色枚举 | `model/Role.java` | 定义 USER 和 ADMIN 角色 |
 | 评论状态枚举 | `model/CommentStatus.java` | 定义 PENDING 和 APPROVED 状态 |
 | 管理员控制器 | `controller/AdminController.java` | 管理后台 API 端点（用户、文章、评论、仪表盘管理） |
-| 用户管理服务 | `service/AdminUserService.java` | 用户管理业务逻辑（列表、状态、角色） |
+| 用户管理服务 | `service/AdminUserService.java` | 用户管理业务逻辑（列表、状态管理），角色分配仅通过数据库 |
 | 评论管理服务 | `service/AdminCommentService.java` | 评论管理业务逻辑（列表、审核、删除） |
 | 标签管理服务 | `service/AdminTagService.java` | 标签管理业务逻辑（列表、创建、更新、软删除、硬删除） |
 | 仪表盘服务 | `service/DashboardService.java` | 仪表盘统计接口 |
@@ -544,7 +544,7 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 | 标签管理 | 搜索表单 + 表格 | 标签列表（按热度排序）、多条件筛选、创建/编辑（含图标选择器）、软删除/硬删除、删除通知表单、批量操作 |
 | 评论管理 | 搜索表单 + 表格 | 多条件筛选、评论列表、批量审核/删除、删除通知表单 |
 | 媒体库 | 图片网格 | 媒体文件预览 |
-| 用户管理 | 搜索表单 + 表格 | 多条件搜索、用户列表、角色管理、批量操作 |
+| 用户管理 | 搜索表单 + 表格 | 多条件搜索、用户列表、启用/禁用（含表单弹窗）、批量操作 |
 | 系统设置 | 表单 | 输入框、开关组件 |
 
 ### 代码组织规范
