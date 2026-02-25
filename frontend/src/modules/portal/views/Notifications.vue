@@ -9,14 +9,24 @@
           <div class="card p-6 mb-6 backdrop-blur-sm bg-white/90">
             <div class="flex items-center justify-between">
               <h1 class="text-2xl font-bold text-gray-900">我的通知</h1>
-              <button
-                v-if="unreadCount > 0"
-                @click="handleMarkAllAsRead"
-                :disabled="markingAllRead"
-                class="px-4 py-2 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors disabled:text-gray-400"
-              >
-                {{ markingAllRead ? '处理中...' : '全部标为已读' }}
-              </button>
+              <div class="flex items-center space-x-3">
+                <button
+                  v-if="selectedIds.length > 0"
+                  @click="handleDeleteSelected"
+                  :disabled="deleting"
+                  class="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:text-gray-400"
+                >
+                  {{ deleting ? '删除中...' : `删除选中 (${selectedIds.length})` }}
+                </button>
+                <button
+                  v-if="unreadCount > 0"
+                  @click="handleMarkAllAsRead"
+                  :disabled="markingAllRead"
+                  class="px-4 py-2 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors disabled:text-gray-400"
+                >
+                  {{ markingAllRead ? '处理中...' : '全部标为已读' }}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -59,16 +69,39 @@
           </div>
 
           <div v-else class="space-y-2">
+            <!-- Select All -->
+            <div v-if="notifications.length > 0" class="flex items-center px-4 py-2">
+              <input
+                type="checkbox"
+                :checked="isAllSelected"
+                :indeterminate="isPartialSelected"
+                @change="toggleSelectAll"
+                class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+              >
+              <span class="ml-2 text-sm text-gray-500">全选</span>
+            </div>
             <div
               v-for="notification in notifications"
               :key="notification.id"
-              @click="handleNotificationClick(notification)"
               :class="[
-                'card p-4 backdrop-blur-sm cursor-pointer hover:shadow-md transition-all duration-200',
-                notification.read ? 'bg-gray-50/90' : 'bg-white/90'
+                'card p-4 backdrop-blur-sm hover:shadow-md transition-all duration-200',
+                notification.read ? 'bg-gray-50/90' : 'bg-white/90',
+                isSelected(notification.id) ? 'ring-2 ring-primary-300' : ''
               ]"
             >
               <div class="flex items-start space-x-4">
+                <!-- Selection Checkbox -->
+                <div class="flex items-center pt-2 flex-shrink-0" @click.stop>
+                  <input
+                    type="checkbox"
+                    :checked="isSelected(notification.id)"
+                    @change="toggleSelection(notification.id)"
+                    class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                  >
+                </div>
+
+                <!-- Clickable content area -->
+                <div class="flex items-start space-x-4 flex-1 min-w-0 cursor-pointer" @click="handleNotificationClick(notification)">
                 <!-- Type Icon -->
                 <div
                   :class="[
@@ -189,6 +222,7 @@
 
                 <!-- Unread indicator -->
                 <div v-if="!notification.read" class="w-2 h-2 bg-primary-600 rounded-full flex-shrink-0"></div>
+                </div>
               </div>
             </div>
 
@@ -459,7 +493,8 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   getFormByPostId,
-  getFormByNotificationId
+  getFormByNotificationId,
+  deleteNotifications
 } from '@/api/notifications'
 import { likeComment, unlikeComment, deleteComment } from '@/api/comments'
 import { getFullAvatarUrl } from '@/utils/avatar'
@@ -480,6 +515,8 @@ export default {
     const totalPages = ref(1)
     const currentFilter = ref('all')
     const PAGE_SIZE = 20
+    const selectedIds = ref([])
+    const deleting = ref(false)
 
     // 详情弹窗状态
     const showDetailModal = ref(false)
@@ -710,6 +747,7 @@ export default {
       } else {
         loading.value = true
         currentPage.value = 0
+        selectedIds.value = []
       }
 
       try {
@@ -851,6 +889,62 @@ export default {
       }
     }
     
+    // ======================= 选择和删除功能 =======================
+
+    const isSelected = (id) => selectedIds.value.includes(id)
+
+    const toggleSelection = (id) => {
+      const index = selectedIds.value.indexOf(id)
+      if (index === -1) {
+        selectedIds.value.push(id)
+      } else {
+        selectedIds.value.splice(index, 1)
+      }
+    }
+
+    const isAllSelected = computed(() => {
+      return notifications.value.length > 0 && notifications.value.every(n => selectedIds.value.includes(n.id))
+    })
+
+    const isPartialSelected = computed(() => {
+      const selectedCount = notifications.value.filter(n => selectedIds.value.includes(n.id)).length
+      return selectedCount > 0 && selectedCount < notifications.value.length
+    })
+
+    const toggleSelectAll = () => {
+      if (isAllSelected.value) {
+        selectedIds.value = []
+      } else {
+        selectedIds.value = notifications.value.map(n => n.id)
+      }
+    }
+
+    const handleDeleteSelected = async () => {
+      if (selectedIds.value.length === 0) return
+      if (!confirm(`确定要删除选中的 ${selectedIds.value.length} 条通知吗？`)) return
+      
+      deleting.value = true
+      try {
+        await deleteNotifications(selectedIds.value)
+        // Remove deleted notifications from local list
+        notifications.value = notifications.value.filter(n => !selectedIds.value.includes(n))
+        // Update unread count for any deleted unread notifications
+        const deletedUnread = notifications.value.filter(n => selectedIds.value.includes(n.id) && !n.read).length
+        if (deletedUnread > 0) {
+          unreadCount.value = Math.max(0, unreadCount.value - deletedUnread)
+        }
+        notifications.value = notifications.value.filter(n => !selectedIds.value.includes(n.id))
+        selectedIds.value = []
+        // Refresh data from server
+        await loadNotifications()
+      } catch (error) {
+        console.error('删除通知失败:', error)
+        alert('删除通知失败，请稍后重试')
+      } finally {
+        deleting.value = false
+      }
+    }
+
     // Helper function to get notification types for filter
     const getTypesForFilter = (filter) => {
       switch (filter) {
@@ -1167,6 +1261,15 @@ export default {
       handleQuickReply,
       handleQuickLike,
       handleQuickDelete,
+      // 选择和删除
+      selectedIds,
+      deleting,
+      isSelected,
+      toggleSelection,
+      isAllSelected,
+      isPartialSelected,
+      toggleSelectAll,
+      handleDeleteSelected,
       // 详情弹窗
       showDetailModal,
       loadingDetailModal,

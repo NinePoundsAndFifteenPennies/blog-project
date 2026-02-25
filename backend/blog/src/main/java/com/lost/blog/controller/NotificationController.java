@@ -89,6 +89,22 @@ public class NotificationController {
     }
 
     /**
+     * 批量软删除通知
+     * DELETE /api/notifications
+     */
+    @DeleteMapping
+    public ResponseEntity<Map<String, Integer>> deleteNotifications(
+            @RequestBody Map<String, List<Long>> request,
+            @AuthenticationPrincipal UserDetails currentUser) {
+        List<Long> ids = request.get("ids");
+        if (ids == null || ids.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        int count = notificationService.deleteNotifications(ids, currentUser);
+        return ResponseEntity.ok(Map.of("deletedCount", count));
+    }
+
+    /**
      * 获取用户文章的拒绝/删除表单详情
      * 用于用户查看自己文章被拒绝或删除的原因
      * GET /api/notifications/forms/post/{postId}

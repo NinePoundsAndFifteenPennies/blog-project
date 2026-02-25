@@ -83,3 +83,16 @@ export function getFormByNotificationId(notificationId) {
         method: 'get'
     })
 }
+
+/**
+ * 批量软删除通知
+ * @param {Array<Number>} ids - 通知ID列表
+ * @returns {Promise<Object>} - { deletedCount: number }
+ */
+export function deleteNotifications(ids) {
+    return request({
+        url: '/notifications',
+        method: 'delete',
+        data: { ids }
+    })
+}
