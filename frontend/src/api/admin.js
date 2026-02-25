@@ -88,21 +88,6 @@ export async function updateUserStatus(userId, enabled) {
     return response;
 }
 
-/**
- * 更新用户角色
- * @param {number} userId - 用户ID
- * @param {string} role - 新角色 USER/ADMIN
- * @returns {Promise<Object>} - 返回更新后的用户信息
- */
-export async function updateUserRole(userId, role) {
-    const response = await request({
-        url: `/admin/users/${userId}/role`,
-        method: "put",
-        data: { role },
-    });
-    return response;
-}
-
 // ======================= 文章管理 API =======================
 
 /**

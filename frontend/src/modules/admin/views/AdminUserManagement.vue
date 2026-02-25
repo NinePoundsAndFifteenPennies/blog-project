@@ -63,7 +63,6 @@
           <span class="selected-count">已选择 {{ selectedUserIds.length }} 项</span>
           <button class="btn btn-success btn-sm" @click="batchEnableUsers">批量启用</button>
           <button class="btn btn-danger btn-sm" @click="batchDisableUsers">批量禁用</button>
-          <button class="btn btn-info btn-sm" @click="batchSetAdmin">批量设为管理员</button>
         </div>
       </div>
       <div v-if="usersLoading" class="loading-container">
@@ -125,22 +124,12 @@
             <td class="actions">
               <button class="action-btn" @click="viewUserDetail(user)">详情</button>
               <button
-                v-if="user.role !== 'ADMIN'"
-                class="action-btn info"
-                @click="promoteToAdmin(user)"
-              >设为管理员</button>
-              <button
-                v-if="user.role === 'ADMIN' && !isCurrentUser(user)"
-                class="action-btn warning"
-                @click="demoteToUser(user)"
-              >取消管理员</button>
-              <button
-                v-if="user.enabled && !isCurrentUser(user)"
+                v-if="user.enabled && !isCurrentUser(user) && user.role !== 'ADMIN'"
                 class="action-btn danger"
                 @click="disableUser(user)"
               >禁用</button>
               <button
-                v-if="!user.enabled"
+                v-if="!user.enabled && user.role !== 'ADMIN'"
                 class="action-btn success"
                 @click="enableUser(user)"
               >启用</button>
@@ -255,7 +244,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
-import { getUsers, getUserDetail, updateUserStatus, updateUserRole } from '@/api/admin'
+import { getUsers, getUserDetail, updateUserStatus } from '@/api/admin'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
 export default {
@@ -417,30 +406,6 @@ export default {
       }
     }
 
-    const promoteToAdmin = async (user) => {
-      if (!confirm(`确定要将用户 "${user.username}" 设为管理员吗？`)) return
-      try {
-        await updateUserRole(user.id, 'ADMIN')
-        await loadUsers()
-        alert('已将用户设为管理员')
-      } catch (error) {
-        console.error('Failed to promote user:', error)
-        alert('设置管理员失败: ' + (error.response?.data || error.message))
-      }
-    }
-
-    const demoteToUser = async (user) => {
-      if (!confirm(`确定要取消用户 "${user.username}" 的管理员权限吗？`)) return
-      try {
-        await updateUserRole(user.id, 'USER')
-        await loadUsers()
-        alert('已取消管理员权限')
-      } catch (error) {
-        console.error('Failed to demote user:', error)
-        alert('取消管理员失败: ' + (error.response?.data || error.message))
-      }
-    }
-
     // ======================= Batch Selection Methods =======================
 
     const isUserSelected = (userId) => {
@@ -510,22 +475,6 @@ export default {
       }
     }
 
-    const batchSetAdmin = async () => {
-      if (selectedUserIds.value.length === 0) return
-      if (!confirm(`确定要将 ${selectedUserIds.value.length} 个用户设为管理员吗？`)) return
-      
-      const count = selectedUserIds.value.length
-      try {
-        await Promise.all(selectedUserIds.value.map(userId => updateUserRole(userId, 'ADMIN')))
-        selectedUserIds.value = []
-        await loadUsers()
-        alert(`已成功将 ${count} 个用户设为管理员`)
-      } catch (error) {
-        console.error('Batch set admin failed:', error)
-        alert('批量设置管理员失败: ' + (error.response?.data || error.message))
-      }
-    }
-
     onMounted(() => {
       loadUsers()
     })
@@ -552,8 +501,6 @@ export default {
       closeUserModal,
       enableUser,
       disableUser,
-      promoteToAdmin,
-      demoteToUser,
       // Batch operations
       isUserSelected,
       toggleUserSelection,
@@ -561,8 +508,7 @@ export default {
       isPartialSelected,
       toggleSelectAll,
       batchEnableUsers,
-      batchDisableUsers,
-      batchSetAdmin
+      batchDisableUsers
     }
   }
 }

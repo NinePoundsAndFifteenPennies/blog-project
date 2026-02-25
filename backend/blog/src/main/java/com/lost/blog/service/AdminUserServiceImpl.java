@@ -97,16 +97,6 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     @Override
-    @Transactional
-    public AdminUserResponse updateUserRole(Long userId, Role role) {
-        User user = findById(userId);
-        user.setRole(role);
-        user = userRepository.save(user);
-        logger.info("User {} role updated to: {}", userId, role);
-        return toAdminUserResponse(user);
-    }
-
-    @Override
     public User findById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在: " + userId));

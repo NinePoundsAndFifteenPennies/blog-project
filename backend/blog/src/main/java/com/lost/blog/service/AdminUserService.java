@@ -2,7 +2,6 @@ package com.lost.blog.service;
 
 import com.lost.blog.dto.AdminUserQueryRequest;
 import com.lost.blog.dto.AdminUserResponse;
-import com.lost.blog.model.Role;
 import com.lost.blog.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -35,14 +34,6 @@ public interface AdminUserService {
      * @return 更新后的用户信息
      */
     AdminUserResponse updateUserStatus(Long userId, Boolean enabled);
-    
-    /**
-     * 更新用户角色
-     * @param userId 用户ID
-     * @param role 新角色
-     * @return 更新后的用户信息
-     */
-    AdminUserResponse updateUserRole(Long userId, Role role);
     
     /**
      * 根据ID获取用户
