@@ -207,7 +207,8 @@ public class AdminController {
             return ResponseEntity.badRequest().body("不能修改管理员的状态");
         }
         
-        AdminUserResponse user = adminUserService.updateUserStatus(id, request.getEnabled());
+        User admin = userService.findByUsername(currentUser.getUsername());
+        AdminUserResponse user = adminUserService.updateUserStatus(id, request.getEnabled(), admin);
         logger.info("管理员 {} 将用户 {} 状态更新为: {}", 
                 currentUser.getUsername(), id, request.getEnabled() ? "启用" : "禁用");
         

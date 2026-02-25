@@ -31,9 +31,10 @@ public interface AdminUserService {
      * 更新用户启用状态（启用/禁用）
      * @param userId 用户ID
      * @param enabled 是否启用
+     * @param admin 执行操作的管理员
      * @return 更新后的用户信息
      */
-    AdminUserResponse updateUserStatus(Long userId, Boolean enabled);
+    AdminUserResponse updateUserStatus(Long userId, Boolean enabled, User admin);
     
     /**
      * 根据ID获取用户
