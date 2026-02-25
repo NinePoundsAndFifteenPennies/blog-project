@@ -35,7 +35,6 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
     private final CategoryRepository categoryRepository;
     private final PostRepository postRepository;
     private final AdminFormRepository adminFormRepository;
-    private final NotificationService notificationService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -43,12 +42,10 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
     @Autowired
     public AdminCategoryServiceImpl(CategoryRepository categoryRepository,
                                      PostRepository postRepository,
-                                     AdminFormRepository adminFormRepository,
-                                     NotificationService notificationService) {
+                                     AdminFormRepository adminFormRepository) {
         this.categoryRepository = categoryRepository;
         this.postRepository = postRepository;
         this.adminFormRepository = adminFormRepository;
-        this.notificationService = notificationService;
     }
 
     @Override
@@ -259,13 +256,9 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
                 form.setAffectedPosts(affectedPostsJson);
                 form.setTargetUser(categoryCreator);
                 form.setAdmin(admin);
-                form.setSent(true);
-                form.setSentAt(LocalDateTime.now());
+                form.setSent(false);
 
                 adminFormRepository.save(form);
-
-                // 发送通知
-                notificationService.createCategoryDeletedNotification(admin, categoryCreator, categoryName, reason);
 
                 // 先将所有使用该分类的文章的category字段设置为null
                 List<Post> posts = postRepository.findByCategory(category);

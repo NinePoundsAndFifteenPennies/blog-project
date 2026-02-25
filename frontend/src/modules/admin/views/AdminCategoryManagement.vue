@@ -787,8 +787,9 @@ export default {
 
     const openEditModalFromDetail = () => {
       if (!selectedCategory.value) return
+      const categoryToEdit = selectedCategory.value
       closeDetailModal()
-      openEditModal(selectedCategory.value)
+      openEditModal(categoryToEdit)
     }
 
     const closeFormModal = () => {

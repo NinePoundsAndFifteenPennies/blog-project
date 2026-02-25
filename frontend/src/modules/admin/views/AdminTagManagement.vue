@@ -731,8 +731,9 @@ export default {
 
     const openEditModalFromDetail = () => {
       if (!selectedTag.value) return
+      const tagToEdit = selectedTag.value
       closeDetailModal()
-      openEditModal(selectedTag.value)
+      openEditModal(tagToEdit)
     }
 
     const closeFormModal = () => {
