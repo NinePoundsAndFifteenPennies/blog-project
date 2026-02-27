@@ -77,28 +77,17 @@ export async function getUserDetail(userId) {
  * 更新用户状态（启用/禁用）
  * @param {number} userId - 用户ID
  * @param {boolean} enabled - 是否启用
+ * @param {Object} formData - 表单数据（可选）
+ * @param {string} formData.formTitle - 表单标题（可选）
+ * @param {string} formData.reason - 理由（可选）
+ * @param {string} formData.extraFields - 扩展字段JSON（可选）
  * @returns {Promise<Object>} - 返回更新后的用户信息
  */
-export async function updateUserStatus(userId, enabled) {
+export async function updateUserStatus(userId, enabled, formData = {}) {
     const response = await request({
         url: `/admin/users/${userId}/status`,
         method: "put",
-        data: { enabled },
-    });
-    return response;
-}
-
-/**
- * 更新用户角色
- * @param {number} userId - 用户ID
- * @param {string} role - 新角色 USER/ADMIN
- * @returns {Promise<Object>} - 返回更新后的用户信息
- */
-export async function updateUserRole(userId, role) {
-    const response = await request({
-        url: `/admin/users/${userId}/role`,
-        method: "put",
-        data: { role },
+        data: { enabled, ...formData },
     });
     return response;
 }

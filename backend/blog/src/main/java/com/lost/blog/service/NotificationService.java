@@ -55,6 +55,14 @@ public interface NotificationService {
     int markAllAsRead(String filter, UserDetails currentUser);
 
     /**
+     * 软删除通知（批量）
+     * @param notificationIds 通知ID列表
+     * @param currentUser 当前用户
+     * @return 成功删除的数量
+     */
+    int deleteNotifications(List<Long> notificationIds, UserDetails currentUser);
+
+    /**
      * 获取文章关联的管理表单
      * @param postId 文章ID
      * @param currentUser 当前用户

@@ -71,6 +71,12 @@ public class Notification {
     @Column(name = "read_at")
     private LocalDateTime readAt;
 
+    /**
+     * 软删除时间（null表示未删除）
+     */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -152,5 +158,17 @@ public class Notification {
 
     public boolean isRead() {
         return readAt != null;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
     }
 }

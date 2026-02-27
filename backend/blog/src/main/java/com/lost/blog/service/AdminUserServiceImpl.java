@@ -3,8 +3,11 @@ package com.lost.blog.service;
 import com.lost.blog.dto.AdminUserQueryRequest;
 import com.lost.blog.dto.AdminUserResponse;
 import com.lost.blog.exception.ResourceNotFoundException;
+import com.lost.blog.model.AdminForm;
+import com.lost.blog.model.AdminFormType;
 import com.lost.blog.model.Role;
 import com.lost.blog.model.User;
+import com.lost.blog.repository.AdminFormRepository;
 import com.lost.blog.repository.CommentRepository;
 import com.lost.blog.repository.PostRepository;
 import com.lost.blog.repository.UserRepository;
@@ -33,14 +36,17 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    private final AdminFormRepository adminFormRepository;
 
     @Autowired
     public AdminUserServiceImpl(UserRepository userRepository, 
                                PostRepository postRepository,
-                               CommentRepository commentRepository) {
+                               CommentRepository commentRepository,
+                               AdminFormRepository adminFormRepository) {
         this.userRepository = userRepository;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
+        this.adminFormRepository = adminFormRepository;
     }
 
     @Override
@@ -88,21 +94,27 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
-    public AdminUserResponse updateUserStatus(Long userId, Boolean enabled) {
+    public AdminUserResponse updateUserStatus(Long userId, Boolean enabled, String formTitle,
+                                               String reason, String extraFields, User admin) {
         User user = findById(userId);
         user.setEnabled(enabled);
         user = userRepository.save(user);
-        logger.info("User {} status updated to: {}", userId, enabled ? "enabled" : "disabled");
-        return toAdminUserResponse(user);
-    }
 
-    @Override
-    @Transactional
-    public AdminUserResponse updateUserRole(Long userId, Role role) {
-        User user = findById(userId);
-        user.setRole(role);
-        user = userRepository.save(user);
-        logger.info("User {} role updated to: {}", userId, role);
+        // 创建状态变更表单记录
+        String defaultTitle = enabled ? "用户启用记录" : "用户禁用记录";
+        String defaultReason = enabled ? "管理员启用了用户 " + user.getUsername() : "管理员禁用了用户 " + user.getUsername();
+
+        AdminForm form = new AdminForm();
+        form.setTitle(formTitle != null && !formTitle.trim().isEmpty() ? formTitle : defaultTitle);
+        form.setFormType(AdminFormType.USER_STATUS_CHANGE);
+        form.setReason(reason != null && !reason.trim().isEmpty() ? reason : defaultReason);
+        form.setExtraFields(extraFields);
+        form.setTargetUser(user);
+        form.setAdmin(admin);
+        form.setSent(false);
+        adminFormRepository.save(form);
+
+        logger.info("User {} status updated to: {}", userId, enabled ? "enabled" : "disabled");
         return toAdminUserResponse(user);
     }
 

@@ -2967,6 +2967,43 @@ Authorization: Bearer {token}
 
 ---
 
+### 批量删除通知（软删除）
+
+批量软删除通知。软删除后通知在客户端不可见，但数据库中保留记录。
+
+```http
+DELETE /api/notifications
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体:**
+```json
+{
+  "ids": [1, 2, 3]
+}
+```
+
+**参数说明:**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| ids | array | 是 | 通知ID列表 |
+
+**成功响应:** `200 OK`
+```json
+{
+  "deletedCount": 3
+}
+```
+
+**说明:**
+- 仅能删除属于当前用户的通知
+- 软删除：数据库中通知记录的 `deleted_at` 字段被设置为当前时间，不会物理删除
+- 已软删除的通知不会在任何查询中返回
+
+---
+
 ### 获取系统通知表单详情（通过文章ID）
 
 获取指定文章的审核拒绝/删除表单详情，用于显示拒绝原因和扩展信息。
@@ -3045,6 +3082,8 @@ Authorization: Bearer {token}
 | COMMENT_DELETION | 评论删除 |
 | TAG_SOFT_DELETION | 标签文章关联移除（软删除） |
 | TAG_HARD_DELETION | 标签删除（硬删除） |
+| CATEGORY_DELETION | 分类删除 |
+| USER_STATUS_CHANGE | 用户状态变更（启用/禁用） |
 ```
 
 **错误响应:**

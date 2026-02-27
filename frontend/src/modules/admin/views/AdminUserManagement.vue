@@ -63,7 +63,6 @@
           <span class="selected-count">已选择 {{ selectedUserIds.length }} 项</span>
           <button class="btn btn-success btn-sm" @click="batchEnableUsers">批量启用</button>
           <button class="btn btn-danger btn-sm" @click="batchDisableUsers">批量禁用</button>
-          <button class="btn btn-info btn-sm" @click="batchSetAdmin">批量设为管理员</button>
         </div>
       </div>
       <div v-if="usersLoading" class="loading-container">
@@ -125,22 +124,12 @@
             <td class="actions">
               <button class="action-btn" @click="viewUserDetail(user)">详情</button>
               <button
-                v-if="user.role !== 'ADMIN'"
-                class="action-btn info"
-                @click="promoteToAdmin(user)"
-              >设为管理员</button>
-              <button
-                v-if="user.role === 'ADMIN' && !isCurrentUser(user)"
-                class="action-btn warning"
-                @click="demoteToUser(user)"
-              >取消管理员</button>
-              <button
-                v-if="user.enabled && !isCurrentUser(user)"
+                v-if="user.enabled && !isCurrentUser(user) && user.role !== 'ADMIN'"
                 class="action-btn danger"
                 @click="disableUser(user)"
               >禁用</button>
               <button
-                v-if="!user.enabled"
+                v-if="!user.enabled && user.role !== 'ADMIN'"
                 class="action-btn success"
                 @click="enableUser(user)"
               >启用</button>
@@ -233,6 +222,51 @@
           </div>
         </div>
 
+        <!-- Status Change Modal -->
+        <div v-if="showStatusModal" class="modal-overlay" @click.self="closeStatusModal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>{{ isBatchStatus ? (statusForm.enabled ? '批量启用用户' : '批量禁用用户') : (statusForm.enabled ? '启用用户' : '禁用用户') }}</h3>
+              <button class="close-btn" @click="closeStatusModal">&times;</button>
+            </div>
+            <div class="modal-body">
+              <p class="warning-text">
+                {{ isBatchStatus
+                  ? `确定要${statusForm.enabled ? '启用' : '禁用'}选中的 ${selectedUserIds.length} 个用户吗？`
+                  : `确定要${statusForm.enabled ? '启用' : '禁用'}用户 "${statusTargetUser ? statusTargetUser.username : ''}" 吗？`
+                }}
+              </p>
+              <p v-if="!statusForm.enabled" class="sub-text">禁用后该用户将无法登录，其内容将对外隐藏。</p>
+
+              <div class="form-group">
+                <label>表单标题 <span class="optional">(可选)</span></label>
+                <input type="text" v-model="statusForm.formTitle" class="form-input" :placeholder="statusForm.enabled ? '用户启用记录' : '用户禁用记录'">
+              </div>
+              <div class="form-group">
+                <label>理由 <span class="required">*</span></label>
+                <textarea v-model="statusForm.reason" class="form-input form-textarea" placeholder="请填写理由" rows="3"></textarea>
+              </div>
+              <div class="form-group">
+                <label>扩展信息 <span class="optional">(可选)</span></label>
+                <div v-for="(field, index) in statusForm.extraFieldsList" :key="index" class="extra-field-row">
+                  <input type="text" v-model="field.fieldName" class="form-input extra-field-input" placeholder="字段名">
+                  <input type="text" v-model="field.fieldValue" class="form-input extra-field-input" placeholder="字段值">
+                  <button class="btn btn-sm btn-danger" @click="removeStatusExtraField(index)">删除</button>
+                </div>
+                <button class="btn btn-sm btn-secondary" @click="addStatusExtraField">+ 添加扩展字段</button>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" @click="closeStatusModal">取消</button>
+              <button 
+                :class="['btn', statusForm.enabled ? 'btn-success' : 'btn-danger']"
+                @click="confirmStatusChange"
+                :disabled="!statusForm.reason || statusForm.reason.trim() === ''"
+              >{{ statusForm.enabled ? '确认启用' : '确认禁用' }}</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Quick Links -->
         <div class="quick-links">
           <router-link to="/" class="quick-link">
@@ -255,7 +289,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
-import { getUsers, getUserDetail, updateUserStatus, updateUserRole } from '@/api/admin'
+import { getUsers, getUserDetail, updateUserStatus } from '@/api/admin'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
 export default {
@@ -287,6 +321,17 @@ export default {
     const showUserModal = ref(false)
     const selectedUser = ref(null)
     const selectedUserIds = ref([])
+
+    // Status change modal state
+    const showStatusModal = ref(false)
+    const isBatchStatus = ref(false)
+    const statusTargetUser = ref(null)
+    const statusForm = ref({
+      enabled: false,
+      formTitle: '',
+      reason: '',
+      extraFieldsList: []
+    })
 
     const menuItems = [
       { id: 'dashboard', path: '/admin', label: '仪表盘', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
@@ -393,52 +438,89 @@ export default {
       selectedUser.value = null
     }
 
-    const enableUser = async (user) => {
-      if (!confirm(`确定要启用用户 "${user.username}" 吗？`)) return
-      try {
-        await updateUserStatus(user.id, true)
-        await loadUsers()
-        alert('用户已启用')
-      } catch (error) {
-        console.error('Failed to enable user:', error)
-        alert('启用用户失败: ' + (error.response?.data || error.message))
+    // ======================= Status Change Modal Methods =======================
+
+    const openStatusModal = (user, enabled) => {
+      statusTargetUser.value = user
+      isBatchStatus.value = false
+      statusForm.value = { enabled, formTitle: '', reason: '', extraFieldsList: [] }
+      showStatusModal.value = true
+    }
+
+    const openBatchStatusModal = (enabled) => {
+      if (selectedUserIds.value.length === 0) return
+      isBatchStatus.value = true
+      statusTargetUser.value = null
+      statusForm.value = { enabled, formTitle: '', reason: '', extraFieldsList: [] }
+      showStatusModal.value = true
+    }
+
+    const closeStatusModal = () => {
+      showStatusModal.value = false
+      statusTargetUser.value = null
+      isBatchStatus.value = false
+    }
+
+    const addStatusExtraField = () => {
+      statusForm.value.extraFieldsList.push({ fieldName: '', fieldValue: '' })
+    }
+
+    const removeStatusExtraField = (index) => {
+      statusForm.value.extraFieldsList.splice(index, 1)
+    }
+
+    const getStatusExtraFieldsJson = () => {
+      const validFields = statusForm.value.extraFieldsList.filter(
+        f => f.fieldName && f.fieldName.trim() !== ''
+      )
+      return validFields.length > 0 ? JSON.stringify(validFields) : undefined
+    }
+
+    const confirmStatusChange = async () => {
+      if (!statusForm.value.reason || statusForm.value.reason.trim() === '') {
+        alert('请填写理由')
+        return
+      }
+
+      const formData = {
+        formTitle: statusForm.value.formTitle || undefined,
+        reason: statusForm.value.reason,
+        extraFields: getStatusExtraFieldsJson()
+      }
+
+      if (isBatchStatus.value) {
+        const count = selectedUserIds.value.length
+        try {
+          await Promise.all(selectedUserIds.value.map(userId => 
+            updateUserStatus(userId, statusForm.value.enabled, formData)
+          ))
+          closeStatusModal()
+          selectedUserIds.value = []
+          await loadUsers()
+          alert(`已成功${statusForm.value.enabled ? '启用' : '禁用'} ${count} 个用户`)
+        } catch (error) {
+          console.error('Batch status change failed:', error)
+          alert(`批量${statusForm.value.enabled ? '启用' : '禁用'}失败: ` + (error.response?.data || error.message))
+        }
+      } else {
+        try {
+          await updateUserStatus(statusTargetUser.value.id, statusForm.value.enabled, formData)
+          closeStatusModal()
+          await loadUsers()
+          alert(statusForm.value.enabled ? '用户已启用' : '用户已禁用')
+        } catch (error) {
+          console.error('Status change failed:', error)
+          alert(`${statusForm.value.enabled ? '启用' : '禁用'}用户失败: ` + (error.response?.data || error.message))
+        }
       }
     }
 
-    const disableUser = async (user) => {
-      if (!confirm(`确定要禁用用户 "${user.username}" 吗？\n禁用后该用户将无法登录，其内容将对外隐藏。`)) return
-      try {
-        await updateUserStatus(user.id, false)
-        await loadUsers()
-        alert('用户已禁用')
-      } catch (error) {
-        console.error('Failed to disable user:', error)
-        alert('禁用用户失败: ' + (error.response?.data || error.message))
-      }
+    const enableUser = (user) => {
+      openStatusModal(user, true)
     }
 
-    const promoteToAdmin = async (user) => {
-      if (!confirm(`确定要将用户 "${user.username}" 设为管理员吗？`)) return
-      try {
-        await updateUserRole(user.id, 'ADMIN')
-        await loadUsers()
-        alert('已将用户设为管理员')
-      } catch (error) {
-        console.error('Failed to promote user:', error)
-        alert('设置管理员失败: ' + (error.response?.data || error.message))
-      }
-    }
-
-    const demoteToUser = async (user) => {
-      if (!confirm(`确定要取消用户 "${user.username}" 的管理员权限吗？`)) return
-      try {
-        await updateUserRole(user.id, 'USER')
-        await loadUsers()
-        alert('已取消管理员权限')
-      } catch (error) {
-        console.error('Failed to demote user:', error)
-        alert('取消管理员失败: ' + (error.response?.data || error.message))
-      }
+    const disableUser = (user) => {
+      openStatusModal(user, false)
     }
 
     // ======================= Batch Selection Methods =======================
@@ -478,52 +560,12 @@ export default {
       }
     }
 
-    const batchEnableUsers = async () => {
-      if (selectedUserIds.value.length === 0) return
-      if (!confirm(`确定要批量启用 ${selectedUserIds.value.length} 个用户吗？`)) return
-      
-      const count = selectedUserIds.value.length
-      try {
-        await Promise.all(selectedUserIds.value.map(userId => updateUserStatus(userId, true)))
-        selectedUserIds.value = []
-        await loadUsers()
-        alert(`已成功启用 ${count} 个用户`)
-      } catch (error) {
-        console.error('Batch enable failed:', error)
-        alert('批量启用失败: ' + (error.response?.data || error.message))
-      }
+    const batchEnableUsers = () => {
+      openBatchStatusModal(true)
     }
 
-    const batchDisableUsers = async () => {
-      if (selectedUserIds.value.length === 0) return
-      if (!confirm(`确定要批量禁用 ${selectedUserIds.value.length} 个用户吗？\n禁用后这些用户将无法登录。`)) return
-      
-      const count = selectedUserIds.value.length
-      try {
-        await Promise.all(selectedUserIds.value.map(userId => updateUserStatus(userId, false)))
-        selectedUserIds.value = []
-        await loadUsers()
-        alert(`已成功禁用 ${count} 个用户`)
-      } catch (error) {
-        console.error('Batch disable failed:', error)
-        alert('批量禁用失败: ' + (error.response?.data || error.message))
-      }
-    }
-
-    const batchSetAdmin = async () => {
-      if (selectedUserIds.value.length === 0) return
-      if (!confirm(`确定要将 ${selectedUserIds.value.length} 个用户设为管理员吗？`)) return
-      
-      const count = selectedUserIds.value.length
-      try {
-        await Promise.all(selectedUserIds.value.map(userId => updateUserRole(userId, 'ADMIN')))
-        selectedUserIds.value = []
-        await loadUsers()
-        alert(`已成功将 ${count} 个用户设为管理员`)
-      } catch (error) {
-        console.error('Batch set admin failed:', error)
-        alert('批量设置管理员失败: ' + (error.response?.data || error.message))
-      }
+    const batchDisableUsers = () => {
+      openBatchStatusModal(false)
     }
 
     onMounted(() => {
@@ -552,8 +594,15 @@ export default {
       closeUserModal,
       enableUser,
       disableUser,
-      promoteToAdmin,
-      demoteToUser,
+      // Status change modal
+      showStatusModal,
+      isBatchStatus,
+      statusTargetUser,
+      statusForm,
+      closeStatusModal,
+      addStatusExtraField,
+      removeStatusExtraField,
+      confirmStatusChange,
       // Batch operations
       isUserSelected,
       toggleUserSelection,
@@ -561,8 +610,7 @@ export default {
       isPartialSelected,
       toggleSelectAll,
       batchEnableUsers,
-      batchDisableUsers,
-      batchSetAdmin
+      batchDisableUsers
     }
   }
 }
@@ -1010,5 +1058,45 @@ export default {
 .quick-link svg {
   width: 18px;
   height: 18px;
+}
+
+/* Form textarea */
+.form-textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Extra fields */
+.extra-field-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.extra-field-input {
+  flex: 1;
+}
+
+/* Warning/Info text */
+.warning-text {
+  color: #f5222d;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.sub-text {
+  color: #666;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.required {
+  color: #f5222d;
+}
+
+.optional {
+  color: #999;
+  font-weight: normal;
 }
 </style>

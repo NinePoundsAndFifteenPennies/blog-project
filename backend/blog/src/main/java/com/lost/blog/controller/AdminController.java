@@ -202,36 +202,16 @@ public class AdminController {
             return ResponseEntity.badRequest().body("不能禁用自己的账户");
         }
         
-        AdminUserResponse user = adminUserService.updateUserStatus(id, request.getEnabled());
-        logger.info("管理员 {} 将用户 {} 状态更新为: {}", 
-                currentUser.getUsername(), id, request.getEnabled() ? "启用" : "禁用");
-        
-        return ResponseEntity.ok(user);
-    }
-
-    /**
-     * 更新用户角色
-     * 
-     * @param id 用户ID
-     * @param request 角色更新请求
-     */
-    @PutMapping("/users/{id}/role")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> updateUserRole(
-            @PathVariable Long id,
-            @Valid @RequestBody AdminUserRoleRequest request,
-            @AuthenticationPrincipal UserDetails currentUser) {
-        
-        // 防止管理员修改自己的角色
-        User targetUser = adminUserService.findById(id);
-        if (targetUser.getUsername().equals(currentUser.getUsername())) {
-            return ResponseEntity.badRequest().body("不能修改自己的角色");
+        // 只能禁用或启用非管理员用户
+        if (targetUser.getRole() == Role.ADMIN) {
+            return ResponseEntity.badRequest().body("不能修改管理员的状态");
         }
         
-        Role role = Role.valueOf(request.getRole());
-        AdminUserResponse user = adminUserService.updateUserRole(id, role);
-        logger.info("管理员 {} 将用户 {} 角色更新为: {}", 
-                currentUser.getUsername(), id, request.getRole());
+        User admin = userService.findByUsername(currentUser.getUsername());
+        AdminUserResponse user = adminUserService.updateUserStatus(id, request.getEnabled(),
+                request.getFormTitle(), request.getReason(), request.getExtraFields(), admin);
+        logger.info("管理员 {} 将用户 {} 状态更新为: {}", 
+                currentUser.getUsername(), id, request.getEnabled() ? "启用" : "禁用");
         
         return ResponseEntity.ok(user);
     }

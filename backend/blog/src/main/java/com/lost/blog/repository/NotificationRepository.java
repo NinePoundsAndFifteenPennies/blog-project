@@ -18,44 +18,46 @@ import java.util.List;
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
     /**
-     * 获取用户的所有通知（分页）
+     * 获取用户的所有通知（分页，排除已删除）
      */
-    Page<Notification> findByRecipientOrderByCreatedAtDesc(User recipient, Pageable pageable);
+    Page<Notification> findByRecipientAndDeletedAtIsNullOrderByCreatedAtDesc(User recipient, Pageable pageable);
 
     /**
-     * 获取用户特定类型的通知（分页）
+     * 获取用户特定类型的通知（分页，排除已删除）
      */
-    Page<Notification> findByRecipientAndTypeInOrderByCreatedAtDesc(
+    Page<Notification> findByRecipientAndTypeInAndDeletedAtIsNullOrderByCreatedAtDesc(
             User recipient, List<NotificationType> types, Pageable pageable);
 
     /**
-     * 获取用户未读通知数量
+     * 获取用户未读通知数量（排除已删除）
      */
-    long countByRecipientAndReadAtIsNull(User recipient);
+    long countByRecipientAndReadAtIsNullAndDeletedAtIsNull(User recipient);
 
     /**
-     * 获取用户特定类型的未读通知数量
+     * 获取用户最近的通知（排除已删除）
      */
-    long countByRecipientAndTypeInAndReadAtIsNull(User recipient, List<NotificationType> types);
+    List<Notification> findTop10ByRecipientAndDeletedAtIsNullOrderByCreatedAtDesc(User recipient);
 
     /**
-     * 获取用户最近的通知
-     */
-    List<Notification> findTop10ByRecipientOrderByCreatedAtDesc(User recipient);
-
-    /**
-     * 将用户所有未读通知标记为已读
+     * 将用户所有未读通知标记为已读（排除已删除）
      */
     @Modifying
-    @Query("UPDATE Notification n SET n.readAt = CURRENT_TIMESTAMP WHERE n.recipient = :recipient AND n.readAt IS NULL")
+    @Query("UPDATE Notification n SET n.readAt = CURRENT_TIMESTAMP WHERE n.recipient = :recipient AND n.readAt IS NULL AND n.deletedAt IS NULL")
     int markAllAsRead(@Param("recipient") User recipient);
 
     /**
-     * 将用户特定类型的未读通知标记为已读
+     * 将用户特定类型的未读通知标记为已读（排除已删除）
      */
     @Modifying
-    @Query("UPDATE Notification n SET n.readAt = CURRENT_TIMESTAMP WHERE n.recipient = :recipient AND n.type IN :types AND n.readAt IS NULL")
+    @Query("UPDATE Notification n SET n.readAt = CURRENT_TIMESTAMP WHERE n.recipient = :recipient AND n.type IN :types AND n.readAt IS NULL AND n.deletedAt IS NULL")
     int markAsReadByTypes(@Param("recipient") User recipient, @Param("types") List<NotificationType> types);
+
+    /**
+     * 软删除：批量标记通知为已删除
+     */
+    @Modifying
+    @Query("UPDATE Notification n SET n.deletedAt = CURRENT_TIMESTAMP WHERE n.id IN :ids AND n.recipient = :recipient AND n.deletedAt IS NULL")
+    int softDeleteByIds(@Param("ids") List<Long> ids, @Param("recipient") User recipient);
 
     /**
      * 检查是否已存在相同的通知（防止重复通知）

@@ -32,5 +32,10 @@ public enum AdminFormType {
     /**
      * 分类删除表单（删除分类并清除文章关联）
      */
-    CATEGORY_DELETION
+    CATEGORY_DELETION,
+
+    /**
+     * 用户状态变更表单（启用/禁用用户）
+     */
+    USER_STATUS_CHANGE
 }

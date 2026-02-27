@@ -73,9 +73,9 @@ public class NotificationServiceImpl implements NotificationService {
 
         Page<Notification> notifications;
         if (types == null) {
-            notifications = notificationRepository.findByRecipientOrderByCreatedAtDesc(user, pageable);
+            notifications = notificationRepository.findByRecipientAndDeletedAtIsNullOrderByCreatedAtDesc(user, pageable);
         } else {
-            notifications = notificationRepository.findByRecipientAndTypeInOrderByCreatedAtDesc(user, types, pageable);
+            notifications = notificationRepository.findByRecipientAndTypeInAndDeletedAtIsNullOrderByCreatedAtDesc(user, types, pageable);
         }
 
         return notifications.map(NotificationResponse::fromEntity);
@@ -85,14 +85,14 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional(readOnly = true)
     public long getUnreadCount(UserDetails currentUser) {
         User user = getCurrentUser(currentUser);
-        return notificationRepository.countByRecipientAndReadAtIsNull(user);
+        return notificationRepository.countByRecipientAndReadAtIsNullAndDeletedAtIsNull(user);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<NotificationResponse> getRecentNotifications(UserDetails currentUser) {
         User user = getCurrentUser(currentUser);
-        List<Notification> notifications = notificationRepository.findTop10ByRecipientOrderByCreatedAtDesc(user);
+        List<Notification> notifications = notificationRepository.findTop10ByRecipientAndDeletedAtIsNullOrderByCreatedAtDesc(user);
         return notifications.stream()
                 .map(NotificationResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -127,6 +127,13 @@ public class NotificationServiceImpl implements NotificationService {
         } else {
             return notificationRepository.markAsReadByTypes(user, types);
         }
+    }
+
+    @Override
+    @Transactional
+    public int deleteNotifications(List<Long> notificationIds, UserDetails currentUser) {
+        User user = getCurrentUser(currentUser);
+        return notificationRepository.softDeleteByIds(notificationIds, user);
     }
 
     @Override
