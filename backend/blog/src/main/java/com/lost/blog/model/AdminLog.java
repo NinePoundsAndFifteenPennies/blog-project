@@ -20,7 +20,7 @@ public class AdminLog {
     private Long id;
 
     /**
-     * 操作类型（复用AdminFormType枚举，增加新的操作类型）
+     * 操作类型
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "operation_type", nullable = false, length = 30)
