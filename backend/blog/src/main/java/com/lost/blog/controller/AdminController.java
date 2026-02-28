@@ -2,10 +2,12 @@ package com.lost.blog.controller;
 
 import com.lost.blog.dto.*;
 import com.lost.blog.mapper.UserMapper;
+import com.lost.blog.model.AdminLogType;
 import com.lost.blog.model.Role;
 import com.lost.blog.model.User;
 import com.lost.blog.security.JwtTokenProvider;
 import com.lost.blog.service.AdminCommentService;
+import com.lost.blog.service.AdminLogService;
 import com.lost.blog.service.AdminPostService;
 import com.lost.blog.service.AdminTagService;
 import com.lost.blog.service.AdminCategoryService;
@@ -51,6 +53,7 @@ public class AdminController {
     private final AdminCommentService adminCommentService;
     private final AdminTagService adminTagService;
     private final AdminCategoryService adminCategoryService;
+    private final AdminLogService adminLogService;
     private final DashboardService dashboardService;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
@@ -62,6 +65,7 @@ public class AdminController {
                           AdminCommentService adminCommentService,
                           AdminTagService adminTagService,
                           AdminCategoryService adminCategoryService,
+                          AdminLogService adminLogService,
                           DashboardService dashboardService,
                           AuthenticationManager authenticationManager,
                           JwtTokenProvider tokenProvider) {
@@ -71,6 +75,7 @@ public class AdminController {
         this.adminCommentService = adminCommentService;
         this.adminTagService = adminTagService;
         this.adminCategoryService = adminCategoryService;
+        this.adminLogService = adminLogService;
         this.dashboardService = dashboardService;
         this.authenticationManager = authenticationManager;
         this.tokenProvider = tokenProvider;
@@ -213,6 +218,12 @@ public class AdminController {
         logger.info("管理员 {} 将用户 {} 状态更新为: {}", 
                 currentUser.getUsername(), id, request.getEnabled() ? "启用" : "禁用");
         
+        String statusText = request.getEnabled() ? "启用" : "禁用";
+        adminLogService.log(AdminLogType.USER_STATUS_CHANGE,
+                statusText + "用户: " + targetUser.getUsername(), request.getReason(),
+                admin, null, null, null, null, null, null, null, null,
+                targetUser.getId(), targetUser.getUsername(), null);
+        
         return ResponseEntity.ok(user);
     }
 
@@ -299,6 +310,11 @@ public class AdminController {
             case "APPROVE":
                 result = adminPostService.approvePosts(request.getPostIds(), admin);
                 logger.info("管理员 {} 批量审核通过 {} 篇文章", currentUser.getUsername(), result.getSuccessCount());
+                for (Long postId : result.getSuccessIds()) {
+                    adminLogService.log(AdminLogType.POST_APPROVE,
+                            "审核通过文章 #" + postId, null,
+                            admin, postId, null, null, null, null, null, null, null, null, null, null);
+                }
                 break;
                 
             case "REJECT":
@@ -309,6 +325,11 @@ public class AdminController {
                         request.getExtraFields(), 
                         admin);
                 logger.info("管理员 {} 批量拒绝 {} 篇文章", currentUser.getUsername(), result.getSuccessCount());
+                for (Long postId : result.getSuccessIds()) {
+                    adminLogService.log(AdminLogType.POST_REJECT,
+                            "拒绝文章 #" + postId, request.getReason(),
+                            admin, postId, null, null, null, null, null, null, null, null, null, null);
+                }
                 break;
                 
             case "DELETE":
@@ -319,6 +340,11 @@ public class AdminController {
                         request.getExtraFields(), 
                         admin);
                 logger.info("管理员 {} 批量删除 {} 篇文章", currentUser.getUsername(), result.getSuccessCount());
+                for (Long postId : result.getSuccessIds()) {
+                    adminLogService.log(AdminLogType.POST_DELETE,
+                            "删除文章 #" + postId, request.getReason(),
+                            admin, postId, null, null, null, null, null, null, null, null, null, null);
+                }
                 break;
                 
             default:
@@ -434,6 +460,11 @@ public class AdminController {
             case "APPROVE":
                 result = adminCommentService.approveComments(request.getCommentIds(), admin);
                 logger.info("管理员 {} 批量审核通过 {} 条评论", currentUser.getUsername(), result.getSuccessCount());
+                for (Long commentId : result.getSuccessIds()) {
+                    adminLogService.log(AdminLogType.COMMENT_APPROVE,
+                            "审核通过评论 #" + commentId, null,
+                            admin, null, null, commentId, null, null, null, null, null, null, null, null);
+                }
                 break;
                 
             case "DELETE":
@@ -444,6 +475,11 @@ public class AdminController {
                         request.getExtraFields(), 
                         admin);
                 logger.info("管理员 {} 批量删除 {} 条评论", currentUser.getUsername(), result.getSuccessCount());
+                for (Long commentId : result.getSuccessIds()) {
+                    adminLogService.log(AdminLogType.COMMENT_DELETE,
+                            "删除评论 #" + commentId, request.getReason(),
+                            admin, null, null, commentId, null, null, null, null, null, null, null, null);
+                }
                 break;
                 
             default:
@@ -512,6 +548,9 @@ public class AdminController {
         User admin = userService.findByUsername(currentUser.getUsername());
         AdminTagResponse tag = adminTagService.createTag(tagRequest, admin);
         logger.info("管理员 {} 创建标签: {}", currentUser.getUsername(), tagRequest.getName());
+        adminLogService.log(AdminLogType.TAG_CREATE,
+                "创建标签: " + tagRequest.getName(), null,
+                admin, null, null, null, null, tag.getId(), tag.getName(), null, null, null, null, null);
         return new ResponseEntity<>(tag, HttpStatus.CREATED);
     }
 
@@ -529,6 +568,10 @@ public class AdminController {
             @AuthenticationPrincipal UserDetails currentUser) {
         AdminTagResponse tag = adminTagService.updateTag(id, tagRequest);
         logger.info("管理员 {} 更新标签 {}", currentUser.getUsername(), id);
+        User admin = userService.findByUsername(currentUser.getUsername());
+        adminLogService.log(AdminLogType.TAG_UPDATE,
+                "更新标签: " + tag.getName(), null,
+                admin, null, null, null, null, tag.getId(), tag.getName(), null, null, null, null, null);
         return ResponseEntity.ok(tag);
     }
 
@@ -564,6 +607,11 @@ public class AdminController {
                         request.getExtraFields(),
                         admin);
                 logger.info("管理员 {} 批量软删除 {} 个标签", currentUser.getUsername(), result.getSuccessCount());
+                for (Long tagId : result.getSuccessIds()) {
+                    adminLogService.log(AdminLogType.TAG_SOFT_DELETE,
+                            "软删除标签 #" + tagId, request.getReason(),
+                            admin, null, null, null, null, tagId, null, null, null, null, null, null);
+                }
                 break;
                 
             case "HARD_DELETE":
@@ -574,6 +622,11 @@ public class AdminController {
                         request.getExtraFields(),
                         admin);
                 logger.info("管理员 {} 批量硬删除 {} 个标签", currentUser.getUsername(), result.getSuccessCount());
+                for (Long tagId : result.getSuccessIds()) {
+                    adminLogService.log(AdminLogType.TAG_HARD_DELETE,
+                            "硬删除标签 #" + tagId, request.getReason(),
+                            admin, null, null, null, null, tagId, null, null, null, null, null, null);
+                }
                 break;
                 
             default:
@@ -642,6 +695,9 @@ public class AdminController {
         User admin = userService.findByUsername(currentUser.getUsername());
         AdminCategoryResponse category = adminCategoryService.createCategory(categoryRequest, admin);
         logger.info("管理员 {} 创建分类: {}", currentUser.getUsername(), categoryRequest.getName());
+        adminLogService.log(AdminLogType.CATEGORY_CREATE,
+                "创建分类: " + categoryRequest.getName(), null,
+                admin, null, null, null, null, null, null, category.getId(), category.getName(), null, null, null);
         return new ResponseEntity<>(category, HttpStatus.CREATED);
     }
 
@@ -659,6 +715,10 @@ public class AdminController {
             @AuthenticationPrincipal UserDetails currentUser) {
         AdminCategoryResponse category = adminCategoryService.updateCategory(id, categoryRequest);
         logger.info("管理员 {} 更新分类 {}", currentUser.getUsername(), id);
+        User admin = userService.findByUsername(currentUser.getUsername());
+        adminLogService.log(AdminLogType.CATEGORY_UPDATE,
+                "更新分类: " + category.getName(), null,
+                admin, null, null, null, null, null, null, category.getId(), category.getName(), null, null, null);
         return ResponseEntity.ok(category);
     }
 
@@ -690,6 +750,9 @@ public class AdminController {
         User admin = userService.findByUsername(currentUser.getUsername());
         AdminCategoryResponse category = adminCategoryService.assignPostToCategory(id, postId, admin);
         logger.info("管理员 {} 将文章 {} 归入分类 {}", currentUser.getUsername(), postId, id);
+        adminLogService.log(AdminLogType.CATEGORY_ASSIGN_POST,
+                "将文章 #" + postId + " 归入分类: " + category.getName(), null,
+                admin, postId, null, null, null, null, null, id, category.getName(), null, null, null);
         return ResponseEntity.ok(category);
     }
 
@@ -708,6 +771,9 @@ public class AdminController {
         User admin = userService.findByUsername(currentUser.getUsername());
         AdminCategoryResponse category = adminCategoryService.removePostFromCategory(id, postId, admin);
         logger.info("管理员 {} 将文章 {} 从分类 {} 移除", currentUser.getUsername(), postId, id);
+        adminLogService.log(AdminLogType.CATEGORY_REMOVE_POST,
+                "将文章 #" + postId + " 从分类移除: " + category.getName(), null,
+                admin, postId, null, null, null, null, null, id, category.getName(), null, null, null);
         return ResponseEntity.ok(category);
     }
 
@@ -741,6 +807,11 @@ public class AdminController {
                         request.getExtraFields(),
                         admin);
                 logger.info("管理员 {} 批量删除 {} 个分类", currentUser.getUsername(), result.getSuccessCount());
+                for (Long categoryId : result.getSuccessIds()) {
+                    adminLogService.log(AdminLogType.CATEGORY_DELETE,
+                            "删除分类 #" + categoryId, request.getReason(),
+                            admin, null, null, null, null, null, null, categoryId, null, null, null, null);
+                }
                 break;
                 
             default:
@@ -748,5 +819,54 @@ public class AdminController {
         }
         
         return ResponseEntity.ok(result);
+    }
+
+    // ======================= 操作日志接口 =======================
+
+    /**
+     * 获取操作日志列表（支持分页和多条件搜索）
+     * 
+     * @param page 页码（从0开始）
+     * @param size 每页数量
+     * @param operationType 操作类型过滤
+     * @param adminUsername 管理员用户名搜索（模糊匹配）
+     * @param title 操作标题搜索（模糊匹配）
+     * @param startDate 开始日期（yyyy-MM-dd）
+     * @param endDate 结束日期（yyyy-MM-dd）
+     */
+    @GetMapping("/logs")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<AdminLogResponse>> getLogs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String operationType,
+            @RequestParam(required = false) String adminUsername,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        
+        AdminLogQueryRequest query = new AdminLogQueryRequest();
+        query.setOperationType(operationType);
+        query.setAdminUsername(adminUsername);
+        query.setTitle(title);
+        query.setStartDate(startDate);
+        query.setEndDate(endDate);
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<AdminLogResponse> logs = adminLogService.searchLogs(query, pageable);
+        
+        return ResponseEntity.ok(logs);
+    }
+
+    /**
+     * 获取操作日志详情
+     * 
+     * @param id 日志ID
+     */
+    @GetMapping("/logs/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AdminLogResponse> getLogDetail(@PathVariable Long id) {
+        AdminLogResponse log = adminLogService.getLogDetail(id);
+        return ResponseEntity.ok(log);
     }
 }
