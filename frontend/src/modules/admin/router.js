@@ -46,4 +46,10 @@ export default [
         component: () => import("@/modules/admin/views/AdminLogManagement.vue"),
         meta: { title: "操作日志 - 管理后台", requiresAdmin: true },
     },
+    {
+        path: "/admin/reports",
+        name: "AdminReportManagement",
+        component: () => import("@/modules/admin/views/AdminReportManagement.vue"),
+        meta: { title: "举报管理 - 管理后台", requiresAdmin: true },
+    },
 ];
