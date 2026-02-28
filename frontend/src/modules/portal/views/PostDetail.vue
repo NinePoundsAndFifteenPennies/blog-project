@@ -161,12 +161,25 @@
             </div>
 
             <!-- Share Button (暂未实现) -->
-            <button class="btn-secondary flex items-center space-x-2 cursor-not-allowed" title="分享功能开发中">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-              </svg>
-              <span>分享</span>
-            </button>
+            <div class="flex items-center space-x-3">
+              <button
+                v-if="isLoggedIn && !isAuthor && isPublished"
+                @click="showReportDialog = true"
+                class="btn-ghost text-gray-400 hover:text-red-500 flex items-center space-x-2"
+                title="举报文章"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span>举报</span>
+              </button>
+              <button class="btn-secondary flex items-center space-x-2 cursor-not-allowed" title="分享功能开发中">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                <span>分享</span>
+              </button>
+            </div>
           </div>
 
           <!-- Comment Section -->
@@ -221,6 +234,16 @@
         </svg>
       </button>
     </div>
+
+    <!-- Report Dialog -->
+    <ReportDialog
+      v-if="post"
+      :is-open="showReportDialog"
+      target-type="POST"
+      :target-id="post.id"
+      @close="showReportDialog = false"
+      @submitted="showReportDialog = false"
+    />
   </div>
 </template>
 
@@ -232,6 +255,7 @@ import { marked } from 'marked'
 import Header from '@/components/Header.vue'
 import CommentList from '@/components/CommentList.vue'
 import TagBadge from '@/components/TagBadge.vue'
+import ReportDialog from '@/components/ReportDialog.vue'
 import { getPostById, deletePost, removeTagFromPost } from '@/api/posts'
 import { likePost, unlikePost } from '@/api/likes'
 import { getFullAvatarUrl } from '@/utils/avatar'
@@ -241,7 +265,8 @@ export default {
   components: {
     Header,
     CommentList,
-    TagBadge
+    TagBadge,
+    ReportDialog
   },
   setup() {
     const route = useRoute()
@@ -254,6 +279,7 @@ export default {
     const avatarLoadError = ref(false)
     const commentCount = ref(0)
     const commentListRef = ref(null)
+    const showReportDialog = ref(false)
 
     const currentUser = computed(() => store.getters.currentUser)
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
@@ -547,6 +573,7 @@ export default {
       commentListRef,
       isPublished,
       expandCommentId,
+      showReportDialog,
       formatDate,
       formatFullDate,
       handleDelete,

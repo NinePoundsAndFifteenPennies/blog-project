@@ -90,7 +90,7 @@
               </span>
             </td>
             <td class="content-col">
-              <span class="content-link" @click="viewReportDetail(report)">{{ truncateText(report.contentPreview || report.reason, 40) }}</span>
+              <span class="content-link" @click="viewReportDetail(report)">{{ truncateText(report.targetContentPreview || report.reason, 40) }}</span>
             </td>
             <td>{{ report.reporterNickname || report.reporterUsername }}</td>
             <td>{{ report.reportedNickname || report.reportedUsername }}</td>
@@ -187,9 +187,9 @@
             <span class="label">更新时间:</span>
             <span class="value">{{ formatDateTime(selectedReport.updatedAt) }}</span>
           </div>
-          <div v-if="selectedReport.contentPreview" class="detail-row">
+          <div v-if="selectedReport.targetContentPreview" class="detail-row">
             <span class="label">内容预览:</span>
-            <span class="value content-value">{{ selectedReport.contentPreview }}</span>
+            <span class="value content-value">{{ selectedReport.targetContentPreview }}</span>
           </div>
 
           <!-- Action Form Info -->
