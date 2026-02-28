@@ -107,6 +107,8 @@ Controller ──► Service ──► Repository ──► Database
 | DTO | └── AdminCategoryResponse.java | 管理后台分类响应体（含文章数、关联文章列表） |
 | DTO | └── AdminCategoryActionRequest.java | 管理后台分类操作请求体（批量删除） |
 | DTO | └── AdminFormResponse.java | 管理表单响应体（含标签/分类信息、受影响文章） |
+| DTO | └── AdminLogQueryRequest.java | 管理操作日志查询请求体 |
+| DTO | └── AdminLogResponse.java | 管理操作日志响应体（含关联实体信息、扩展字段） |
 | DTO | └── DashboardResponse.java | 仪表盘统计响应体（含核心指标、趋势、热门文章、热力图、雷达图） |
 | 拦截器层 | **interceptor/** | HTTP 请求拦截器 |
 | 拦截器 | └── UserActivityInterceptor.java | 用户活跃追踪拦截器（可选，配合Redis使用） |
@@ -135,10 +137,12 @@ Controller ──► Service ──► Repository ──► Database
 | 实体 | └── PrivateMessage.java | 私信消息实体 |
 | 实体 | └── Notification.java | 通知实体（支持软删除） |
 | 实体 | └── AdminForm.java | 管理表单实体（审核拒绝、文章删除、评论删除、标签删除、分类删除、用户状态变更的操作记录） |
+| 实体 | └── AdminLog.java | 管理操作日志实体（记录所有管理员管理操作的审计日志，只读） |
 | 枚举 | └── ContentType.java | 内容类型枚举 |
 | 枚举 | └── FollowInfoType.java | 关注信息类型枚举（FOLLOWING/FOLLOWERS/FRIENDS/STATS） |
 | 枚举 | └── NotificationType.java | 通知类型枚举（POST_LIKED/POST_COMMENTED/FOLLOWED/COMMENT_LIKED/COMMENT_REPLIED/MESSAGE_RECEIVED/COMMENT_DELETED/TAG_REMOVED/TAG_DELETED/CATEGORY_DELETED） |
 | 枚举 | └── AdminFormType.java | 管理表单类型枚举（REJECTION/DELETION/COMMENT_DELETION/TAG_SOFT_DELETION/TAG_HARD_DELETION/CATEGORY_DELETION/USER_STATUS_CHANGE） |
+| 枚举 | └── AdminLogType.java | 管理操作日志类型枚举（POST_APPROVE/POST_REJECT/POST_DELETE/COMMENT_APPROVE/COMMENT_DELETE/TAG_CREATE/TAG_UPDATE/TAG_SOFT_DELETE/TAG_HARD_DELETE/CATEGORY_CREATE/CATEGORY_UPDATE/CATEGORY_DELETE/CATEGORY_ASSIGN_POST/CATEGORY_REMOVE_POST/USER_STATUS_CHANGE） |
 | 枚举 | └── CommentStatus.java | 评论状态枚举（PENDING/APPROVED） |
 | 枚举 | └── Role.java | 用户角色枚举（USER/ADMIN） |
 | 数据访问层 | **repository/** | 提供数据库操作接口 |
@@ -153,6 +157,7 @@ Controller ──► Service ──► Repository ──► Database
 | Repository | └── FollowVisibilityRepository.java | 关注可见性设置数据访问接口 |
 | Repository | └── PrivateMessageRepository.java | 私信消息数据访问接口 |
 | Repository | └── NotificationRepository.java | 通知数据访问接口 |
+| Repository | └── AdminLogRepository.java | 管理操作日志数据访问接口（参数化JPQL搜索） |
 | 安全层 | **security/** | 与认证和授权相关的工具类 |
 | 工具类 | └── JwtTokenProvider.java | JWT 生成与验证 |
 | 过滤器 | └── JwtAuthenticationFilter.java | 拦截并校验 JWT 请求 |
@@ -192,6 +197,8 @@ Controller ──► Service ──► Repository ──► Database
 | 实现类 | └── AdminTagServiceImpl.java | 管理后台标签服务实现（标签列表、创建、更新、软删除、硬删除） |
 | 接口 | └── AdminCategoryService.java | 管理后台分类服务接口 |
 | 实现类 | └── AdminCategoryServiceImpl.java | 管理后台分类服务实现（分类列表、创建、更新、文章归类/移除、批量删除） |
+| 接口 | └── AdminLogService.java | 管理操作日志服务接口（写入+只读查询） |
+| 实现类 | └── AdminLogServiceImpl.java | 管理操作日志服务实现（日志记录、分页查询、详情查看） |
 | 接口 | └── DashboardService.java | 仪表盘统计服务接口 |
 | 实现类 | └── DashboardServiceImpl.java | 仪表盘统计服务实现（聚合核心指标、趋势、热门文章、热力图、雷达图） |
 | 配置文件 | **resources/** | 存放应用的资源文件 |
@@ -285,6 +292,7 @@ Service 层使用接口与实现分离：
 - **FollowVisibility**: 关注可见性设置（用户、四种类型的独立可见性设置），控制关注信息对谁可见
 - **PrivateMessage**: 私信消息（发送者、接收者、内容、已读状态、创建时间）
 - **Notification**: 通知（类型、触发者、接收者、关联文章、关联评论、内容、已读状态、软删除状态、创建时间），用于消息中心
+- **AdminLog**: 管理操作日志（操作类型、标题、描述、管理员、关联文章/评论/标签/分类/用户、扩展字段、创建时间），用于管理员操作审计
 
 ### 关系设计
 
@@ -478,7 +486,7 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 
 | 组件 | 路径 | 说明 |
 |------|------|------|
-| 管理后台API | `api/admin.js` | 管理后台 API 封装（用户、文章、评论、标签管理、仪表盘接口） |
+| 管理后台API | `api/admin.js` | 管理后台 API 封装（用户、文章、评论、标签管理、操作日志、仪表盘接口） |
 | 管理仪表盘 | `modules/admin/views/AdminDashboard.vue` | 仪表盘主页面（统计卡片、趋势图表、热力图、雷达图） |
 | 统计卡片 | `modules/admin/components/StatCard.vue` | 可复用统计卡片组件（支持点击展开详情） |
 | 图表详情弹窗 | `modules/admin/components/ChartDetailModal.vue` | 图表放大分析弹窗组件 |
@@ -492,6 +500,7 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 | 文章管理 | `modules/admin/views/AdminPostManagement.vue` | 文章管理页面（审核、拒绝、删除） |
 | 评论管理 | `modules/admin/views/AdminCommentManagement.vue` | 评论管理页面（审核、删除、通知表单） |
 | 标签管理 | `modules/admin/views/AdminTagManagement.vue` | 标签管理页面（CRUD、图标选择器、软/硬删除、通知表单） |
+| 操作日志 | `modules/admin/views/AdminLogManagement.vue` | 操作日志页面（多条件搜索、分页列表、详情卡片、扩展信息） |
 | 路由配置 | `modules/admin/router.js` | 管理后台路由配置 |
 | 导航组件 | `components/Header.vue` | 管理后台入口（仅管理员可见） |
 
@@ -512,7 +521,8 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 │  - 评论管理  │                                                │
 │  - 媒体库    │  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐         │
 │  - 用户管理  │  │用户数 │ │文章数 │ │评论数 │ │浏览量 │         │
-│  - 系统设置  │  └──────┘ └──────┘ └──────┘ └──────┘         │
+│  - 操作日志  │  └──────┘ └──────┘ └──────┘ └──────┘         │
+│  - 系统设置  │                                                │
 │             │                                                │
 │             │  ┌─────────────┐  ┌─────────────┐             │
 │             │  │用户增长趋势  │  │文章发布趋势   │             │
@@ -545,6 +555,7 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 | 评论管理 | 搜索表单 + 表格 | 多条件筛选、评论列表、批量审核/删除、删除通知表单 |
 | 媒体库 | 图片网格 | 媒体文件预览 |
 | 用户管理 | 搜索表单 + 表格 | 多条件搜索、用户列表、启用/禁用（含表单弹窗）、批量操作 |
+| 操作日志 | 搜索表单 + 表格 | 操作类型筛选、管理员/标题搜索、日期范围过滤、详情卡片（含扩展信息） |
 | 系统设置 | 表单 | 输入框、开关组件 |
 
 ### 代码组织规范
