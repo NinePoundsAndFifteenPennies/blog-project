@@ -40,4 +40,10 @@ export default [
         component: () => import("@/modules/admin/views/AdminCategoryManagement.vue"),
         meta: { title: "分类管理 - 管理后台", requiresAdmin: true },
     },
+    {
+        path: "/admin/logs",
+        name: "AdminLogManagement",
+        component: () => import("@/modules/admin/views/AdminLogManagement.vue"),
+        meta: { title: "操作日志 - 管理后台", requiresAdmin: true },
+    },
 ];
