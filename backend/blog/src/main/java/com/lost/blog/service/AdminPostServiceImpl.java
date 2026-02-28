@@ -39,6 +39,7 @@ public class AdminPostServiceImpl implements AdminPostService {
     private final CommentRepository commentRepository;
     private final LikeRepository likeRepository;
     private final PostViewLogRepository postViewLogRepository;
+    private final AdminLogService adminLogService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -51,7 +52,8 @@ public class AdminPostServiceImpl implements AdminPostService {
                                NotificationRepository notificationRepository,
                                CommentRepository commentRepository,
                                LikeRepository likeRepository,
-                               PostViewLogRepository postViewLogRepository) {
+                               PostViewLogRepository postViewLogRepository,
+                               AdminLogService adminLogService) {
         this.postRepository = postRepository;
         this.adminFormRepository = adminFormRepository;
         this.adminPostMapper = adminPostMapper;
@@ -60,6 +62,7 @@ public class AdminPostServiceImpl implements AdminPostService {
         this.commentRepository = commentRepository;
         this.likeRepository = likeRepository;
         this.postViewLogRepository = postViewLogRepository;
+        this.adminLogService = adminLogService;
     }
 
     @Override
@@ -68,7 +71,7 @@ public class AdminPostServiceImpl implements AdminPostService {
         // 处理日期转换
         LocalDateTime startDateTime = null;
         LocalDateTime endDateTime = null;
-        
+
         if (query.getStartDate() != null && !query.getStartDate().isEmpty()) {
             try {
                 LocalDate startDate = LocalDate.parse(query.getStartDate(), DateTimeFormatter.ISO_DATE);
@@ -77,7 +80,7 @@ public class AdminPostServiceImpl implements AdminPostService {
                 logger.warn("无效的开始日期格式: {}", query.getStartDate());
             }
         }
-        
+
         if (query.getEndDate() != null && !query.getEndDate().isEmpty()) {
             try {
                 LocalDate endDate = LocalDate.parse(query.getEndDate(), DateTimeFormatter.ISO_DATE);
@@ -86,7 +89,7 @@ public class AdminPostServiceImpl implements AdminPostService {
                 logger.warn("无效的结束日期格式: {}", query.getEndDate());
             }
         }
-        
+
         // 处理分类ID
         Long categoryId = null;
         if (query.getCategoryId() != null && !query.getCategoryId().isEmpty()) {
@@ -96,7 +99,7 @@ public class AdminPostServiceImpl implements AdminPostService {
                 logger.warn("无效的分类ID: {}", query.getCategoryId());
             }
         }
-        
+
         Page<Post> posts = postRepository.adminSearchPosts(
                 query.getTitle(),
                 query.getAuthor(),
@@ -107,7 +110,7 @@ public class AdminPostServiceImpl implements AdminPostService {
                 endDateTime,
                 pageable
         );
-        
+
         return posts.map(adminPostMapper::toResponse);
     }
 
@@ -124,44 +127,49 @@ public class AdminPostServiceImpl implements AdminPostService {
     public AdminBatchActionResponse approvePosts(List<Long> postIds, User admin) {
         List<Long> successIds = new ArrayList<>();
         List<AdminBatchActionResponse.FailureItem> failures = new ArrayList<>();
-        
+
         for (Long postId : postIds) {
             try {
                 Post post = postRepository.findById(postId)
                         .orElseThrow(() -> new ResourceNotFoundException("未找到文章: " + postId));
-                
+
                 // 检查文章状态是否可以审核通过
-                if (post.getStatus() != PostStatus.PENDING_REVIEW && 
+                if (post.getStatus() != PostStatus.PENDING_REVIEW &&
                     post.getStatus() != PostStatus.PENDING_REVISION) {
-                    failures.add(new AdminBatchActionResponse.FailureItem(postId, 
+                    failures.add(new AdminBatchActionResponse.FailureItem(postId,
                             "文章状态不允许审核通过: " + post.getStatus()));
                     continue;
                 }
-                
+
                 // 如果是PENDING_REVISION状态，清除之前的内容
                 if (post.getStatus() == PostStatus.PENDING_REVISION) {
                     post.setPreviousContent(null);
                     post.setPreviousTitle(null);
                 }
-                
+
                 // 更新状态为已发布
                 post.setStatus(PostStatus.PUBLISHED);
                 post.setDraft(false);
                 post.setRejectionFormId(null);
-                
+
                 // 如果没有发布时间，设置发布时间
                 if (post.getPublishedAt() == null) {
                     post.setPublishedAt(LocalDateTime.now());
                 }
-                
+
                 postRepository.save(post);
                 successIds.add(postId);
-                
+
                 // 发送审核通过通知
                 notificationService.createPostApprovedNotification(admin, post);
-                
+
+                // 记录审计日志
+                adminLogService.log(AdminLogType.POST_APPROVE,
+                        "审核通过文章 #" + postId, null, null,
+                        admin, postId, null, null, null, null, null, null, null, null, null, null);
+
                 logger.info("管理员 {} 审核通过文章 {}", admin.getUsername(), postId);
-                
+
             } catch (ResourceNotFoundException e) {
                 failures.add(new AdminBatchActionResponse.FailureItem(postId, e.getMessage()));
             } catch (Exception e) {
@@ -169,35 +177,35 @@ public class AdminPostServiceImpl implements AdminPostService {
                 failures.add(new AdminBatchActionResponse.FailureItem(postId, "操作失败: " + e.getMessage()));
             }
         }
-        
+
         return new AdminBatchActionResponse(successIds.size(), failures.size(), successIds, failures);
     }
 
     @Override
     @Transactional
-    public AdminBatchActionResponse rejectPosts(List<Long> postIds, String formTitle, 
+    public AdminBatchActionResponse rejectPosts(List<Long> postIds, String formTitle,
                                                 String reason, String extraFields, User admin) {
         List<Long> successIds = new ArrayList<>();
         List<AdminBatchActionResponse.FailureItem> failures = new ArrayList<>();
-        
+
         for (Long postId : postIds) {
             try {
                 Post post = postRepository.findById(postId)
                         .orElseThrow(() -> new ResourceNotFoundException("未找到文章: " + postId));
-                
+
                 // 检查文章状态是否可以拒绝（不能拒绝草稿）
                 if (post.getStatus() == PostStatus.DRAFT) {
-                    failures.add(new AdminBatchActionResponse.FailureItem(postId, 
+                    failures.add(new AdminBatchActionResponse.FailureItem(postId,
                             "草稿状态的文章无需审核。可拒绝的状态: 待审核、修改待审核、已发布"));
                     continue;
                 }
-                
+
                 if (post.getStatus() == PostStatus.REJECTED) {
-                    failures.add(new AdminBatchActionResponse.FailureItem(postId, 
+                    failures.add(new AdminBatchActionResponse.FailureItem(postId,
                             "文章已经是拒绝状态，无法重复拒绝"));
                     continue;
                 }
-                
+
                 // 创建拒绝表单
                 AdminForm form = new AdminForm();
                 form.setTitle(formTitle != null ? formTitle : "文章审核拒绝通知");
@@ -210,24 +218,32 @@ public class AdminPostServiceImpl implements AdminPostService {
                 form.setAdmin(admin);
                 form.setSent(true);
                 form.setSentAt(LocalDateTime.now());
-                
+
                 adminFormRepository.save(form);
-                
+
                 // 更新为拒绝状态（包括修改待审核的文章）
                 post.setStatus(PostStatus.REJECTED);
                 post.setDraft(false);
                 post.setPreviousContent(null);
                 post.setPreviousTitle(null);
-                
+
                 post.setRejectionFormId(form.getId());
                 postRepository.save(post);
                 successIds.add(postId);
-                
+
                 // 发送审核拒绝通知
                 notificationService.createPostRejectedNotification(admin, post, reason);
-                
+
+                // 记录审计日志
+                String rejectDefault = "拒绝文章 #" + postId;
+                String rejectTitle = (formTitle != null && !formTitle.trim().isEmpty())
+                        ? formTitle : rejectDefault;
+                adminLogService.log(AdminLogType.POST_REJECT,
+                        rejectTitle, reason, extraFields,
+                        admin, postId, null, null, null, null, null, null, null, null, null, null);
+
                 logger.info("管理员 {} 审核拒绝文章 {}, 理由: {}", admin.getUsername(), postId, reason);
-                
+
             } catch (ResourceNotFoundException e) {
                 failures.add(new AdminBatchActionResponse.FailureItem(postId, e.getMessage()));
             } catch (Exception e) {
@@ -235,22 +251,22 @@ public class AdminPostServiceImpl implements AdminPostService {
                 failures.add(new AdminBatchActionResponse.FailureItem(postId, "操作失败: " + e.getMessage()));
             }
         }
-        
+
         return new AdminBatchActionResponse(successIds.size(), failures.size(), successIds, failures);
     }
 
     @Override
     @Transactional
-    public AdminBatchActionResponse deletePosts(List<Long> postIds, String formTitle, 
+    public AdminBatchActionResponse deletePosts(List<Long> postIds, String formTitle,
                                                 String reason, String extraFields, User admin) {
         List<Long> successIds = new ArrayList<>();
         List<AdminBatchActionResponse.FailureItem> failures = new ArrayList<>();
-        
+
         for (Long postId : postIds) {
             try {
                 Post post = postRepository.findById(postId)
                         .orElseThrow(() -> new ResourceNotFoundException("未找到文章: " + postId));
-                
+
                 // 创建删除表单
                 AdminForm form = new AdminForm();
                 form.setTitle(formTitle != null ? formTitle : "文章删除通知");
@@ -263,36 +279,44 @@ public class AdminPostServiceImpl implements AdminPostService {
                 form.setAdmin(admin);
                 form.setSent(true);
                 form.setSentAt(LocalDateTime.now());
-                
+
                 adminFormRepository.save(form);
-                
+
                 User postAuthor = post.getUser();
                 String postTitle = post.getTitle();
-                
+
                 // 发送删除通知（在删除文章之前，这样通知中不会引用即将被删除的文章）
                 notificationService.createPostDeletedNotification(admin, postAuthor, postTitle, reason);
-                
+
                 // 解除通知表对文章和评论的外键约束（必须在删除评论和文章之前）
                 notificationRepository.nullifyAllReferencesForPost(post);
-                
+
                 // 删除文章的浏览日志
                 postViewLogRepository.deleteByPost(post);
-                
+
                 // 删除文章的点赞（文章直接点赞）
                 likeRepository.deleteByPost(post);
-                
+
                 // 删除文章的评论（会级联删除评论的点赞和子评论）
                 commentRepository.deleteByPost(post);
-                
+
                 // 删除文章（会级联删除 post_tags）
                 postRepository.delete(post);
                 successIds.add(postId);
-                
+
+                // 记录审计日志
+                String deleteDefault = "删除文章 #" + postId;
+                String deleteTitle = (formTitle != null && !formTitle.trim().isEmpty())
+                        ? formTitle : deleteDefault;
+                adminLogService.log(AdminLogType.POST_DELETE,
+                        deleteTitle, reason, extraFields,
+                        admin, postId, null, null, null, null, null, null, null, null, null, null);
+
                 logger.info("管理员 {} 删除文章 {}, 理由: {}", admin.getUsername(), postId, reason);
 
                 // 刷新持久化上下文，确保批量操作中每篇文章的变更独立生效
                 entityManager.flush();
-                
+
             } catch (ResourceNotFoundException e) {
                 failures.add(new AdminBatchActionResponse.FailureItem(postId, e.getMessage()));
             } catch (Exception e) {
@@ -300,7 +324,7 @@ public class AdminPostServiceImpl implements AdminPostService {
                 failures.add(new AdminBatchActionResponse.FailureItem(postId, "操作失败: " + e.getMessage()));
             }
         }
-        
+
         return new AdminBatchActionResponse(successIds.size(), failures.size(), successIds, failures);
     }
 

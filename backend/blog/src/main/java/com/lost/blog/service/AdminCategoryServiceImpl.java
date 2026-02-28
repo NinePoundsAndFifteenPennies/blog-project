@@ -35,6 +35,7 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
     private final CategoryRepository categoryRepository;
     private final PostRepository postRepository;
     private final AdminFormRepository adminFormRepository;
+    private final AdminLogService adminLogService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -42,10 +43,12 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
     @Autowired
     public AdminCategoryServiceImpl(CategoryRepository categoryRepository,
                                      PostRepository postRepository,
-                                     AdminFormRepository adminFormRepository) {
+                                     AdminFormRepository adminFormRepository,
+                                     AdminLogService adminLogService) {
         this.categoryRepository = categoryRepository;
         this.postRepository = postRepository;
         this.adminFormRepository = adminFormRepository;
+        this.adminLogService = adminLogService;
     }
 
     @Override
@@ -130,12 +133,17 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
         Category savedCategory = categoryRepository.save(category);
         logger.info("管理员 {} 创建分类: {}", admin.getUsername(), savedCategory.getName());
 
+        // 记录审计日志
+        adminLogService.log(AdminLogType.CATEGORY_CREATE,
+                "创建分类: " + savedCategory.getName(), null, null,
+                admin, null, null, null, null, null, null, savedCategory.getId(), savedCategory.getName(), null, null, null);
+
         return AdminCategoryResponse.fromEntity(savedCategory, 0L);
     }
 
     @Override
     @Transactional
-    public AdminCategoryResponse updateCategory(Long categoryId, CategoryRequest categoryRequest) {
+    public AdminCategoryResponse updateCategory(Long categoryId, CategoryRequest categoryRequest, User admin) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到分类: " + categoryId));
 
@@ -152,7 +160,12 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
         category.setSortOrder(categoryRequest.getSortOrder());
 
         Category updatedCategory = categoryRepository.save(category);
-        logger.info("管理员更新分类 {}: {}", categoryId, updatedCategory.getName());
+        logger.info("管理员 {} 更新分类 {}: {}", admin.getUsername(), categoryId, updatedCategory.getName());
+
+        // 记录审计日志
+        adminLogService.log(AdminLogType.CATEGORY_UPDATE,
+                "更新分类: " + updatedCategory.getName(), null, null,
+                admin, null, null, null, null, null, null, updatedCategory.getId(), updatedCategory.getName(), null, null, null);
 
         // 重新获取文章数量
         List<Object[]> postRows = categoryRepository.findPostsByCategoryId(categoryId);
@@ -170,6 +183,11 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
         post.setCategory(category);
         postRepository.save(post);
         logger.info("管理员 {} 将文章 {} 归入分类 {}", admin.getUsername(), postId, categoryId);
+
+        // 记录审计日志
+        adminLogService.log(AdminLogType.CATEGORY_ASSIGN_POST,
+                "将文章 #" + postId + " 归入分类: " + category.getName(), null, null,
+                admin, postId, null, null, null, null, null, categoryId, category.getName(), null, null, null);
 
         // 重新获取详情
         return getCategoryDetail(categoryId);
@@ -190,6 +208,11 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
         post.setCategory(null);
         postRepository.save(post);
         logger.info("管理员 {} 将文章 {} 从分类 {} 移除", admin.getUsername(), postId, categoryId);
+
+        // 记录审计日志
+        adminLogService.log(AdminLogType.CATEGORY_REMOVE_POST,
+                "将文章 #" + postId + " 从分类移除: " + category.getName(), null, null,
+                admin, postId, null, null, null, null, null, categoryId, category.getName(), null, null, null);
 
         // 重新获取详情
         return getCategoryDetail(categoryId);
@@ -271,6 +294,12 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
                 categoryRepository.delete(category);
 
                 successIds.add(categoryId);
+
+                // 记录审计日志
+                adminLogService.log(AdminLogType.CATEGORY_DELETE,
+                        "删除分类 #" + categoryId, reason, extraFields,
+                        admin, null, null, null, null, null, null, categoryId, categoryName, null, null, null);
+
                 logger.info("管理员 {} 删除分类 {} ({})，清除 {} 篇文章关联，理由: {}",
                         admin.getUsername(), categoryId, categoryName, posts.size(), reason);
 

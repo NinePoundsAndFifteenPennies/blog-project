@@ -6,6 +6,7 @@ import com.lost.blog.model.Role;
 import com.lost.blog.model.User;
 import com.lost.blog.security.JwtTokenProvider;
 import com.lost.blog.service.AdminCommentService;
+import com.lost.blog.service.AdminLogService;
 import com.lost.blog.service.AdminPostService;
 import com.lost.blog.service.AdminTagService;
 import com.lost.blog.service.AdminCategoryService;
@@ -51,6 +52,7 @@ public class AdminController {
     private final AdminCommentService adminCommentService;
     private final AdminTagService adminTagService;
     private final AdminCategoryService adminCategoryService;
+    private final AdminLogService adminLogService;
     private final DashboardService dashboardService;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
@@ -62,6 +64,7 @@ public class AdminController {
                           AdminCommentService adminCommentService,
                           AdminTagService adminTagService,
                           AdminCategoryService adminCategoryService,
+                          AdminLogService adminLogService,
                           DashboardService dashboardService,
                           AuthenticationManager authenticationManager,
                           JwtTokenProvider tokenProvider) {
@@ -71,6 +74,7 @@ public class AdminController {
         this.adminCommentService = adminCommentService;
         this.adminTagService = adminTagService;
         this.adminCategoryService = adminCategoryService;
+        this.adminLogService = adminLogService;
         this.dashboardService = dashboardService;
         this.authenticationManager = authenticationManager;
         this.tokenProvider = tokenProvider;
@@ -527,7 +531,8 @@ public class AdminController {
             @PathVariable Long id,
             @Valid @RequestBody TagRequest tagRequest,
             @AuthenticationPrincipal UserDetails currentUser) {
-        AdminTagResponse tag = adminTagService.updateTag(id, tagRequest);
+        User admin = userService.findByUsername(currentUser.getUsername());
+        AdminTagResponse tag = adminTagService.updateTag(id, tagRequest, admin);
         logger.info("管理员 {} 更新标签 {}", currentUser.getUsername(), id);
         return ResponseEntity.ok(tag);
     }
@@ -657,7 +662,8 @@ public class AdminController {
             @PathVariable Long id,
             @Valid @RequestBody CategoryRequest categoryRequest,
             @AuthenticationPrincipal UserDetails currentUser) {
-        AdminCategoryResponse category = adminCategoryService.updateCategory(id, categoryRequest);
+        User admin = userService.findByUsername(currentUser.getUsername());
+        AdminCategoryResponse category = adminCategoryService.updateCategory(id, categoryRequest, admin);
         logger.info("管理员 {} 更新分类 {}", currentUser.getUsername(), id);
         return ResponseEntity.ok(category);
     }
@@ -748,5 +754,54 @@ public class AdminController {
         }
         
         return ResponseEntity.ok(result);
+    }
+
+    // ======================= 操作日志接口 =======================
+
+    /**
+     * 获取操作日志列表（支持分页和多条件搜索）
+     * 
+     * @param page 页码（从0开始）
+     * @param size 每页数量
+     * @param operationType 操作类型过滤
+     * @param adminUsername 管理员用户名搜索（模糊匹配）
+     * @param title 操作标题搜索（模糊匹配）
+     * @param startDate 开始日期（yyyy-MM-dd）
+     * @param endDate 结束日期（yyyy-MM-dd）
+     */
+    @GetMapping("/logs")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<AdminLogResponse>> getLogs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String operationType,
+            @RequestParam(required = false) String adminUsername,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        
+        AdminLogQueryRequest query = new AdminLogQueryRequest();
+        query.setOperationType(operationType);
+        query.setAdminUsername(adminUsername);
+        query.setTitle(title);
+        query.setStartDate(startDate);
+        query.setEndDate(endDate);
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<AdminLogResponse> logs = adminLogService.searchLogs(query, pageable);
+        
+        return ResponseEntity.ok(logs);
+    }
+
+    /**
+     * 获取操作日志详情
+     * 
+     * @param id 日志ID
+     */
+    @GetMapping("/logs/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AdminLogResponse> getLogDetail(@PathVariable Long id) {
+        AdminLogResponse log = adminLogService.getLogDetail(id);
+        return ResponseEntity.ok(log);
     }
 }

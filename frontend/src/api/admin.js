@@ -472,3 +472,47 @@ export async function executeCategoryAction(data) {
     });
     return response;
 }
+
+// ======================= 操作日志 API =======================
+
+/**
+ * 获取操作日志列表（支持分页和多条件搜索）
+ * @param {Object} params - 查询参数
+ * @param {number} params.page - 页码（从0开始）
+ * @param {number} params.size - 每页数量
+ * @param {string} params.operationType - 操作类型过滤（可选）
+ * @param {string} params.adminUsername - 管理员用户名搜索（可选）
+ * @param {string} params.title - 操作标题搜索（可选）
+ * @param {string} params.startDate - 开始日期 yyyy-MM-dd（可选）
+ * @param {string} params.endDate - 结束日期 yyyy-MM-dd（可选）
+ * @returns {Promise<Object>} - 返回分页日志列表
+ */
+export async function getAdminLogs(params = {}) {
+    const response = await request({
+        url: "/admin/logs",
+        method: "get",
+        params: {
+            page: params.page || 0,
+            size: params.size || 10,
+            operationType: params.operationType || undefined,
+            adminUsername: params.adminUsername || undefined,
+            title: params.title || undefined,
+            startDate: params.startDate || undefined,
+            endDate: params.endDate || undefined,
+        },
+    });
+    return response;
+}
+
+/**
+ * 获取操作日志详情
+ * @param {number} logId - 日志ID
+ * @returns {Promise<Object>} - 返回日志详情
+ */
+export async function getAdminLogDetail(logId) {
+    const response = await request({
+        url: `/admin/logs/${logId}`,
+        method: "get",
+    });
+    return response;
+}

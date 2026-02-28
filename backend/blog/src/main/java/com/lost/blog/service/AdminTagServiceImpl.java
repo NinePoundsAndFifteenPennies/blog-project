@@ -37,6 +37,7 @@ public class AdminTagServiceImpl implements AdminTagService {
     private final TagRepository tagRepository;
     private final AdminFormRepository adminFormRepository;
     private final NotificationService notificationService;
+    private final AdminLogService adminLogService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -44,10 +45,12 @@ public class AdminTagServiceImpl implements AdminTagService {
     @Autowired
     public AdminTagServiceImpl(TagRepository tagRepository,
                                AdminFormRepository adminFormRepository,
-                               NotificationService notificationService) {
+                               NotificationService notificationService,
+                               AdminLogService adminLogService) {
         this.tagRepository = tagRepository;
         this.adminFormRepository = adminFormRepository;
         this.notificationService = notificationService;
+        this.adminLogService = adminLogService;
     }
 
     @Override
@@ -132,12 +135,17 @@ public class AdminTagServiceImpl implements AdminTagService {
         Tag savedTag = tagRepository.save(tag);
         logger.info("管理员 {} 创建标签: {}", admin.getUsername(), savedTag.getName());
 
+        // 记录审计日志
+        adminLogService.log(AdminLogType.TAG_CREATE,
+                "创建标签: " + savedTag.getName(), null, null,
+                admin, null, null, null, null, savedTag.getId(), savedTag.getName(), null, null, null, null, null);
+
         return AdminTagResponse.fromEntity(savedTag, 0L);
     }
 
     @Override
     @Transactional
-    public AdminTagResponse updateTag(Long tagId, TagRequest tagRequest) {
+    public AdminTagResponse updateTag(Long tagId, TagRequest tagRequest, User admin) {
         Tag tag = tagRepository.findByIdWithPosts(tagId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到标签: " + tagId));
 
@@ -154,7 +162,12 @@ public class AdminTagServiceImpl implements AdminTagService {
         tag.setSortOrder(tagRequest.getSortOrder());
 
         Tag updatedTag = tagRepository.save(tag);
-        logger.info("管理员更新标签 {}: {}", tagId, updatedTag.getName());
+        logger.info("管理员 {} 更新标签 {}: {}", admin.getUsername(), tagId, updatedTag.getName());
+
+        // 记录审计日志
+        adminLogService.log(AdminLogType.TAG_UPDATE,
+                "更新标签: " + updatedTag.getName(), null, null,
+                admin, null, null, null, null, updatedTag.getId(), updatedTag.getName(), null, null, null, null, null);
 
         return AdminTagResponse.fromEntity(updatedTag);
     }
@@ -246,6 +259,15 @@ public class AdminTagServiceImpl implements AdminTagService {
                 tagRepository.removePostTagAssociations(tagId, removePostIds);
 
                 successIds.add(tagId);
+
+                // 记录审计日志
+                String softDelDefault = "软删除标签 #" + tagId;
+                String softDelTitle = (formTitle != null && !formTitle.trim().isEmpty())
+                        ? formTitle : softDelDefault;
+                adminLogService.log(AdminLogType.TAG_SOFT_DELETE,
+                        softDelTitle, reason, extraFields,
+                        admin, null, null, null, null, tagId, tagName, null, null, null, null, null);
+
                 logger.info("管理员 {} 软删除标签 {} ({})，解除 {} 篇文章关联，理由: {}",
                         admin.getUsername(), tagId, tagName, removePostIds.size(), reason);
 
@@ -301,6 +323,15 @@ public class AdminTagServiceImpl implements AdminTagService {
                 tagRepository.delete(tag);
 
                 successIds.add(tagId);
+
+                // 记录审计日志
+                String hardDelDefault = "硬删除标签 #" + tagId;
+                String hardDelTitle = (formTitle != null && !formTitle.trim().isEmpty())
+                        ? formTitle : hardDelDefault;
+                adminLogService.log(AdminLogType.TAG_HARD_DELETE,
+                        hardDelTitle, reason, extraFields,
+                        admin, null, null, null, null, tagId, tagName, null, null, null, null, null);
+
                 logger.info("管理员 {} 硬删除标签 {} ({}), 理由: {}", admin.getUsername(), tagId, tagName, reason);
 
                 // 刷新持久化上下文，确保批量操作中每个标签的变更独立生效

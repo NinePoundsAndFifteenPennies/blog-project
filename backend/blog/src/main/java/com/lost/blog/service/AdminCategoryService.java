@@ -38,9 +38,10 @@ public interface AdminCategoryService {
      * 管理员更新分类
      * @param categoryId 分类ID
      * @param categoryRequest 分类更新请求
+     * @param admin 操作管理员
      * @return 更新后的分类
      */
-    AdminCategoryResponse updateCategory(Long categoryId, CategoryRequest categoryRequest);
+    AdminCategoryResponse updateCategory(Long categoryId, CategoryRequest categoryRequest, User admin);
 
     /**
      * 将文章归入指定分类

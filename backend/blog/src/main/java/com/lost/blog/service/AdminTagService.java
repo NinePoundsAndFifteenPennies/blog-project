@@ -38,9 +38,10 @@ public interface AdminTagService {
      * 管理员更新标签
      * @param tagId 标签ID
      * @param tagRequest 标签更新请求
+     * @param admin 操作管理员
      * @return 更新后的标签
      */
-    AdminTagResponse updateTag(Long tagId, TagRequest tagRequest);
+    AdminTagResponse updateTag(Long tagId, TagRequest tagRequest, User admin);
 
     /**
      * 批量软删除标签（只移除标签与文章的关联）

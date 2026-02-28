@@ -1261,6 +1261,156 @@ Content-Type: application/json
 
 ---
 
+## 操作日志
+
+操作日志是只读的，由管理员执行管理操作时自动生成，不能通过接口创建、修改或删除。
+
+### 操作类型说明
+
+| 操作类型 | 说明 |
+|----------|------|
+| POST_APPROVE | 文章审核通过 |
+| POST_REJECT | 文章审核拒绝 |
+| POST_DELETE | 文章删除 |
+| COMMENT_APPROVE | 评论审核通过 |
+| COMMENT_DELETE | 评论删除 |
+| TAG_CREATE | 标签创建 |
+| TAG_UPDATE | 标签更新 |
+| TAG_SOFT_DELETE | 标签软删除（移除关联） |
+| TAG_HARD_DELETE | 标签硬删除 |
+| CATEGORY_CREATE | 分类创建 |
+| CATEGORY_UPDATE | 分类更新 |
+| CATEGORY_DELETE | 分类删除 |
+| CATEGORY_ASSIGN_POST | 分类添加文章 |
+| CATEGORY_REMOVE_POST | 分类移除文章 |
+| USER_STATUS_CHANGE | 用户状态变更 |
+
+### 获取操作日志列表
+
+获取操作日志列表，支持分页和多条件搜索。
+
+```http
+GET /api/admin/logs
+Authorization: Bearer {admin-token}
+```
+
+**查询参数:**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| page | int | 否 | 页码（从0开始），默认0 |
+| size | int | 否 | 每页数量，默认10 |
+| operationType | string | 否 | 操作类型过滤（见操作类型说明） |
+| adminUsername | string | 否 | 管理员用户名搜索（模糊匹配） |
+| title | string | 否 | 操作标题搜索（模糊匹配） |
+| startDate | string | 否 | 开始日期（yyyy-MM-dd） |
+| endDate | string | 否 | 结束日期（yyyy-MM-dd） |
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "operationType": "POST_REJECT",
+      "title": "审核拒绝通知",
+      "description": "文章内容违规",
+      "adminId": 1,
+      "adminUsername": "admin",
+      "adminNickname": "管理员",
+      "postId": 5,
+      "postTitle": "文章标题",
+      "commentId": null,
+      "commentContentPreview": null,
+      "tagId": null,
+      "tagName": null,
+      "categoryId": null,
+      "categoryName": null,
+      "targetUserId": null,
+      "targetUsername": null,
+      "formId": 3,
+      "extraFields": "[{\"fieldName\":\"违规类型\",\"fieldValue\":\"广告营销\"}]",
+      "createdAt": "2024-01-15T12:00:00"
+    }
+  ],
+  "totalElements": 50,
+  "totalPages": 5,
+  "size": 10,
+  "number": 0
+}
+```
+
+**日志标题说明:**
+- 有关联 `admin_forms` 表单且表单标题非空时，日志标题使用表单标题
+- 否则使用默认格式，如"审核通过文章 #5"、"创建标签: Java"
+
+---
+
+### 获取操作日志详情
+
+获取单条操作日志的详细信息。
+
+```http
+GET /api/admin/logs/{id}
+Authorization: Bearer {admin-token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 1,
+  "operationType": "POST_REJECT",
+  "title": "审核拒绝通知",
+  "description": "文章内容违规",
+  "adminId": 1,
+  "adminUsername": "admin",
+  "adminNickname": "管理员",
+  "postId": 5,
+  "postTitle": "文章标题",
+  "commentId": null,
+  "commentContentPreview": null,
+  "tagId": null,
+  "tagName": null,
+  "categoryId": null,
+  "categoryName": null,
+  "targetUserId": null,
+  "targetUsername": null,
+  "formId": 3,
+  "extraFields": "[{\"fieldName\":\"违规类型\",\"fieldValue\":\"广告营销\"}]",
+  "createdAt": "2024-01-15T12:00:00"
+}
+```
+
+**响应字段说明:**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | long | 日志ID |
+| operationType | string | 操作类型（见操作类型说明） |
+| title | string | 操作标题 |
+| description | string | 操作描述/理由（可为空） |
+| adminId | long | 执行操作的管理员ID |
+| adminUsername | string | 管理员用户名 |
+| adminNickname | string | 管理员昵称 |
+| postId | long | 关联文章ID（可为空） |
+| postTitle | string | 关联文章标题（可为空） |
+| commentId | long | 关联评论ID（可为空） |
+| commentContentPreview | string | 关联评论内容预览（可为空） |
+| tagId | long | 关联标签ID（可为空） |
+| tagName | string | 关联标签名称（可为空） |
+| categoryId | long | 关联分类ID（可为空） |
+| categoryName | string | 关联分类名称（可为空） |
+| targetUserId | long | 被操作用户ID（可为空） |
+| targetUsername | string | 被操作用户名（可为空） |
+| formId | long | 关联管理表单ID（可为空） |
+| extraFields | string | 扩展字段JSON数组（可为空），格式：`[{"fieldName":"字段名","fieldValue":"字段值"}]` |
+| createdAt | string | 创建时间 |
+
+**错误响应:**
+- `404 Not Found` - 日志不存在
+
+---
+
 ## 后续规划
 
 管理后台 API 将陆续增加以下功能：
