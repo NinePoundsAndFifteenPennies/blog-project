@@ -413,7 +413,7 @@ export default {
       try {
         const parsed = JSON.parse(selectedLog.value.extraFields)
         if (Array.isArray(parsed)) {
-          return parsed.filter(f => f.fieldName && f.fieldName.trim() !== '')
+          return parsed.filter(f => f.fieldName && f.fieldName.trim() !== '' && f.fieldValue != null)
         }
         return []
       } catch (e) {
