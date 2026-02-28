@@ -37,7 +37,7 @@ public class AdminLogServiceImpl implements AdminLogService {
 
     @Override
     @Transactional
-    public void log(AdminLogType operationType, String title, String description, User admin,
+    public void log(AdminLogType operationType, String title, String description, String extraFields, User admin,
                     Long postId, String postTitle,
                     Long commentId, String commentContentPreview,
                     Long tagId, String tagName,
@@ -48,6 +48,7 @@ public class AdminLogServiceImpl implements AdminLogService {
         log.setOperationType(operationType);
         log.setTitle(title);
         log.setDescription(description);
+        log.setExtraFields(extraFields);
         log.setAdmin(admin);
         log.setPostId(postId);
         log.setPostTitle(postTitle);

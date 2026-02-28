@@ -107,6 +107,14 @@ public class AdminLog {
     private String targetUsername;
 
     /**
+     * 扩展字段（JSON格式，来自admin_forms的extra_fields）
+     * 格式: [{"fieldName": "...", "fieldValue": "..."}, ...]
+     */
+    @Lob
+    @Column(name = "extra_fields", columnDefinition = "TEXT")
+    private String extraFields;
+
+    /**
      * 关联的管理表单ID
      */
     @Column(name = "form_id")
@@ -172,6 +180,9 @@ public class AdminLog {
 
     public Long getFormId() { return formId; }
     public void setFormId(Long formId) { this.formId = formId; }
+
+    public String getExtraFields() { return extraFields; }
+    public void setExtraFields(String extraFields) { this.extraFields = extraFields; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

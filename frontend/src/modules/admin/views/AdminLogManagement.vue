@@ -183,6 +183,24 @@
             <span class="label">关联表单:</span>
             <span class="value">表单 #{{ selectedLog.formId }}</span>
           </div>
+
+          <!-- 表单详情区域 -->
+          <div v-if="selectedLog.reason || selectedLog.extraFields" class="form-detail-section">
+            <h4 class="section-title">表单详情</h4>
+            <div v-if="selectedLog.reason" class="detail-row">
+              <span class="label">操作理由:</span>
+              <span class="value content-value">{{ selectedLog.reason }}</span>
+            </div>
+            <div v-if="parsedExtraFields.length > 0" class="detail-row">
+              <span class="label">扩展信息:</span>
+              <span class="value">
+                <div v-for="(field, index) in parsedExtraFields" :key="index" class="extra-field-item">
+                  <span class="extra-field-name">{{ field.fieldName }}:</span>
+                  <span class="extra-field-value">{{ field.fieldValue }}</span>
+                </div>
+              </span>
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" @click="closeLogModal">关闭</button>
@@ -209,7 +227,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { getAdminLogs, getAdminLogDetail } from '@/api/admin'
@@ -390,6 +408,19 @@ export default {
       selectedLog.value = null
     }
 
+    const parsedExtraFields = computed(() => {
+      if (!selectedLog.value || !selectedLog.value.extraFields) return []
+      try {
+        const parsed = JSON.parse(selectedLog.value.extraFields)
+        if (Array.isArray(parsed)) {
+          return parsed.filter(f => f.fieldName && f.fieldName.trim() !== '')
+        }
+        return []
+      } catch (e) {
+        return []
+      }
+    })
+
     onMounted(() => {
       loadLogs()
     })
@@ -415,7 +446,8 @@ export default {
       resetLogSearch,
       changeLogPage,
       viewLogDetail,
-      closeLogModal
+      closeLogModal,
+      parsedExtraFields
     }
   }
 }
@@ -802,6 +834,36 @@ export default {
 
 .link:hover {
   text-decoration: underline;
+}
+
+/* Form Detail Section */
+.form-detail-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 2px solid #e8e8e8;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1d2e;
+  margin: 0 0 12px 0;
+}
+
+.extra-field-item {
+  display: flex;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.extra-field-name {
+  font-weight: 500;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.extra-field-value {
+  color: #333;
 }
 
 /* Quick Links */

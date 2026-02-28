@@ -15,7 +15,7 @@ public interface AdminLogService {
     /**
      * 记录管理操作日志
      */
-    void log(AdminLogType operationType, String title, String description, User admin,
+    void log(AdminLogType operationType, String title, String description, String extraFields, User admin,
              Long postId, String postTitle,
              Long commentId, String commentContentPreview,
              Long tagId, String tagName,

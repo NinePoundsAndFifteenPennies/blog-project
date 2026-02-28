@@ -219,8 +219,11 @@ public class AdminController {
                 currentUser.getUsername(), id, request.getEnabled() ? "启用" : "禁用");
         
         String statusText = request.getEnabled() ? "启用" : "禁用";
+        String defaultTitle = statusText + "用户: " + targetUser.getUsername();
+        String logTitle = (request.getFormTitle() != null && !request.getFormTitle().trim().isEmpty())
+                ? request.getFormTitle() : defaultTitle;
         adminLogService.log(AdminLogType.USER_STATUS_CHANGE,
-                statusText + "用户: " + targetUser.getUsername(), request.getReason(),
+                logTitle, request.getReason(), request.getExtraFields(),
                 admin, null, null, null, null, null, null, null, null,
                 targetUser.getId(), targetUser.getUsername(), null);
         
@@ -312,7 +315,7 @@ public class AdminController {
                 logger.info("管理员 {} 批量审核通过 {} 篇文章", currentUser.getUsername(), result.getSuccessCount());
                 for (Long postId : result.getSuccessIds()) {
                     adminLogService.log(AdminLogType.POST_APPROVE,
-                            "审核通过文章 #" + postId, null,
+                            "审核通过文章 #" + postId, null, null,
                             admin, postId, null, null, null, null, null, null, null, null, null, null);
                 }
                 break;
@@ -326,8 +329,11 @@ public class AdminController {
                         admin);
                 logger.info("管理员 {} 批量拒绝 {} 篇文章", currentUser.getUsername(), result.getSuccessCount());
                 for (Long postId : result.getSuccessIds()) {
+                    String rejectDefault = "拒绝文章 #" + postId;
+                    String rejectTitle = (request.getFormTitle() != null && !request.getFormTitle().trim().isEmpty())
+                            ? request.getFormTitle() : rejectDefault;
                     adminLogService.log(AdminLogType.POST_REJECT,
-                            "拒绝文章 #" + postId, request.getReason(),
+                            rejectTitle, request.getReason(), request.getExtraFields(),
                             admin, postId, null, null, null, null, null, null, null, null, null, null);
                 }
                 break;
@@ -341,8 +347,11 @@ public class AdminController {
                         admin);
                 logger.info("管理员 {} 批量删除 {} 篇文章", currentUser.getUsername(), result.getSuccessCount());
                 for (Long postId : result.getSuccessIds()) {
+                    String deleteDefault = "删除文章 #" + postId;
+                    String deleteTitle = (request.getFormTitle() != null && !request.getFormTitle().trim().isEmpty())
+                            ? request.getFormTitle() : deleteDefault;
                     adminLogService.log(AdminLogType.POST_DELETE,
-                            "删除文章 #" + postId, request.getReason(),
+                            deleteTitle, request.getReason(), request.getExtraFields(),
                             admin, postId, null, null, null, null, null, null, null, null, null, null);
                 }
                 break;
@@ -462,7 +471,7 @@ public class AdminController {
                 logger.info("管理员 {} 批量审核通过 {} 条评论", currentUser.getUsername(), result.getSuccessCount());
                 for (Long commentId : result.getSuccessIds()) {
                     adminLogService.log(AdminLogType.COMMENT_APPROVE,
-                            "审核通过评论 #" + commentId, null,
+                            "审核通过评论 #" + commentId, null, null,
                             admin, null, null, commentId, null, null, null, null, null, null, null, null);
                 }
                 break;
@@ -476,8 +485,11 @@ public class AdminController {
                         admin);
                 logger.info("管理员 {} 批量删除 {} 条评论", currentUser.getUsername(), result.getSuccessCount());
                 for (Long commentId : result.getSuccessIds()) {
+                    String commentDeleteDefault = "删除评论 #" + commentId;
+                    String commentDeleteTitle = (request.getFormTitle() != null && !request.getFormTitle().trim().isEmpty())
+                            ? request.getFormTitle() : commentDeleteDefault;
                     adminLogService.log(AdminLogType.COMMENT_DELETE,
-                            "删除评论 #" + commentId, request.getReason(),
+                            commentDeleteTitle, request.getReason(), request.getExtraFields(),
                             admin, null, null, commentId, null, null, null, null, null, null, null, null);
                 }
                 break;
@@ -549,7 +561,7 @@ public class AdminController {
         AdminTagResponse tag = adminTagService.createTag(tagRequest, admin);
         logger.info("管理员 {} 创建标签: {}", currentUser.getUsername(), tagRequest.getName());
         adminLogService.log(AdminLogType.TAG_CREATE,
-                "创建标签: " + tagRequest.getName(), null,
+                "创建标签: " + tagRequest.getName(), null, null,
                 admin, null, null, null, null, tag.getId(), tag.getName(), null, null, null, null, null);
         return new ResponseEntity<>(tag, HttpStatus.CREATED);
     }
@@ -570,7 +582,7 @@ public class AdminController {
         logger.info("管理员 {} 更新标签 {}", currentUser.getUsername(), id);
         User admin = userService.findByUsername(currentUser.getUsername());
         adminLogService.log(AdminLogType.TAG_UPDATE,
-                "更新标签: " + tag.getName(), null,
+                "更新标签: " + tag.getName(), null, null,
                 admin, null, null, null, null, tag.getId(), tag.getName(), null, null, null, null, null);
         return ResponseEntity.ok(tag);
     }
@@ -608,8 +620,11 @@ public class AdminController {
                         admin);
                 logger.info("管理员 {} 批量软删除 {} 个标签", currentUser.getUsername(), result.getSuccessCount());
                 for (Long tagId : result.getSuccessIds()) {
+                    String softDelDefault = "软删除标签 #" + tagId;
+                    String softDelTitle = (request.getFormTitle() != null && !request.getFormTitle().trim().isEmpty())
+                            ? request.getFormTitle() : softDelDefault;
                     adminLogService.log(AdminLogType.TAG_SOFT_DELETE,
-                            "软删除标签 #" + tagId, request.getReason(),
+                            softDelTitle, request.getReason(), request.getExtraFields(),
                             admin, null, null, null, null, tagId, null, null, null, null, null, null);
                 }
                 break;
@@ -623,8 +638,11 @@ public class AdminController {
                         admin);
                 logger.info("管理员 {} 批量硬删除 {} 个标签", currentUser.getUsername(), result.getSuccessCount());
                 for (Long tagId : result.getSuccessIds()) {
+                    String hardDelDefault = "硬删除标签 #" + tagId;
+                    String hardDelTitle = (request.getFormTitle() != null && !request.getFormTitle().trim().isEmpty())
+                            ? request.getFormTitle() : hardDelDefault;
                     adminLogService.log(AdminLogType.TAG_HARD_DELETE,
-                            "硬删除标签 #" + tagId, request.getReason(),
+                            hardDelTitle, request.getReason(), request.getExtraFields(),
                             admin, null, null, null, null, tagId, null, null, null, null, null, null);
                 }
                 break;
@@ -696,7 +714,7 @@ public class AdminController {
         AdminCategoryResponse category = adminCategoryService.createCategory(categoryRequest, admin);
         logger.info("管理员 {} 创建分类: {}", currentUser.getUsername(), categoryRequest.getName());
         adminLogService.log(AdminLogType.CATEGORY_CREATE,
-                "创建分类: " + categoryRequest.getName(), null,
+                "创建分类: " + categoryRequest.getName(), null, null,
                 admin, null, null, null, null, null, null, category.getId(), category.getName(), null, null, null);
         return new ResponseEntity<>(category, HttpStatus.CREATED);
     }
@@ -717,7 +735,7 @@ public class AdminController {
         logger.info("管理员 {} 更新分类 {}", currentUser.getUsername(), id);
         User admin = userService.findByUsername(currentUser.getUsername());
         adminLogService.log(AdminLogType.CATEGORY_UPDATE,
-                "更新分类: " + category.getName(), null,
+                "更新分类: " + category.getName(), null, null,
                 admin, null, null, null, null, null, null, category.getId(), category.getName(), null, null, null);
         return ResponseEntity.ok(category);
     }
@@ -751,7 +769,7 @@ public class AdminController {
         AdminCategoryResponse category = adminCategoryService.assignPostToCategory(id, postId, admin);
         logger.info("管理员 {} 将文章 {} 归入分类 {}", currentUser.getUsername(), postId, id);
         adminLogService.log(AdminLogType.CATEGORY_ASSIGN_POST,
-                "将文章 #" + postId + " 归入分类: " + category.getName(), null,
+                "将文章 #" + postId + " 归入分类: " + category.getName(), null, null,
                 admin, postId, null, null, null, null, null, id, category.getName(), null, null, null);
         return ResponseEntity.ok(category);
     }
@@ -772,7 +790,7 @@ public class AdminController {
         AdminCategoryResponse category = adminCategoryService.removePostFromCategory(id, postId, admin);
         logger.info("管理员 {} 将文章 {} 从分类 {} 移除", currentUser.getUsername(), postId, id);
         adminLogService.log(AdminLogType.CATEGORY_REMOVE_POST,
-                "将文章 #" + postId + " 从分类移除: " + category.getName(), null,
+                "将文章 #" + postId + " 从分类移除: " + category.getName(), null, null,
                 admin, postId, null, null, null, null, null, id, category.getName(), null, null, null);
         return ResponseEntity.ok(category);
     }
@@ -809,7 +827,7 @@ public class AdminController {
                 logger.info("管理员 {} 批量删除 {} 个分类", currentUser.getUsername(), result.getSuccessCount());
                 for (Long categoryId : result.getSuccessIds()) {
                     adminLogService.log(AdminLogType.CATEGORY_DELETE,
-                            "删除分类 #" + categoryId, request.getReason(),
+                            "删除分类 #" + categoryId, request.getReason(), request.getExtraFields(),
                             admin, null, null, null, null, null, null, categoryId, null, null, null, null);
                 }
                 break;
