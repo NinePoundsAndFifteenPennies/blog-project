@@ -41,7 +41,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final AdminLogService adminLogService;
 
     @Autowired
-    public AdminUserServiceImpl(UserRepository userRepository, 
+    public AdminUserServiceImpl(UserRepository userRepository,
                                PostRepository postRepository,
                                CommentRepository commentRepository,
                                AdminFormRepository adminFormRepository,
@@ -58,7 +58,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         // 解析日期范围
         LocalDateTime startDate = null;
         LocalDateTime endDate = null;
-        
+
         if (query.getStartDate() != null && !query.getStartDate().isEmpty()) {
             try {
                 LocalDate date = LocalDate.parse(query.getStartDate(), DateTimeFormatter.ISO_LOCAL_DATE);
@@ -67,7 +67,7 @@ public class AdminUserServiceImpl implements AdminUserService {
                 logger.warn("Invalid start date format: {}", query.getStartDate());
             }
         }
-        
+
         if (query.getEndDate() != null && !query.getEndDate().isEmpty()) {
             try {
                 LocalDate date = LocalDate.parse(query.getEndDate(), DateTimeFormatter.ISO_LOCAL_DATE);
@@ -144,7 +144,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private AdminUserResponse toAdminUserResponse(User user) {
         Long postCount = postRepository.countByUser(user);
         Long commentCount = commentRepository.countByUser(user);
-        
+
         return new AdminUserResponse(
                 user.getId(),
                 user.getUsername(),

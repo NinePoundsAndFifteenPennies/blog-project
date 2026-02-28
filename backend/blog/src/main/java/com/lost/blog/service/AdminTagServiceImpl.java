@@ -259,7 +259,7 @@ public class AdminTagServiceImpl implements AdminTagService {
                 tagRepository.removePostTagAssociations(tagId, removePostIds);
 
                 successIds.add(tagId);
-                
+
                 // 记录审计日志
                 String softDelDefault = "软删除标签 #" + tagId;
                 String softDelTitle = (formTitle != null && !formTitle.trim().isEmpty())
@@ -267,7 +267,7 @@ public class AdminTagServiceImpl implements AdminTagService {
                 adminLogService.log(AdminLogType.TAG_SOFT_DELETE,
                         softDelTitle, reason, extraFields,
                         admin, null, null, null, null, tagId, tagName, null, null, null, null, null);
-                
+
                 logger.info("管理员 {} 软删除标签 {} ({})，解除 {} 篇文章关联，理由: {}",
                         admin.getUsername(), tagId, tagName, removePostIds.size(), reason);
 
@@ -323,7 +323,7 @@ public class AdminTagServiceImpl implements AdminTagService {
                 tagRepository.delete(tag);
 
                 successIds.add(tagId);
-                
+
                 // 记录审计日志
                 String hardDelDefault = "硬删除标签 #" + tagId;
                 String hardDelTitle = (formTitle != null && !formTitle.trim().isEmpty())
@@ -331,7 +331,7 @@ public class AdminTagServiceImpl implements AdminTagService {
                 adminLogService.log(AdminLogType.TAG_HARD_DELETE,
                         hardDelTitle, reason, extraFields,
                         admin, null, null, null, null, tagId, tagName, null, null, null, null, null);
-                
+
                 logger.info("管理员 {} 硬删除标签 {} ({}), 理由: {}", admin.getUsername(), tagId, tagName, reason);
 
                 // 刷新持久化上下文，确保批量操作中每个标签的变更独立生效

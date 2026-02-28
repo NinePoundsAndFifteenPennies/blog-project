@@ -294,12 +294,12 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
                 categoryRepository.delete(category);
 
                 successIds.add(categoryId);
-                
+
                 // 记录审计日志
                 adminLogService.log(AdminLogType.CATEGORY_DELETE,
                         "删除分类 #" + categoryId, reason, extraFields,
                         admin, null, null, null, null, null, null, categoryId, categoryName, null, null, null);
-                
+
                 logger.info("管理员 {} 删除分类 {} ({})，清除 {} 篇文章关联，理由: {}",
                         admin.getUsername(), categoryId, categoryName, posts.size(), reason);
 
