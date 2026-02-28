@@ -37,5 +37,15 @@ public enum AdminFormType {
     /**
      * 用户状态变更表单（启用/禁用用户）
      */
-    USER_STATUS_CHANGE
+    USER_STATUS_CHANGE,
+
+    /**
+     * 举报通过处理表单
+     */
+    REPORT_APPROVAL,
+
+    /**
+     * 举报驳回处理表单
+     */
+    REPORT_REJECTION
 }

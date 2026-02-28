@@ -67,5 +67,15 @@ public enum NotificationType {
     /**
      * 分类被删除（管理员删除操作）
      */
-    CATEGORY_DELETED
+    CATEGORY_DELETED,
+
+    /**
+     * 举报处理结果通知（发给举报者）
+     */
+    REPORT_RESULT,
+
+    /**
+     * 被举报通知（发给被举报者，举报通过时）
+     */
+    REPORTED_CONTENT
 }
