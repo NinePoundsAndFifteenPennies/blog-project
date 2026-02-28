@@ -8,6 +8,7 @@ import com.lost.blog.security.JwtTokenProvider;
 import com.lost.blog.service.AdminCommentService;
 import com.lost.blog.service.AdminLogService;
 import com.lost.blog.service.AdminPostService;
+import com.lost.blog.service.AdminReportService;
 import com.lost.blog.service.AdminTagService;
 import com.lost.blog.service.AdminCategoryService;
 import com.lost.blog.service.AdminUserService;
@@ -53,6 +54,7 @@ public class AdminController {
     private final AdminTagService adminTagService;
     private final AdminCategoryService adminCategoryService;
     private final AdminLogService adminLogService;
+    private final AdminReportService adminReportService;
     private final DashboardService dashboardService;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
@@ -65,6 +67,7 @@ public class AdminController {
                           AdminTagService adminTagService,
                           AdminCategoryService adminCategoryService,
                           AdminLogService adminLogService,
+                          AdminReportService adminReportService,
                           DashboardService dashboardService,
                           AuthenticationManager authenticationManager,
                           JwtTokenProvider tokenProvider) {
@@ -75,6 +78,7 @@ public class AdminController {
         this.adminTagService = adminTagService;
         this.adminCategoryService = adminCategoryService;
         this.adminLogService = adminLogService;
+        this.adminReportService = adminReportService;
         this.dashboardService = dashboardService;
         this.authenticationManager = authenticationManager;
         this.tokenProvider = tokenProvider;
@@ -803,5 +807,77 @@ public class AdminController {
     public ResponseEntity<AdminLogResponse> getLogDetail(@PathVariable Long id) {
         AdminLogResponse log = adminLogService.getLogDetail(id);
         return ResponseEntity.ok(log);
+    }
+
+    // ======================= 举报管理接口 =======================
+
+    /**
+     * 获取举报列表（支持分页和多条件搜索）
+     */
+    @GetMapping("/reports")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<AdminReportResponse>> getReports(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String targetType,
+            @RequestParam(required = false) String reporterUsername,
+            @RequestParam(required = false) String reportedUsername,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+
+        AdminReportQueryRequest query = new AdminReportQueryRequest();
+        query.setStatus(status);
+        query.setTargetType(targetType);
+        query.setReporterUsername(reporterUsername);
+        query.setReportedUsername(reportedUsername);
+        query.setStartDate(startDate);
+        query.setEndDate(endDate);
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<AdminReportResponse> reports = adminReportService.searchReports(query, pageable);
+
+        return ResponseEntity.ok(reports);
+    }
+
+    /**
+     * 获取举报详情
+     */
+    @GetMapping("/reports/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AdminReportResponse> getReportDetail(@PathVariable Long id) {
+        AdminReportResponse report = adminReportService.getReportDetail(id);
+        return ResponseEntity.ok(report);
+    }
+
+    /**
+     * 处理举报（通过/驳回）
+     */
+    @PostMapping("/reports/action")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> executeReportAction(
+            @Valid @RequestBody AdminReportActionRequest request,
+            @AuthenticationPrincipal UserDetails currentUser) {
+
+        if (request.getReason() == null || request.getReason().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("处理举报需要填写理由");
+        }
+
+        adminReportService.processReport(request, currentUser);
+
+        String action = request.getAction().toUpperCase();
+        String message = "APPROVE".equals(action) ? "举报已通过处理" : "举报已驳回处理";
+        logger.info("管理员 {} {} 举报 #{}", currentUser.getUsername(), message, request.getReportId());
+
+        return ResponseEntity.ok().body(message);
+    }
+
+    /**
+     * 获取待处理举报数量
+     */
+    @GetMapping("/reports/pending/count")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Long> getPendingReportCount() {
+        return ResponseEntity.ok(adminReportService.getPendingCount());
     }
 }
