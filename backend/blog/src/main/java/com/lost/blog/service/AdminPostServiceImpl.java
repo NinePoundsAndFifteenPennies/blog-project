@@ -39,6 +39,7 @@ public class AdminPostServiceImpl implements AdminPostService {
     private final CommentRepository commentRepository;
     private final LikeRepository likeRepository;
     private final PostViewLogRepository postViewLogRepository;
+    private final AdminLogService adminLogService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -51,7 +52,8 @@ public class AdminPostServiceImpl implements AdminPostService {
                                NotificationRepository notificationRepository,
                                CommentRepository commentRepository,
                                LikeRepository likeRepository,
-                               PostViewLogRepository postViewLogRepository) {
+                               PostViewLogRepository postViewLogRepository,
+                               AdminLogService adminLogService) {
         this.postRepository = postRepository;
         this.adminFormRepository = adminFormRepository;
         this.adminPostMapper = adminPostMapper;
@@ -60,6 +62,7 @@ public class AdminPostServiceImpl implements AdminPostService {
         this.commentRepository = commentRepository;
         this.likeRepository = likeRepository;
         this.postViewLogRepository = postViewLogRepository;
+        this.adminLogService = adminLogService;
     }
 
     @Override
@@ -160,6 +163,11 @@ public class AdminPostServiceImpl implements AdminPostService {
                 // 发送审核通过通知
                 notificationService.createPostApprovedNotification(admin, post);
                 
+                // 记录审计日志
+                adminLogService.log(AdminLogType.POST_APPROVE,
+                        "审核通过文章 #" + postId, null, null,
+                        admin, postId, null, null, null, null, null, null, null, null, null, null);
+                
                 logger.info("管理员 {} 审核通过文章 {}", admin.getUsername(), postId);
                 
             } catch (ResourceNotFoundException e) {
@@ -226,6 +234,14 @@ public class AdminPostServiceImpl implements AdminPostService {
                 // 发送审核拒绝通知
                 notificationService.createPostRejectedNotification(admin, post, reason);
                 
+                // 记录审计日志
+                String rejectDefault = "拒绝文章 #" + postId;
+                String rejectTitle = (formTitle != null && !formTitle.trim().isEmpty())
+                        ? formTitle : rejectDefault;
+                adminLogService.log(AdminLogType.POST_REJECT,
+                        rejectTitle, reason, extraFields,
+                        admin, postId, null, null, null, null, null, null, null, null, null, null);
+                
                 logger.info("管理员 {} 审核拒绝文章 {}, 理由: {}", admin.getUsername(), postId, reason);
                 
             } catch (ResourceNotFoundException e) {
@@ -287,6 +303,14 @@ public class AdminPostServiceImpl implements AdminPostService {
                 // 删除文章（会级联删除 post_tags）
                 postRepository.delete(post);
                 successIds.add(postId);
+                
+                // 记录审计日志
+                String deleteDefault = "删除文章 #" + postId;
+                String deleteTitle = (formTitle != null && !formTitle.trim().isEmpty())
+                        ? formTitle : deleteDefault;
+                adminLogService.log(AdminLogType.POST_DELETE,
+                        deleteTitle, reason, extraFields,
+                        admin, postId, null, null, null, null, null, null, null, null, null, null);
                 
                 logger.info("管理员 {} 删除文章 {}, 理由: {}", admin.getUsername(), postId, reason);
 

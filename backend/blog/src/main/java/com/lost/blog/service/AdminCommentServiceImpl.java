@@ -34,6 +34,7 @@ public class AdminCommentServiceImpl implements AdminCommentService {
     private final NotificationService notificationService;
     private final NotificationRepository notificationRepository;
     private final LikeRepository likeRepository;
+    private final AdminLogService adminLogService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -43,12 +44,14 @@ public class AdminCommentServiceImpl implements AdminCommentService {
                                    AdminFormRepository adminFormRepository,
                                    NotificationService notificationService,
                                    NotificationRepository notificationRepository,
-                                   LikeRepository likeRepository) {
+                                   LikeRepository likeRepository,
+                                   AdminLogService adminLogService) {
         this.commentRepository = commentRepository;
         this.adminFormRepository = adminFormRepository;
         this.notificationService = notificationService;
         this.notificationRepository = notificationRepository;
         this.likeRepository = likeRepository;
+        this.adminLogService = adminLogService;
     }
 
     @Override
@@ -141,6 +144,11 @@ public class AdminCommentServiceImpl implements AdminCommentService {
                 commentRepository.save(comment);
                 successIds.add(commentId);
                 
+                // 记录审计日志
+                adminLogService.log(AdminLogType.COMMENT_APPROVE,
+                        "审核通过评论 #" + commentId, null, null,
+                        admin, null, null, commentId, null, null, null, null, null, null, null, null);
+                
                 logger.info("管理员 {} 审核通过评论 {}", admin.getUsername(), commentId);
                 
             } catch (ResourceNotFoundException e) {
@@ -197,6 +205,14 @@ public class AdminCommentServiceImpl implements AdminCommentService {
                 // 删除评论（会级联删除子评论和点赞）
                 commentRepository.delete(comment);
                 successIds.add(commentId);
+                
+                // 记录审计日志
+                String commentDeleteDefault = "删除评论 #" + commentId;
+                String commentDeleteTitle = (formTitle != null && !formTitle.trim().isEmpty())
+                        ? formTitle : commentDeleteDefault;
+                adminLogService.log(AdminLogType.COMMENT_DELETE,
+                        commentDeleteTitle, reason, extraFields,
+                        admin, null, null, commentId, null, null, null, null, null, null, null, null);
                 
                 logger.info("管理员 {} 删除评论 {}, 理由: {}", admin.getUsername(), commentId, reason);
 

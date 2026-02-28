@@ -5,6 +5,7 @@ import com.lost.blog.dto.AdminUserResponse;
 import com.lost.blog.exception.ResourceNotFoundException;
 import com.lost.blog.model.AdminForm;
 import com.lost.blog.model.AdminFormType;
+import com.lost.blog.model.AdminLogType;
 import com.lost.blog.model.Role;
 import com.lost.blog.model.User;
 import com.lost.blog.repository.AdminFormRepository;
@@ -37,16 +38,19 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final AdminFormRepository adminFormRepository;
+    private final AdminLogService adminLogService;
 
     @Autowired
     public AdminUserServiceImpl(UserRepository userRepository, 
                                PostRepository postRepository,
                                CommentRepository commentRepository,
-                               AdminFormRepository adminFormRepository) {
+                               AdminFormRepository adminFormRepository,
+                               AdminLogService adminLogService) {
         this.userRepository = userRepository;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
         this.adminFormRepository = adminFormRepository;
+        this.adminLogService = adminLogService;
     }
 
     @Override
@@ -113,6 +117,16 @@ public class AdminUserServiceImpl implements AdminUserService {
         form.setAdmin(admin);
         form.setSent(false);
         adminFormRepository.save(form);
+
+        // 记录审计日志
+        String statusText = enabled ? "启用" : "禁用";
+        String logDefault = statusText + "用户: " + user.getUsername();
+        String logTitle = (formTitle != null && !formTitle.trim().isEmpty())
+                ? formTitle : logDefault;
+        adminLogService.log(AdminLogType.USER_STATUS_CHANGE,
+                logTitle, reason, extraFields,
+                admin, null, null, null, null, null, null, null, null,
+                user.getId(), user.getUsername(), null);
 
         logger.info("User {} status updated to: {}", userId, enabled ? "enabled" : "disabled");
         return toAdminUserResponse(user);
