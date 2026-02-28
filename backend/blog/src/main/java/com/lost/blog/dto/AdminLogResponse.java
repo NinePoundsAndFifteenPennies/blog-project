@@ -32,8 +32,7 @@ public class AdminLogResponse {
     private String targetUsername;
     private Long formId;
 
-    // 来自关联表单的信息
-    private String reason;
+    // 来自关联表单的扩展信息
     private String extraFields;
 
     private LocalDateTime createdAt;
@@ -64,7 +63,6 @@ public class AdminLogResponse {
         response.setTargetUserId(log.getTargetUserId());
         response.setTargetUsername(log.getTargetUsername());
         response.setFormId(log.getFormId());
-        response.setReason(log.getDescription());
         response.setExtraFields(log.getExtraFields());
         response.setCreatedAt(log.getCreatedAt());
 
@@ -132,9 +130,6 @@ public class AdminLogResponse {
 
     public Long getFormId() { return formId; }
     public void setFormId(Long formId) { this.formId = formId; }
-
-    public String getReason() { return reason; }
-    public void setReason(String reason) { this.reason = reason; }
 
     public String getExtraFields() { return extraFields; }
     public void setExtraFields(String extraFields) { this.extraFields = extraFields; }

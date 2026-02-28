@@ -184,21 +184,12 @@
             <span class="value">表单 #{{ selectedLog.formId }}</span>
           </div>
 
-          <!-- 表单详情区域 -->
-          <div v-if="selectedLog.reason || selectedLog.extraFields" class="form-detail-section">
-            <h4 class="section-title">表单详情</h4>
-            <div v-if="selectedLog.reason" class="detail-row">
-              <span class="label">操作理由:</span>
-              <span class="value content-value">{{ selectedLog.reason }}</span>
-            </div>
-            <div v-if="parsedExtraFields.length > 0" class="detail-row">
-              <span class="label">扩展信息:</span>
-              <span class="value">
-                <div v-for="(field, index) in parsedExtraFields" :key="index" class="extra-field-item">
-                  <span class="extra-field-name">{{ field.fieldName }}:</span>
-                  <span class="extra-field-value">{{ field.fieldValue }}</span>
-                </div>
-              </span>
+          <!-- 扩展信息区域 -->
+          <div v-if="parsedExtraFields.length > 0" class="form-detail-section">
+            <h4 class="section-title">扩展信息</h4>
+            <div v-for="(field, index) in parsedExtraFields" :key="index" class="extra-field-item">
+              <span class="extra-field-name">{{ field.fieldName }}:</span>
+              <span class="extra-field-value">{{ field.fieldValue }}</span>
             </div>
           </div>
         </div>
