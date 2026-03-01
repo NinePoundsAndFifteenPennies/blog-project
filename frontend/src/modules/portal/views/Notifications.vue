@@ -397,6 +397,32 @@
                   </div>
                 </div>
 
+                <!-- 举报处理信息 -->
+                <div v-else-if="detailModalData.formType === 'REPORT_APPROVAL' || detailModalData.formType === 'REPORT_RESULT'" class="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide">举报处理信息</h4>
+                  <div class="space-y-2">
+                    <div v-if="detailModalData.postTitle" class="flex items-start">
+                      <span class="text-gray-500 w-20 flex-shrink-0">相关内容</span>
+                      <span class="text-gray-900 font-medium">{{ detailModalData.postTitle || detailModalData.commentContentPreview || '-' }}</span>
+                    </div>
+                    <div class="flex items-start">
+                      <span class="text-gray-500 w-20 flex-shrink-0">处理结果</span>
+                      <span
+                        :class="[
+                          'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+                          detailModalData.formType === 'REPORT_APPROVAL' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                        ]"
+                      >
+                        {{ detailModalData.formType === 'REPORT_APPROVAL' ? '已确认违规' : '举报已处理' }}
+                      </span>
+                    </div>
+                    <div class="flex items-start">
+                      <span class="text-gray-500 w-20 flex-shrink-0">处理时间</span>
+                      <span class="text-gray-900">{{ formatDetailTime(detailModalData.createdAt) }}</span>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- 文章信息（文章相关通知） -->
                 <div v-else class="bg-gray-50 rounded-xl p-4 space-y-3">
                   <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide">文章信息</h4>
@@ -672,6 +698,16 @@ export default {
             bgColor: 'bg-orange-100', 
             icon: '<svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>'
           }
+        case 'REPORT_RESULT':
+          return { 
+            bgColor: 'bg-indigo-100', 
+            icon: '<svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+          }
+        case 'REPORTED_CONTENT':
+          return { 
+            bgColor: 'bg-red-100', 
+            icon: '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>'
+          }
         default:
           return { 
             bgColor: 'bg-gray-100', 
@@ -706,6 +742,10 @@ export default {
           return '您创建的标签的文章关联已被移除'
         case 'TAG_DELETED':
           return '您创建的标签因违规被删除'
+        case 'REPORT_RESULT':
+          return '您的举报已处理'
+        case 'REPORTED_CONTENT':
+          return '您的内容被举报'
         default:
           return ''
       }
@@ -713,7 +753,7 @@ export default {
 
     // 判断是否为系统通知
     const isSystemNotification = (notification) => {
-      return ['POST_APPROVED', 'POST_REJECTED', 'POST_DELETED', 'COMMENT_DELETED', 'TAG_REMOVED', 'TAG_DELETED'].includes(notification.type)
+      return ['POST_APPROVED', 'POST_REJECTED', 'POST_DELETED', 'COMMENT_DELETED', 'TAG_REMOVED', 'TAG_DELETED', 'REPORT_RESULT', 'REPORTED_CONTENT'].includes(notification.type)
     }
 
     // 获取通知显示的名称
@@ -860,7 +900,9 @@ export default {
         case 'COMMENT_DELETED':
         case 'TAG_REMOVED':
         case 'TAG_DELETED':
-          // 审核拒绝、文章删除、评论删除或标签删除，打开详情弹窗
+        case 'REPORT_RESULT':
+        case 'REPORTED_CONTENT':
+          // 审核拒绝、文章删除、评论删除、标签删除或举报处理，打开详情弹窗
           openDetailModal(notification)
           break
       }
@@ -1075,6 +1117,10 @@ export default {
         formType = 'TAG_SOFT_DELETION'
       } else if (notification.type === 'TAG_DELETED') {
         formType = 'TAG_HARD_DELETION'
+      } else if (notification.type === 'REPORT_RESULT') {
+        formType = 'REPORT_RESULT'
+      } else if (notification.type === 'REPORTED_CONTENT') {
+        formType = 'REPORT_APPROVAL'
       }
       
       // 设置基本信息
@@ -1153,6 +1199,10 @@ export default {
           return '标签关联已被移除'
         case 'TAG_HARD_DELETION':
           return '标签已被删除'
+        case 'REPORT_APPROVAL':
+          return '内容被举报处理通知'
+        case 'REPORT_RESULT':
+          return '举报处理结果'
         default:
           return '文章未通过审核'
       }
@@ -1163,6 +1213,8 @@ export default {
       const formType = detailModalData.value.formType
       if (isDeleteFormType(formType)) return 'bg-red-50'
       if (formType === 'TAG_SOFT_DELETION') return 'bg-orange-50'
+      if (formType === 'REPORT_APPROVAL') return 'bg-red-50'
+      if (formType === 'REPORT_RESULT') return 'bg-indigo-50'
       return 'bg-yellow-50'
     }
 
@@ -1171,6 +1223,8 @@ export default {
       const formType = detailModalData.value.formType
       if (isDeleteFormType(formType)) return 'bg-red-100'
       if (formType === 'TAG_SOFT_DELETION') return 'bg-orange-100'
+      if (formType === 'REPORT_APPROVAL') return 'bg-red-100'
+      if (formType === 'REPORT_RESULT') return 'bg-indigo-100'
       return 'bg-yellow-100'
     }
 

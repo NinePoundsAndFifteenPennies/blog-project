@@ -172,9 +172,11 @@ public class AdminReportServiceImpl implements AdminReportService {
         notificationRepository.save(reporterNotification);
 
         // 记录审计日志
+        Long logPostId = report.getTargetType() == ReportTargetType.POST ? report.getTargetId() : null;
+        Long logCommentId = report.getTargetType() == ReportTargetType.COMMENT ? report.getTargetId() : null;
         adminLogService.log(AdminLogType.REPORT_APPROVE,
                 request.getFormTitle(), request.getReason(), request.getExtraFields(),
-                admin, null, null, null, null, null, null, null, null,
+                admin, logPostId, null, logCommentId, null, null, null, null, null,
                 report.getReportedUser().getId(), report.getReportedUser().getUsername(),
                 form.getId());
 
@@ -211,9 +213,11 @@ public class AdminReportServiceImpl implements AdminReportService {
         notificationRepository.save(notification);
 
         // 记录审计日志
+        Long logPostId = report.getTargetType() == ReportTargetType.POST ? report.getTargetId() : null;
+        Long logCommentId = report.getTargetType() == ReportTargetType.COMMENT ? report.getTargetId() : null;
         adminLogService.log(AdminLogType.REPORT_REJECT,
                 request.getFormTitle(), request.getReason(), request.getExtraFields(),
-                admin, null, null, null, null, null, null, null, null,
+                admin, logPostId, null, logCommentId, null, null, null, null, null,
                 report.getReporter().getId(), report.getReporter().getUsername(),
                 form.getId());
 

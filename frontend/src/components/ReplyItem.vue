@@ -111,7 +111,29 @@
             </svg>
             <span>回复</span>
           </button>
+
+          <!-- Report Button -->
+          <button
+            v-if="isLoggedIn && !isReplyAuthor"
+            @click="showReportDialog = true"
+            class="flex items-center space-x-1 text-gray-400 hover:text-red-500 transition-colors"
+            title="举报回复"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <span>举报</span>
+          </button>
         </div>
+
+        <!-- Report Dialog -->
+        <ReportDialog
+          :is-open="showReportDialog"
+          target-type="COMMENT"
+          :target-id="reply.id"
+          @close="showReportDialog = false"
+          @submitted="showReportDialog = false"
+        />
       </div>
     </div>
   </div>
@@ -125,11 +147,13 @@ import { marked } from 'marked'
 import { deleteComment, likeComment, unlikeComment } from '@/api/comments'
 import { getFullAvatarUrl } from '@/utils/avatar'
 import UserProfileHoverCard from './UserProfileHoverCard.vue'
+import ReportDialog from './ReportDialog.vue'
 
 export default {
   name: 'ReplyItem',
   components: {
-    UserProfileHoverCard
+    UserProfileHoverCard,
+    ReportDialog
   },
   props: {
     reply: {
@@ -150,6 +174,7 @@ export default {
     const store = useStore()
     const router = useRouter()
     const avatarLoadError = ref(false)
+    const showReportDialog = ref(false)
 
     const currentUser = computed(() => store.getters.currentUser)
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
@@ -339,6 +364,7 @@ export default {
       authorData,
       renderedContent,
       indentLevel,
+      showReportDialog,
       handleAvatarError,
       handleAvatarLoad,
       formatDate,

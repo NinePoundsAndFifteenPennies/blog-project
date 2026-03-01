@@ -243,6 +243,10 @@
                     <span class="system-info-label">待审核文章</span>
                     <span class="system-info-value system-info-warning">{{ dashboard.pendingPosts || 0 }}</span>
                   </div>
+                  <div class="system-info-item">
+                    <span class="system-info-label">待处理举报</span>
+                    <span class="system-info-value system-info-warning">{{ dashboard.pendingReports || 0 }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -604,7 +608,7 @@ import BarChart from '@/modules/admin/components/charts/BarChart.vue'
 import DoughnutChart from '@/modules/admin/components/charts/DoughnutChart.vue'
 import HorizontalBarChart from '@/modules/admin/components/charts/HorizontalBarChart.vue'
 import RadarChart from '@/modules/admin/components/charts/RadarChart.vue'
-import { getDashboard } from '@/api/admin'
+import { getDashboard, getPendingReportCount } from '@/api/admin'
 import { COLORS, createAreaDataset, createBarDataset, generateBarColors, hexToRgba, formatLargeNumber } from '@/modules/admin/utils/chartUtils'
 
 export default {
@@ -652,6 +656,7 @@ export default {
       totalCategories: 0,
       enabledUsers: 0,
       disabledUsers: 0,
+      pendingReports: 0,
       recentActivities: [],
       contentRadar: null,
     })
@@ -962,8 +967,12 @@ export default {
     const fetchDashboardData = async () => {
       dashboardLoading.value = true
       try {
-        const data = await getDashboard()
+        const [data, pendingCount] = await Promise.all([
+          getDashboard(),
+          getPendingReportCount().catch(() => 0)
+        ])
         Object.assign(dashboard, data)
+        dashboard.pendingReports = pendingCount || 0
       } catch (error) {
         console.error('获取仪表盘数据失败:', error)
       } finally {

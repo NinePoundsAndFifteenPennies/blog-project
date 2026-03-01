@@ -157,7 +157,17 @@
           </div>
           <div class="detail-row">
             <span class="label">目标ID:</span>
-            <span class="value">{{ selectedReport.targetId }}</span>
+            <span class="value">
+              <router-link
+                v-if="selectedReport.targetType === 'POST'"
+                :to="`/post/${selectedReport.targetId}`"
+                target="_blank"
+                class="link"
+              >
+                文章 #{{ selectedReport.targetId }} ↗
+              </router-link>
+              <span v-else>{{ selectedReport.targetId }}</span>
+            </span>
           </div>
           <div class="detail-row">
             <span class="label">举报人:</span>
@@ -765,6 +775,15 @@ textarea.form-input {
 }
 
 .content-link:hover {
+  text-decoration: underline;
+}
+
+.link {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.link:hover {
   text-decoration: underline;
 }
 

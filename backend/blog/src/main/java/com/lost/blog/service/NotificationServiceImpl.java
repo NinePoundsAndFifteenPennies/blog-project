@@ -59,7 +59,7 @@ public class NotificationServiceImpl implements NotificationService {
             case "messages":
                 return List.of(NotificationType.MESSAGE_RECEIVED);
             case "system":
-                return List.of(NotificationType.POST_APPROVED, NotificationType.POST_REJECTED, NotificationType.POST_DELETED, NotificationType.COMMENT_DELETED, NotificationType.TAG_REMOVED, NotificationType.TAG_DELETED);
+                return List.of(NotificationType.POST_APPROVED, NotificationType.POST_REJECTED, NotificationType.POST_DELETED, NotificationType.COMMENT_DELETED, NotificationType.TAG_REMOVED, NotificationType.TAG_DELETED, NotificationType.REPORT_RESULT, NotificationType.REPORTED_CONTENT);
             default:
                 return null; // all types
         }
@@ -162,7 +162,9 @@ public class NotificationServiceImpl implements NotificationService {
                 && notification.getType() != NotificationType.POST_DELETED
                 && notification.getType() != NotificationType.COMMENT_DELETED
                 && notification.getType() != NotificationType.TAG_REMOVED
-                && notification.getType() != NotificationType.TAG_DELETED) {
+                && notification.getType() != NotificationType.TAG_DELETED
+                && notification.getType() != NotificationType.REPORT_RESULT
+                && notification.getType() != NotificationType.REPORTED_CONTENT) {
             throw new ResourceNotFoundException("此通知类型无关联表单");
         }
 
