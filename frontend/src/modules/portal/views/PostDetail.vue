@@ -583,7 +583,8 @@ export default {
       scrollToTop,
       handleAvatarError,
       handleAvatarLoad,
-      handleCommentCountChanged
+      handleCommentCountChanged,
+      isLoggedIn
     }
   }
 }
