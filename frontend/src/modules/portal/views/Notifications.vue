@@ -421,6 +421,17 @@
                       <span class="text-gray-900">{{ formatDetailTime(detailModalData.createdAt) }}</span>
                     </div>
                   </div>
+                  <!-- 查看被举报内容按钮 -->
+                  <button
+                    v-if="detailModalData.postId"
+                    @click="goToPost(detailModalData.postId)"
+                    class="mt-2 text-sm text-primary-600 hover:text-primary-700 font-medium inline-flex items-center"
+                  >
+                    查看被举报内容
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
                 </div>
 
                 <!-- 文章信息（文章相关通知） -->
@@ -492,7 +503,7 @@
                 @click="goToPost(detailModalData.postId)"
                 class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
-                查看文章详情
+                {{ (detailModalData.formType === 'REPORT_APPROVAL' || detailModalData.formType === 'REPORT_RESULT') ? '查看被举报内容' : '查看文章详情' }}
               </button>
               <button
                 @click="closeDetailModal"
@@ -1161,6 +1172,7 @@ export default {
         if (form) {
           detailModalData.value = {
             ...detailModalData.value,
+            postId: form.postId || detailModalData.value.postId,
             postTitle: form.postTitle || detailModalData.value.postTitle,
             commentContentPreview: form.commentContentPreview || detailModalData.value.commentContentPreview,
             tagName: form.tagName || detailModalData.value.tagName,

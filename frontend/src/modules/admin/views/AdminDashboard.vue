@@ -220,32 +220,49 @@
                 </div>
                 <div class="system-info-grid">
                   <div class="system-info-item">
-                    <span class="system-info-label">标签总数</span>
-                    <span class="system-info-value">{{ dashboard.totalTags || 0 }}</span>
-                  </div>
-                  <div class="system-info-item">
-                    <span class="system-info-label">分类总数</span>
-                    <span class="system-info-value">{{ dashboard.totalCategories || 0 }}</span>
-                  </div>
-                  <div class="system-info-item">
-                    <span class="system-info-label">活跃用户</span>
-                    <span class="system-info-value system-info-success">{{ dashboard.enabledUsers || 0 }}</span>
-                  </div>
-                  <div class="system-info-item">
-                    <span class="system-info-label">禁用用户</span>
-                    <span class="system-info-value system-info-danger">{{ dashboard.disabledUsers || 0 }}</span>
-                  </div>
-                  <div class="system-info-item">
+                    <span class="system-info-icon">📝</span>
                     <span class="system-info-label">已发布文章</span>
                     <span class="system-info-value">{{ dashboard.publishedPosts || 0 }}</span>
                   </div>
                   <div class="system-info-item">
+                    <span class="system-info-icon">📋</span>
+                    <span class="system-info-label">草稿</span>
+                    <span class="system-info-value">{{ dashboard.draftPosts || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-icon">⏳</span>
                     <span class="system-info-label">待审核文章</span>
                     <span class="system-info-value system-info-warning">{{ dashboard.pendingPosts || 0 }}</span>
                   </div>
                   <div class="system-info-item">
+                    <span class="system-info-icon">🚨</span>
                     <span class="system-info-label">待处理举报</span>
                     <span class="system-info-value system-info-warning">{{ dashboard.pendingReports || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-icon">🏷️</span>
+                    <span class="system-info-label">标签总数</span>
+                    <span class="system-info-value">{{ dashboard.totalTags || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-icon">📂</span>
+                    <span class="system-info-label">分类总数</span>
+                    <span class="system-info-value">{{ dashboard.totalCategories || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-icon">✅</span>
+                    <span class="system-info-label">活跃用户</span>
+                    <span class="system-info-value system-info-success">{{ dashboard.enabledUsers || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-icon">🚫</span>
+                    <span class="system-info-label">禁用用户</span>
+                    <span class="system-info-value system-info-danger">{{ dashboard.disabledUsers || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-icon">❌</span>
+                    <span class="system-info-label">已拒绝文章</span>
+                    <span class="system-info-value system-info-danger">{{ dashboard.rejectedPosts || 0 }}</span>
                   </div>
                 </div>
               </div>
@@ -740,8 +757,8 @@ export default {
       return {
         labels,
         datasets: [{
-          label: '热度',
-          data: posts.map(p => Math.round((p.heatScore || 0) * 100) / 100),
+          label: '浏览量',
+          data: posts.map(p => p.viewCount || 0),
           backgroundColor: generateBarColors(posts.length),
           borderRadius: 4,
           borderSkipped: false,
@@ -756,12 +773,35 @@ export default {
             label: (context) => {
               const idx = context.dataIndex
               const post = dashboard.hotPosts[idx]
-              if (!post) return `热度: ${context.raw}`
+              if (!post) return `浏览量: ${context.raw}`
               return [
-                `热度: ${context.raw}`,
-                `浏览: ${post.viewCount}  点赞: ${post.likeCount}  评论: ${post.commentCount}`,
+                `浏览: ${post.viewCount}`,
+                `点赞: ${post.likeCount}  评论: ${post.commentCount}`,
+                `热度: ${Math.round((post.heatScore || 0) * 100) / 100}`,
               ]
             },
+          },
+        },
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: { color: 'rgba(0, 0, 0, 0.04)' },
+          ticks: {
+            font: { size: 11 },
+            color: '#999',
+            callback: (value) => {
+              if (value >= 10000) return (value / 10000).toFixed(1) + '万'
+              if (value >= 1000) return (value / 1000).toFixed(1) + 'k'
+              return value
+            },
+          },
+        },
+        y: {
+          grid: { display: false },
+          ticks: {
+            font: { size: 12 },
+            color: '#333',
           },
         },
       },
@@ -1227,15 +1267,15 @@ export default {
 /* System Info Grid */
 .system-info-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
   padding: 20px;
 }
 
 .system-info-item {
   background: #f8f9fc;
   border-radius: 10px;
-  padding: 16px;
+  padding: 14px 12px;
   text-align: center;
   transition: transform 0.2s;
 }
@@ -1244,16 +1284,22 @@ export default {
   transform: translateY(-1px);
 }
 
+.system-info-icon {
+  display: block;
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
 .system-info-label {
   display: block;
-  font-size: 13px;
+  font-size: 12px;
   color: #888;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .system-info-value {
   display: block;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   color: #1a1d2e;
 }
