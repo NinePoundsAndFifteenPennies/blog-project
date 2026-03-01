@@ -503,7 +503,7 @@
                 @click="goToPost(detailModalData.postId)"
                 class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
-                {{ (detailModalData.formType === 'REPORT_APPROVAL' || detailModalData.formType === 'REPORT_RESULT') ? '查看被举报内容' : '查看文章详情' }}
+                {{ isReportFormType(detailModalData.formType) ? '查看被举报内容' : '查看文章详情' }}
               </button>
               <button
                 @click="closeDetailModal"
@@ -1200,6 +1200,10 @@ export default {
       return ['DELETION', 'COMMENT_DELETION', 'TAG_HARD_DELETION'].includes(formType)
     }
 
+    const isReportFormType = (formType) => {
+      return ['REPORT_APPROVAL', 'REPORT_RESULT'].includes(formType)
+    }
+
     // 获取详情弹窗标题
     const getDetailModalTitle = () => {
       switch (detailModalData.value.formType) {
@@ -1344,6 +1348,7 @@ export default {
       parsedAffectedPosts,
       closeDetailModal,
       isDeleteFormType,
+      isReportFormType,
       getDetailModalTitle,
       getDetailModalHeaderBg,
       getDetailModalIconBg,

@@ -791,8 +791,14 @@ export default {
             font: { size: 11 },
             color: '#999',
             callback: (value) => {
-              if (value >= 10000) return (value / 10000).toFixed(1) + '万'
-              if (value >= 1000) return (value / 1000).toFixed(1) + 'k'
+              if (value >= 10000) {
+                const v = value / 10000
+                return (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + '万'
+              }
+              if (value >= 1000) {
+                const v = value / 1000
+                return (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 'k'
+              }
               return value
             },
           },
