@@ -293,6 +293,7 @@ Service 层使用接口与实现分离：
 - **PrivateMessage**: 私信消息（发送者、接收者、内容、已读状态、创建时间）
 - **Notification**: 通知（类型、触发者、接收者、关联文章、关联评论、内容、已读状态、软删除状态、创建时间），用于消息中心
 - **AdminLog**: 管理操作日志（操作类型、标题、描述、管理员、关联文章/评论/标签/分类/用户、扩展字段、创建时间），用于管理员操作审计
+- **Report**: 举报记录（举报者、目标类型、目标ID、内容预览、被举报者、举报原因、状态、关联管理表单ID、创建时间、处理时间），用于用户举报文章/评论
 
 ### 关系设计
 
@@ -313,6 +314,8 @@ Service 层使用接口与实现分离：
 - User ←─[一对一]─→ FollowVisibility（一个用户有一个可见性设置）
 - User ←─[一对多]─→ Notification（recipient，一个用户可以收到多条通知）
 - User ←─[一对多]─→ Notification（actor，一个用户可以触发多条通知）
+- User ←─[一对多]─→ Report（reporter，一个用户可以提交多条举报）
+- User ←─[一对多]─→ Report（reportedUser，一个用户可以被多次举报）
 
 ## 文件存储
 
@@ -476,6 +479,12 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 | 仪表盘服务 | `service/DashboardService.java` | 仪表盘统计接口 |
 | 仪表盘服务实现 | `service/DashboardServiceImpl.java` | 聚合多数据源生成仪表盘数据 |
 | 仪表盘DTO | `dto/DashboardResponse.java` | 仪表盘响应数据模型（含内部类 TrendItem、HotPostItem、TagCategoryItem、RecentActivityItem、ContentRadarData） |
+| 举报控制器 | `controller/ReportController.java` | 用户端举报提交 API |
+| 举报服务 | `service/ReportService.java` | 用户端举报业务逻辑（验证、防重复、提交） |
+| 举报管理服务 | `service/AdminReportService.java` | 管理端举报业务逻辑（搜索、处理、通知） |
+| 举报实体 | `model/Report.java` | 举报数据模型（含状态枚举、目标类型枚举） |
+| 举报DTO | `dto/Report*.java` / `dto/AdminReport*.java` | 举报请求/响应数据模型 |
+| 举报仓储 | `repository/ReportRepository.java` | 举报数据访问（多条件搜索、重复检测、计数） |
 | 用户管理DTO | `dto/AdminUser*.java` | 用户管理请求/响应数据模型 |
 | 评论管理DTO | `dto/AdminComment*.java` | 评论管理请求/响应数据模型 |
 | 标签管理DTO | `dto/AdminTag*.java` | 标签管理请求/响应数据模型 |
@@ -501,6 +510,9 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 | 评论管理 | `modules/admin/views/AdminCommentManagement.vue` | 评论管理页面（审核、删除、通知表单） |
 | 标签管理 | `modules/admin/views/AdminTagManagement.vue` | 标签管理页面（CRUD、图标选择器、软/硬删除、通知表单） |
 | 操作日志 | `modules/admin/views/AdminLogManagement.vue` | 操作日志页面（多条件搜索、分页列表、详情卡片、扩展信息） |
+| 举报对话框 | `components/ReportDialog.vue` | 用户端举报弹窗组件（文章/评论/回复通用） |
+| 举报管理 | `modules/admin/views/AdminReportManagement.vue` | 举报管理页面（搜索、详情、处理表单、分页） |
+| 举报API（用户端） | `api/reports.js` | 用户端举报 API 封装 |
 | 路由配置 | `modules/admin/router.js` | 管理后台路由配置 |
 | 导航组件 | `components/Header.vue` | 管理后台入口（仅管理员可见） |
 
@@ -522,6 +534,7 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 │  - 媒体库    │  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐         │
 │  - 用户管理  │  │用户数 │ │文章数 │ │评论数 │ │浏览量 │         │
 │  - 操作日志  │  └──────┘ └──────┘ └──────┘ └──────┘         │
+│  - 举报管理  │                                                │
 │  - 系统设置  │                                                │
 │             │                                                │
 │             │  ┌─────────────┐  ┌─────────────┐             │
@@ -556,6 +569,7 @@ active:user:{userId}  # 值: "1", TTL: 900秒(15分钟)
 | 媒体库 | 图片网格 | 媒体文件预览 |
 | 用户管理 | 搜索表单 + 表格 | 多条件搜索、用户列表、启用/禁用（含表单弹窗）、批量操作 |
 | 操作日志 | 搜索表单 + 表格 | 操作类型筛选、管理员/标题搜索、日期范围过滤、详情卡片（含扩展信息） |
+| 举报管理 | 搜索表单 + 表格 | 多条件筛选（状态/类型/用户名/日期）、举报列表、详情弹窗、处理表单（通过/驳回）、分页 |
 | 系统设置 | 表单 | 输入框、开关组件 |
 
 ### 代码组织规范
