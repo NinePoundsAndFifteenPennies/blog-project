@@ -220,28 +220,49 @@
                 </div>
                 <div class="system-info-grid">
                   <div class="system-info-item">
-                    <span class="system-info-label">标签总数</span>
-                    <span class="system-info-value">{{ dashboard.totalTags || 0 }}</span>
-                  </div>
-                  <div class="system-info-item">
-                    <span class="system-info-label">分类总数</span>
-                    <span class="system-info-value">{{ dashboard.totalCategories || 0 }}</span>
-                  </div>
-                  <div class="system-info-item">
-                    <span class="system-info-label">活跃用户</span>
-                    <span class="system-info-value system-info-success">{{ dashboard.enabledUsers || 0 }}</span>
-                  </div>
-                  <div class="system-info-item">
-                    <span class="system-info-label">禁用用户</span>
-                    <span class="system-info-value system-info-danger">{{ dashboard.disabledUsers || 0 }}</span>
-                  </div>
-                  <div class="system-info-item">
+                    <span class="system-info-icon">📝</span>
                     <span class="system-info-label">已发布文章</span>
                     <span class="system-info-value">{{ dashboard.publishedPosts || 0 }}</span>
                   </div>
                   <div class="system-info-item">
+                    <span class="system-info-icon">📋</span>
+                    <span class="system-info-label">草稿</span>
+                    <span class="system-info-value">{{ dashboard.draftPosts || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-icon">⏳</span>
                     <span class="system-info-label">待审核文章</span>
                     <span class="system-info-value system-info-warning">{{ dashboard.pendingPosts || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-icon">🚨</span>
+                    <span class="system-info-label">待处理举报</span>
+                    <span class="system-info-value system-info-warning">{{ dashboard.pendingReports || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-icon">🏷️</span>
+                    <span class="system-info-label">标签总数</span>
+                    <span class="system-info-value">{{ dashboard.totalTags || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-icon">📂</span>
+                    <span class="system-info-label">分类总数</span>
+                    <span class="system-info-value">{{ dashboard.totalCategories || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-icon">✅</span>
+                    <span class="system-info-label">活跃用户</span>
+                    <span class="system-info-value system-info-success">{{ dashboard.enabledUsers || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-icon">🚫</span>
+                    <span class="system-info-label">禁用用户</span>
+                    <span class="system-info-value system-info-danger">{{ dashboard.disabledUsers || 0 }}</span>
+                  </div>
+                  <div class="system-info-item">
+                    <span class="system-info-icon">❌</span>
+                    <span class="system-info-label">已拒绝文章</span>
+                    <span class="system-info-value system-info-danger">{{ dashboard.rejectedPosts || 0 }}</span>
                   </div>
                 </div>
               </div>
@@ -604,7 +625,7 @@ import BarChart from '@/modules/admin/components/charts/BarChart.vue'
 import DoughnutChart from '@/modules/admin/components/charts/DoughnutChart.vue'
 import HorizontalBarChart from '@/modules/admin/components/charts/HorizontalBarChart.vue'
 import RadarChart from '@/modules/admin/components/charts/RadarChart.vue'
-import { getDashboard } from '@/api/admin'
+import { getDashboard, getPendingReportCount } from '@/api/admin'
 import { COLORS, createAreaDataset, createBarDataset, generateBarColors, hexToRgba, formatLargeNumber } from '@/modules/admin/utils/chartUtils'
 
 export default {
@@ -652,6 +673,7 @@ export default {
       totalCategories: 0,
       enabledUsers: 0,
       disabledUsers: 0,
+      pendingReports: 0,
       recentActivities: [],
       contentRadar: null,
     })
@@ -701,6 +723,7 @@ export default {
       { id: 'categories', path: '/admin/categories', label: '分类管理', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>' },
       { id: 'tags', path: '/admin/tags', label: '标签管理', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>' },
       { id: 'comments', path: '/admin/comments', label: '评论管理', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>' },
+      { id: 'reports', path: '/admin/reports', label: '举报管理', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01M5.07 19H19a2 2 0 001.75-2.97L13.75 4a2 2 0 00-3.5 0L3.32 16.03A2 2 0 005.07 19z"/></svg>' },
       { id: 'logs', path: '/admin/logs', label: '操作日志', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>' },
       { id: 'media', label: '媒体库', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>' },
       { id: 'users', path: '/admin/users', label: '用户管理', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>' },
@@ -734,8 +757,8 @@ export default {
       return {
         labels,
         datasets: [{
-          label: '热度',
-          data: posts.map(p => Math.round((p.heatScore || 0) * 100) / 100),
+          label: '浏览量',
+          data: posts.map(p => p.viewCount || 0),
           backgroundColor: generateBarColors(posts.length),
           borderRadius: 4,
           borderSkipped: false,
@@ -750,12 +773,41 @@ export default {
             label: (context) => {
               const idx = context.dataIndex
               const post = dashboard.hotPosts[idx]
-              if (!post) return `热度: ${context.raw}`
+              if (!post) return `浏览量: ${context.raw}`
               return [
-                `热度: ${context.raw}`,
-                `浏览: ${post.viewCount}  点赞: ${post.likeCount}  评论: ${post.commentCount}`,
+                `浏览: ${post.viewCount}`,
+                `点赞: ${post.likeCount}  评论: ${post.commentCount}`,
+                `热度: ${Math.round((post.heatScore || 0) * 100) / 100}`,
               ]
             },
+          },
+        },
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: { color: 'rgba(0, 0, 0, 0.04)' },
+          ticks: {
+            font: { size: 11 },
+            color: '#999',
+            callback: (value) => {
+              if (value >= 10000) {
+                const v = value / 10000
+                return (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + '万'
+              }
+              if (value >= 1000) {
+                const v = value / 1000
+                return (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 'k'
+              }
+              return value
+            },
+          },
+        },
+        y: {
+          grid: { display: false },
+          ticks: {
+            font: { size: 12 },
+            color: '#333',
           },
         },
       },
@@ -961,8 +1013,15 @@ export default {
     const fetchDashboardData = async () => {
       dashboardLoading.value = true
       try {
-        const data = await getDashboard()
+        const [data, pendingCount] = await Promise.all([
+          getDashboard(),
+          getPendingReportCount().catch(err => {
+            console.error('获取待处理举报数失败:', err)
+            return 0
+          })
+        ])
         Object.assign(dashboard, data)
+        dashboard.pendingReports = pendingCount || 0
       } catch (error) {
         console.error('获取仪表盘数据失败:', error)
       } finally {
@@ -1214,15 +1273,15 @@ export default {
 /* System Info Grid */
 .system-info-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
   padding: 20px;
 }
 
 .system-info-item {
   background: #f8f9fc;
   border-radius: 10px;
-  padding: 16px;
+  padding: 14px 12px;
   text-align: center;
   transition: transform 0.2s;
 }
@@ -1231,16 +1290,22 @@ export default {
   transform: translateY(-1px);
 }
 
+.system-info-icon {
+  display: block;
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
 .system-info-label {
   display: block;
-  font-size: 13px;
+  font-size: 12px;
   color: #888;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .system-info-value {
   display: block;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   color: #1a1d2e;
 }

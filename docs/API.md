@@ -2877,6 +2877,8 @@ Authorization: Bearer {token}
 | COMMENT_DELETED | 评论被删除（系统通知） |
 | TAG_REMOVED | 标签文章关联被移除（系统通知，软删除） |
 | TAG_DELETED | 标签被删除（系统通知，硬删除） |
+| REPORT_RESULT | 举报处理结果通知（系统通知，发给举报者） |
+| REPORTED_CONTENT | 被举报通知（系统通知，举报通过时发给被举报者） |
 
 ---
 
@@ -3084,6 +3086,22 @@ Authorization: Bearer {token}
 | TAG_HARD_DELETION | 标签删除（硬删除） |
 | CATEGORY_DELETION | 分类删除 |
 | USER_STATUS_CHANGE | 用户状态变更（启用/禁用） |
+| REPORT_APPROVAL | 举报通过处理 |
+| REPORT_REJECTION | 举报驳回处理 |
+```
+
+举报处理表单（REPORT_APPROVAL/REPORT_REJECTION）：
+```json
+{
+  "id": 12,
+  "formType": "REPORT_APPROVAL",
+  "title": "举报处理通知",
+  "reason": "经核实，该内容违反社区规范",
+  "extraFields": null,
+  "postId": 5,
+  "postTitle": "被举报文章的标题",
+  "createdAt": "2024-01-15T12:00:00"
+}
 ```
 
 **错误响应:**
@@ -3091,3 +3109,47 @@ Authorization: Bearer {token}
 - `404 Not Found` - 关联的表单不存在
 
 > 注：此接口用于文章删除、评论删除、标签删除后，用户查看处理原因的场景。标签软删除表单包含 `affectedPosts` 字段，记录了受影响的文章列表。
+
+---
+
+## 举报相关接口
+
+### 提交举报
+
+用户举报文章或评论。不允许举报自己的内容，同一用户对同一目标不能重复提交待处理的举报。
+
+```http
+POST /api/reports
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体:**
+```json
+{
+  "targetType": "POST",
+  "targetId": 5,
+  "reason": "该文章包含不实信息"
+}
+```
+
+**参数说明:**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| targetType | string | 是 | 举报目标类型：`POST`（文章）或 `COMMENT`（评论） |
+| targetId | long | 是 | 举报目标ID |
+| reason | string | 是 | 举报原因（最多500个字符） |
+
+**成功响应:** `200 OK`
+```json
+"举报提交成功，我们将尽快处理"
+```
+
+**错误响应:**
+- `400 Bad Request` - 参数验证失败（类型为空、目标ID为空、原因为空或超长）
+- `400 Bad Request` - 不能举报自己的内容
+- `400 Bad Request` - 已存在对该内容的待处理举报
+- `404 Not Found` - 举报目标不存在
+
+> 注：举报处理后，系统会以"系统管理员"的名义给被举报者发送 `REPORTED_CONTENT` 类型的通知（仅举报通过时），同时给举报者发送 `REPORT_RESULT` 类型的通知。这些通知归类在"系统"过滤器下，用户可以在通知详情中查看处理表单。

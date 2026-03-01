@@ -77,5 +77,15 @@ public enum AdminLogType {
     /**
      * 用户状态变更
      */
-    USER_STATUS_CHANGE
+    USER_STATUS_CHANGE,
+
+    /**
+     * 举报通过
+     */
+    REPORT_APPROVE,
+
+    /**
+     * 举报驳回
+     */
+    REPORT_REJECT
 }

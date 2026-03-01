@@ -617,7 +617,10 @@ export default {
         case 'COMMENT_DELETED':
         case 'TAG_REMOVED':
         case 'TAG_DELETED':
+        case 'REPORTED_CONTENT':
           return 'bg-red-100'
+        case 'REPORT_RESULT':
+          return 'bg-indigo-100'
         default:
           return 'bg-gray-100'
       }
@@ -646,6 +649,10 @@ export default {
           return '<svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>'
         case 'TAG_REMOVED':
           return '<svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>'
+        case 'REPORT_RESULT':
+          return '<svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+        case 'REPORTED_CONTENT':
+          return '<svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>'
         default:
           return '<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>'
       }
@@ -677,6 +684,10 @@ export default {
           return '您创建的标签的文章关联已被移除'
         case 'TAG_DELETED':
           return '您创建的标签因违规被删除'
+        case 'REPORT_RESULT':
+          return '您的举报已处理'
+        case 'REPORTED_CONTENT':
+          return '您的内容被举报'
         default:
           return ''
       }
@@ -684,7 +695,7 @@ export default {
     
     // 判断是否为系统通知
     const isSystemNotification = (notification) => {
-      return ['POST_APPROVED', 'POST_REJECTED', 'POST_DELETED', 'COMMENT_DELETED', 'TAG_REMOVED', 'TAG_DELETED'].includes(notification.type)
+      return ['POST_APPROVED', 'POST_REJECTED', 'POST_DELETED', 'COMMENT_DELETED', 'TAG_REMOVED', 'TAG_DELETED', 'REPORT_RESULT', 'REPORTED_CONTENT'].includes(notification.type)
     }
     
     // 获取通知显示的名称
@@ -810,7 +821,9 @@ export default {
         case 'COMMENT_DELETED':
         case 'TAG_REMOVED':
         case 'TAG_DELETED':
-          // 审核拒绝或删除，跳转到通知页面的系统标签（在那里可以查看详情弹窗）
+        case 'REPORT_RESULT':
+        case 'REPORTED_CONTENT':
+          // 审核拒绝或删除或举报，跳转到通知页面的系统标签（在那里可以查看详情弹窗）
           router.push({
             path: '/notifications',
             query: { 

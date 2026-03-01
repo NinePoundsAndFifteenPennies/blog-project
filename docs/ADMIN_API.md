@@ -1284,6 +1284,8 @@ Content-Type: application/json
 | CATEGORY_ASSIGN_POST | 分类添加文章 |
 | CATEGORY_REMOVE_POST | 分类移除文章 |
 | USER_STATUS_CHANGE | 用户状态变更 |
+| REPORT_APPROVE | 举报通过 |
+| REPORT_REJECT | 举报驳回 |
 
 ### 获取操作日志列表
 
@@ -1408,6 +1410,209 @@ Authorization: Bearer {admin-token}
 
 **错误响应:**
 - `404 Not Found` - 日志不存在
+
+---
+
+## 举报管理
+
+管理员可以查看、搜索和处理用户提交的举报。处理举报时需要填写表单（标题+理由），系统会自动记录操作日志并发送通知。
+
+### 举报状态说明
+
+| 状态 | 说明 |
+|------|------|
+| PENDING | 待处理 |
+| APPROVED | 举报通过（已确认违规） |
+| REJECTED | 举报驳回（未确认违规） |
+
+### 举报目标类型
+
+| 类型 | 说明 |
+|------|------|
+| POST | 文章 |
+| COMMENT | 评论 |
+
+### 获取举报列表
+
+获取举报列表，支持分页和多条件搜索。
+
+```http
+GET /api/admin/reports
+Authorization: Bearer {admin-token}
+```
+
+**查询参数:**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| page | int | 否 | 页码（从0开始），默认0 |
+| size | int | 否 | 每页数量，默认10 |
+| status | string | 否 | 举报状态过滤（PENDING/APPROVED/REJECTED） |
+| targetType | string | 否 | 举报目标类型过滤（POST/COMMENT） |
+| reporterUsername | string | 否 | 举报者用户名搜索（模糊匹配） |
+| reportedUsername | string | 否 | 被举报者用户名搜索（模糊匹配） |
+| startDate | string | 否 | 开始日期（yyyy-MM-dd） |
+| endDate | string | 否 | 结束日期（yyyy-MM-dd） |
+
+**成功响应:** `200 OK`
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "targetType": "POST",
+      "targetId": 5,
+      "targetContentPreview": "文章标题或内容前200字...",
+      "reason": "该文章包含不实信息",
+      "status": "PENDING",
+      "reporterId": 3,
+      "reporterUsername": "user1",
+      "reporterNickname": "用户一",
+      "reporterAvatarUrl": "/api/files/avatars/3/xxx.jpg",
+      "reportedUserId": 7,
+      "reportedUsername": "user2",
+      "reportedNickname": "用户二",
+      "reportedAvatarUrl": "/api/files/avatars/7/xxx.jpg",
+      "adminFormId": null,
+      "createdAt": "2024-01-15T12:00:00",
+      "processedAt": null
+    }
+  ],
+  "totalElements": 10,
+  "totalPages": 1,
+  "size": 10,
+  "number": 0
+}
+```
+
+---
+
+### 获取举报详情
+
+获取单条举报的详细信息。
+
+```http
+GET /api/admin/reports/{id}
+Authorization: Bearer {admin-token}
+```
+
+**成功响应:** `200 OK`
+```json
+{
+  "id": 1,
+  "targetType": "POST",
+  "targetId": 5,
+  "targetContentPreview": "文章标题或内容前200字...",
+  "reason": "该文章包含不实信息",
+  "status": "APPROVED",
+  "reporterId": 3,
+  "reporterUsername": "user1",
+  "reporterNickname": "用户一",
+  "reporterAvatarUrl": "/api/files/avatars/3/xxx.jpg",
+  "reportedUserId": 7,
+  "reportedUsername": "user2",
+  "reportedNickname": "用户二",
+  "reportedAvatarUrl": "/api/files/avatars/7/xxx.jpg",
+  "adminFormId": 12,
+  "createdAt": "2024-01-15T12:00:00",
+  "processedAt": "2024-01-15T14:00:00"
+}
+```
+
+**响应字段说明:**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | long | 举报ID |
+| targetType | string | 举报目标类型（POST/COMMENT） |
+| targetId | long | 举报目标ID |
+| targetContentPreview | string | 目标内容预览（文章标题或评论内容前200字） |
+| reason | string | 举报原因 |
+| status | string | 举报状态（PENDING/APPROVED/REJECTED） |
+| reporterId | long | 举报者ID |
+| reporterUsername | string | 举报者用户名 |
+| reporterNickname | string | 举报者昵称 |
+| reporterAvatarUrl | string | 举报者头像URL |
+| reportedUserId | long | 被举报者ID |
+| reportedUsername | string | 被举报者用户名 |
+| reportedNickname | string | 被举报者昵称 |
+| reportedAvatarUrl | string | 被举报者头像URL |
+| adminFormId | long | 关联管理表单ID（处理后才有值） |
+| createdAt | string | 举报提交时间 |
+| processedAt | string | 处理时间（处理后才有值） |
+
+**错误响应:**
+- `404 Not Found` - 举报不存在
+
+---
+
+### 处理举报（通过/驳回）
+
+管理员处理举报，需要填写表单标题和理由。处理后系统会自动发送通知并记录操作日志。
+
+```http
+POST /api/admin/reports/action
+Authorization: Bearer {admin-token}
+Content-Type: application/json
+```
+
+**请求体:**
+```json
+{
+  "action": "APPROVE",
+  "reportId": 1,
+  "formTitle": "举报处理通知",
+  "reason": "经核实，该内容违反社区规范",
+  "extraFields": "[{\"fieldName\":\"违规类型\",\"fieldValue\":\"虚假信息\"}]"
+}
+```
+
+**参数说明:**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| action | string | 是 | 操作类型：`APPROVE`（通过）或 `REJECT`（驳回） |
+| reportId | long | 是 | 举报ID |
+| formTitle | string | 是 | 表单标题（最多100个字符） |
+| reason | string | 是 | 处理理由 |
+| extraFields | string | 否 | 扩展字段，JSON数组格式：`[{"fieldName":"字段名","fieldValue":"字段值"}]` |
+
+**成功响应:** `200 OK`
+```json
+"举报已通过处理"
+```
+或
+```json
+"举报已驳回处理"
+```
+
+**处理流程:**
+
+| 操作 | 通知对象 | 通知类型 | 说明 |
+|------|----------|----------|------|
+| APPROVE（通过） | 被举报者 | REPORTED_CONTENT | 以"系统管理员"名义通知被举报者内容违规 |
+| APPROVE（通过） | 举报者 | REPORT_RESULT | 通知举报者举报已通过 |
+| REJECT（驳回） | 举报者 | REPORT_RESULT | 通知举报者举报未通过 |
+
+**错误响应:**
+- `400 Bad Request` - 参数验证失败（操作类型为空、举报ID为空、表单标题为空、理由为空）
+- `404 Not Found` - 举报不存在
+
+---
+
+### 获取待处理举报数量
+
+获取当前待处理（PENDING状态）的举报总数，用于仪表盘显示。
+
+```http
+GET /api/admin/reports/pending/count
+Authorization: Bearer {admin-token}
+```
+
+**成功响应:** `200 OK`
+```json
+5
+```
 
 ---
 

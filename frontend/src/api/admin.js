@@ -516,3 +516,80 @@ export async function getAdminLogDetail(logId) {
     });
     return response;
 }
+
+// ======================= 举报管理 API =======================
+
+/**
+ * 获取举报列表（支持分页和多条件搜索）
+ * @param {Object} params - 查询参数
+ * @param {number} params.page - 页码（从0开始）
+ * @param {number} params.size - 每页数量
+ * @param {string} params.status - 举报状态过滤（可选）
+ * @param {string} params.targetType - 举报类型过滤（可选）
+ * @param {string} params.reporterUsername - 举报者用户名搜索（可选）
+ * @param {string} params.reportedUsername - 被举报者用户名搜索（可选）
+ * @param {string} params.startDate - 开始日期 yyyy-MM-dd（可选）
+ * @param {string} params.endDate - 结束日期 yyyy-MM-dd（可选）
+ * @returns {Promise<Object>} - 返回分页举报列表
+ */
+export async function getAdminReports(params = {}) {
+    const response = await request({
+        url: "/admin/reports",
+        method: "get",
+        params: {
+            page: params.page || 0,
+            size: params.size || 10,
+            status: params.status || undefined,
+            targetType: params.targetType || undefined,
+            reporterUsername: params.reporterUsername || undefined,
+            reportedUsername: params.reportedUsername || undefined,
+            startDate: params.startDate || undefined,
+            endDate: params.endDate || undefined,
+        },
+    });
+    return response;
+}
+
+/**
+ * 获取举报详情
+ * @param {number} reportId - 举报ID
+ * @returns {Promise<Object>} - 返回举报详情
+ */
+export async function getAdminReportDetail(reportId) {
+    const response = await request({
+        url: `/admin/reports/${reportId}`,
+        method: "get",
+    });
+    return response;
+}
+
+/**
+ * 处理举报（通过/驳回）
+ * @param {Object} data - 处理数据
+ * @param {string} data.action - 操作类型: APPROVE, REJECT
+ * @param {number} data.reportId - 举报ID
+ * @param {string} data.formTitle - 表单标题
+ * @param {string} data.reason - 处理理由
+ * @param {string} data.extraFields - 扩展字段JSON（可选）
+ * @returns {Promise<Object>}
+ */
+export async function executeReportAction(data) {
+    const response = await request({
+        url: "/admin/reports/action",
+        method: "post",
+        data,
+    });
+    return response;
+}
+
+/**
+ * 获取待处理举报数量
+ * @returns {Promise<number>}
+ */
+export async function getPendingReportCount() {
+    const response = await request({
+        url: "/admin/reports/pending/count",
+        method: "get",
+    });
+    return response;
+}

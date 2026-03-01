@@ -113,6 +113,18 @@
             <span>{{ showReplies ? '收起回复' : `查看 ${displayReplyCount} 条回复` }}</span>
           </button>
 
+          <button
+              v-if="isLoggedIn && !isCommentAuthor"
+              @click="showReportDialog = true"
+              class="flex items-center space-x-1 text-gray-400 hover:text-red-500 transition-colors"
+              title="举报评论"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <span>举报</span>
+          </button>
+
           <router-link
               v-if="comment.postId && comment.postTitle && showPostLink"
               :to="`/post/${comment.postId}`"
@@ -135,6 +147,15 @@
             @reply-count-changed="handleReplyCountChanged"
             @reply-clicked="handleReplyToReply"
         />
+
+        <!-- Report Dialog -->
+        <ReportDialog
+          :is-open="showReportDialog"
+          target-type="COMMENT"
+          :target-id="comment.id"
+          @close="showReportDialog = false"
+          @submitted="showReportDialog = false"
+        />
       </div>
     </div>
   </div>
@@ -149,12 +170,14 @@ import { deleteComment, likeComment, unlikeComment } from '@/api/comments'
 import { getFullAvatarUrl } from '@/utils/avatar'
 import ReplyList from './ReplyList.vue'
 import UserProfileHoverCard from './UserProfileHoverCard.vue'
+import ReportDialog from './ReportDialog.vue'
 
 export default {
   name: 'CommentItem',
   components: {
     ReplyList,
-    UserProfileHoverCard
+    UserProfileHoverCard,
+    ReportDialog
   },
   props: {
     comment: {
@@ -186,6 +209,7 @@ export default {
     const showReplies = ref(props.autoExpand) // Auto-expand if prop is true
     const replyListRef = ref(null)
     const localReplyCount = ref(props.comment.replyCount || 0)
+    const showReportDialog = ref(false)
 
     const currentUser = computed(() => store.getters.currentUser)
     const isLoggedIn = computed(() => store.getters.isLoggedIn)
@@ -391,6 +415,7 @@ export default {
       replyListRef,
       localReplyCount,
       displayReplyCount,
+      showReportDialog,
       handleAvatarError,
       handleAvatarLoad,
       formatDate,
