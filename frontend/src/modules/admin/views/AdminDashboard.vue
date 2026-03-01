@@ -969,7 +969,10 @@ export default {
       try {
         const [data, pendingCount] = await Promise.all([
           getDashboard(),
-          getPendingReportCount().catch(() => 0)
+          getPendingReportCount().catch(err => {
+            console.error('获取待处理举报数失败:', err)
+            return 0
+          })
         ])
         Object.assign(dashboard, data)
         dashboard.pendingReports = pendingCount || 0

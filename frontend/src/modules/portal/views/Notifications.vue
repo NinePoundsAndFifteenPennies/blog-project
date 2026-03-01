@@ -401,9 +401,9 @@
                 <div v-else-if="detailModalData.formType === 'REPORT_APPROVAL' || detailModalData.formType === 'REPORT_RESULT'" class="bg-gray-50 rounded-xl p-4 space-y-3">
                   <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide">举报处理信息</h4>
                   <div class="space-y-2">
-                    <div v-if="detailModalData.postTitle" class="flex items-start">
+                    <div v-if="detailModalData.postTitle || detailModalData.commentContentPreview" class="flex items-start">
                       <span class="text-gray-500 w-20 flex-shrink-0">相关内容</span>
-                      <span class="text-gray-900 font-medium">{{ detailModalData.postTitle || detailModalData.commentContentPreview || '-' }}</span>
+                      <span class="text-gray-900 font-medium">{{ detailModalData.postTitle || detailModalData.commentContentPreview }}</span>
                     </div>
                     <div class="flex items-start">
                       <span class="text-gray-500 w-20 flex-shrink-0">处理结果</span>
