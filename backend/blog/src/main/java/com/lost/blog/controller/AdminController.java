@@ -135,8 +135,10 @@ public class AdminController {
      */
     @GetMapping("/dashboard")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails currentUser) {
-        return ResponseEntity.ok(dashboardService.getDashboardData(currentUser.getUsername()));
+    public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails currentUser,
+                                          @RequestParam(required = false) String month,
+                                          @RequestParam(defaultValue = "day") String granularity) {
+        return ResponseEntity.ok(dashboardService.getDashboardData(currentUser.getUsername(), month, granularity));
     }
 
     // ======================= 用户管理接口 =======================

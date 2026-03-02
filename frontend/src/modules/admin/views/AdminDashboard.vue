@@ -71,6 +71,21 @@
               />
             </div>
 
+            <div class="trend-controls">
+              <div class="trend-controls-group">
+                <label class="trend-label">趋势粒度</label>
+                <select v-model="trendGranularity" class="trend-select">
+                  <option value="day">按天</option>
+                  <option value="month">按月</option>
+                </select>
+              </div>
+              <div class="trend-controls-group">
+                <label class="trend-label">指定月份</label>
+                <input v-model="selectedMonth" type="month" class="trend-month-input" />
+              </div>
+              <button class="trend-reset-btn" @click="resetTrendFilters">最近30天</button>
+            </div>
+
             <!-- Charts Row 1: User Growth + Post Publish Trend -->
             <div class="charts-row">
               <div class="chart-card chart-card-interactive" @click="openChartDetail('userTrend')">
@@ -614,7 +629,7 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import AdminLayout from '@/layouts/AdminLayout.vue'
@@ -647,6 +662,8 @@ export default {
     const currentFilter = ref('all')
     const currentCommentFilter = ref('all')
     const dashboardLoading = ref(true)
+    const selectedMonth = ref('')
+    const trendGranularity = ref('day')
 
     // ======================= Dashboard Data =======================
     const dashboard = reactive({
@@ -888,10 +905,10 @@ export default {
 
     // ======================= Chart Detail Modal =======================
     const chartDetailConfig = {
-      userTrend: { title: '📈 用户增长趋势', subtitle: '最近30天用户注册数据详细分析' },
-      postTrend: { title: '📊 文章发布趋势', subtitle: '最近30天文章发布数据详细分析' },
-      commentTrend: { title: '💬 评论活跃度', subtitle: '最近30天评论数据详细分析' },
-      viewTrend: { title: '👁 浏览量趋势', subtitle: '最近30天浏览数据详细分析' },
+      userTrend: { title: '📈 用户增长趋势', subtitle: '用户注册趋势数据详细分析' },
+      postTrend: { title: '📊 文章发布趋势', subtitle: '文章发布趋势数据详细分析' },
+      commentTrend: { title: '💬 评论活跃度', subtitle: '评论趋势数据详细分析' },
+      viewTrend: { title: '👁 浏览量趋势', subtitle: '浏览趋势数据详细分析' },
       hotPosts: { title: '🔥 热门文章 TOP10', subtitle: '按热度公式排序（综合浏览量、点赞数、评论数及时间衰减）' },
       postStatus: { title: '📋 文章状态分布', subtitle: '各状态文章数量详细统计' },
       radar: { title: '🎯 内容质量分析', subtitle: '基于多维度指标的内容质量综合评分' },
@@ -1014,7 +1031,10 @@ export default {
       dashboardLoading.value = true
       try {
         const [data, pendingCount] = await Promise.all([
-          getDashboard(),
+          getDashboard({
+            month: selectedMonth.value || undefined,
+            granularity: trendGranularity.value,
+          }),
           getPendingReportCount().catch(err => {
             console.error('获取待处理举报数失败:', err)
             return 0
@@ -1034,6 +1054,13 @@ export default {
       fetchDashboardData()
     })
 
+    watch([selectedMonth, trendGranularity], fetchDashboardData)
+
+    const resetTrendFilters = () => {
+      selectedMonth.value = ''
+      trendGranularity.value = 'day'
+    }
+
     onUnmounted(() => {
       if (typingInterval) {
         clearInterval(typingInterval)
@@ -1050,6 +1077,9 @@ export default {
       icons,
       dashboard,
       dashboardLoading,
+      selectedMonth,
+      trendGranularity,
+      resetTrendFilters,
       // Chart data
       userTrendChartData,
       postTrendChartData,
@@ -1097,6 +1127,45 @@ export default {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 20px;
   margin-bottom: 24px;
+}
+
+.trend-controls {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.trend-controls-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trend-label {
+  font-size: 12px;
+  color: #666;
+}
+
+.trend-select,
+.trend-month-input {
+  height: 36px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 13px;
+  background: #fff;
+}
+
+.trend-reset-btn {
+  height: 36px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 12px;
+  font-size: 13px;
+  cursor: pointer;
 }
 
 /* Charts Layout */
