@@ -15,5 +15,5 @@ public interface DashboardService {
      * @param adminUsername 当前管理员用户名
      * @return 仪表盘数据
      */
-    DashboardResponse getDashboardData(String adminUsername);
+    DashboardResponse getDashboardData(String adminUsername, String month, String granularity);
 }

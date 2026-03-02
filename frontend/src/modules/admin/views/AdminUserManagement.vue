@@ -288,7 +288,7 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { getUsers, getUserDetail, updateUserStatus } from '@/api/admin'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
@@ -299,6 +299,7 @@ export default {
   },
   setup() {
     const store = useStore()
+    const route = useRoute()
     const router = useRouter()
 
     // ======================= User Management State =======================
@@ -417,6 +418,13 @@ export default {
       }
       userPagination.value.page = 0
       loadUsers()
+    }
+
+    const applyRouteFilters = () => {
+      const enabled = route.query.enabled
+      if (enabled === 'true' || enabled === 'false') {
+        userSearchForm.value.enabled = enabled
+      }
     }
 
     const changeUserPage = (newPage) => {
@@ -571,6 +579,7 @@ export default {
     }
 
     onMounted(() => {
+      applyRouteFilters()
       loadUsers()
     })
 

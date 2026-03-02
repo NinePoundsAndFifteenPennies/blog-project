@@ -19,10 +19,14 @@ export async function getCurrentAdmin() {
  * 获取管理员仪表盘数据
  * @returns {Promise<Object>} - 返回仪表盘数据
  */
-export async function getDashboard() {
+export async function getDashboard(params = {}) {
     const response = await request({
         url: "/admin/dashboard",
         method: "get",
+        params: {
+            month: params.month || undefined,
+            granularity: params.granularity || undefined,
+        },
     });
     return response;
 }

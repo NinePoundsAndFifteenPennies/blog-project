@@ -332,7 +332,7 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { getPosts, getPostDetail, executePostAction } from '@/api/admin'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
@@ -343,6 +343,7 @@ export default {
   },
   setup() {
     const store = useStore()
+    const route = useRoute()
     const router = useRouter()
 
     // ======================= Post Management State =======================
@@ -538,6 +539,14 @@ export default {
       loadPosts()
     }
 
+    const applyRouteFilters = () => {
+      const status = route.query.status
+      const validStatuses = ['DRAFT', 'PENDING_REVIEW', 'PUBLISHED', 'REJECTED', 'PENDING_REVISION']
+      if (typeof status === 'string' && validStatuses.includes(status)) {
+        postSearchForm.value.status = status
+      }
+    }
+
     const changePostPage = (newPage) => {
       postPagination.value.page = newPage
       loadPosts()
@@ -683,6 +692,7 @@ export default {
     }
 
     onMounted(() => {
+      applyRouteFilters()
       loadPosts()
     })
 

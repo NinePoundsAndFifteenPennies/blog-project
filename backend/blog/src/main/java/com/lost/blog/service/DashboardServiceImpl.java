@@ -7,13 +7,16 @@ import com.lost.blog.dto.DashboardResponse.RecentActivityItem;
 import com.lost.blog.dto.DashboardResponse.TagCategoryItem;
 import com.lost.blog.dto.DashboardResponse.TrendItem;
 import com.lost.blog.model.Category;
+import com.lost.blog.model.CommentStatus;
 import com.lost.blog.model.PostStatus;
+import com.lost.blog.model.ReportStatus;
 import com.lost.blog.model.Tag;
 import com.lost.blog.repository.CategoryRepository;
 import com.lost.blog.repository.CommentRepository;
 import com.lost.blog.repository.LikeRepository;
 import com.lost.blog.repository.PostRepository;
 import com.lost.blog.repository.PostViewLogRepository;
+import com.lost.blog.repository.ReportRepository;
 import com.lost.blog.repository.TagRepository;
 import com.lost.blog.repository.UserRepository;
 import org.slf4j.Logger;
@@ -24,6 +27,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,8 +41,10 @@ public class DashboardServiceImpl implements DashboardService {
 
     private static final Logger logger = LoggerFactory.getLogger(DashboardServiceImpl.class);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MM-dd");
+    private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("MM-dd HH:mm");
     private static final int TREND_DAYS = 30;
+    private static final int TREND_MONTHS = 12;
 
     // 雷达图评分归一化因子
     private static final double VIEWS_SCORE_DIVISOR = 10.0;       // 1000浏览量 = 满分100
@@ -63,6 +69,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final TagRepository tagRepository;
     private final CategoryRepository categoryRepository;
     private final LikeRepository likeRepository;
+    private final ReportRepository reportRepository;
 
     @Autowired
     public DashboardServiceImpl(UserRepository userRepository,
@@ -71,7 +78,8 @@ public class DashboardServiceImpl implements DashboardService {
                                 PostViewLogRepository postViewLogRepository,
                                 TagRepository tagRepository,
                                 CategoryRepository categoryRepository,
-                                LikeRepository likeRepository) {
+                                LikeRepository likeRepository,
+                                ReportRepository reportRepository) {
         this.userRepository = userRepository;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
@@ -79,10 +87,11 @@ public class DashboardServiceImpl implements DashboardService {
         this.tagRepository = tagRepository;
         this.categoryRepository = categoryRepository;
         this.likeRepository = likeRepository;
+        this.reportRepository = reportRepository;
     }
 
     @Override
-    public DashboardResponse getDashboardData(String adminUsername) {
+    public DashboardResponse getDashboardData(String adminUsername, String month, String granularity) {
         DashboardResponse response = new DashboardResponse();
         response.setAdmin(adminUsername);
         response.setMessage("欢迎进入管理后台");
@@ -96,8 +105,8 @@ public class DashboardServiceImpl implements DashboardService {
         // 文章状态分布
         populatePostStatusDistribution(response);
 
-        // 趋势数据（最近30天）
-        populateTrends(response);
+        // 趋势数据（按天/按月）
+        populateTrends(response, month, granularity);
 
         // 热门文章 TOP10
         populateHotPosts(response);
@@ -149,9 +158,23 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     /**
-     * 填充最近30天趋势数据
+     * 填充趋势数据（按天或按月）
      */
-    private void populateTrends(DashboardResponse response) {
+    private void populateTrends(DashboardResponse response, String month, String granularity) {
+        if ("month".equalsIgnoreCase(granularity)) {
+            populateMonthlyTrends(response, month);
+            return;
+        }
+
+        YearMonth selectedMonth = parseMonth(month);
+        if (selectedMonth != null) {
+            populateDailyTrendsForMonth(response, selectedMonth);
+        } else {
+            populateRecentDailyTrends(response);
+        }
+    }
+
+    private void populateRecentDailyTrends(DashboardResponse response) {
         List<TrendItem> userTrend = new ArrayList<>();
         List<TrendItem> postTrend = new ArrayList<>();
         List<TrendItem> commentTrend = new ArrayList<>();
@@ -173,6 +196,71 @@ public class DashboardServiceImpl implements DashboardService {
         response.setPostTrend(postTrend);
         response.setCommentTrend(commentTrend);
         response.setViewTrend(viewTrend);
+    }
+
+    private void populateDailyTrendsForMonth(DashboardResponse response, YearMonth month) {
+        List<TrendItem> userTrend = new ArrayList<>();
+        List<TrendItem> postTrend = new ArrayList<>();
+        List<TrendItem> commentTrend = new ArrayList<>();
+        List<TrendItem> viewTrend = new ArrayList<>();
+
+        for (int day = 1; day <= month.lengthOfMonth(); day++) {
+            LocalDate date = month.atDay(day);
+            LocalDateTime dayStart = date.atStartOfDay();
+            LocalDateTime dayEnd = date.atTime(LocalTime.MAX);
+            String dateStr = date.format(DATE_FORMATTER);
+
+            userTrend.add(new TrendItem(dateStr, userRepository.countByCreatedAtBetween(dayStart, dayEnd)));
+            postTrend.add(new TrendItem(dateStr, postRepository.countByCreatedAtBetween(dayStart, dayEnd)));
+            commentTrend.add(new TrendItem(dateStr, commentRepository.countByCreatedAtBetween(dayStart, dayEnd)));
+            viewTrend.add(new TrendItem(dateStr, postViewLogRepository.countByCreateTimeBetween(dayStart, dayEnd)));
+        }
+
+        response.setUserTrend(userTrend);
+        response.setPostTrend(postTrend);
+        response.setCommentTrend(commentTrend);
+        response.setViewTrend(viewTrend);
+    }
+
+    private void populateMonthlyTrends(DashboardResponse response, String month) {
+        List<TrendItem> userTrend = new ArrayList<>();
+        List<TrendItem> postTrend = new ArrayList<>();
+        List<TrendItem> commentTrend = new ArrayList<>();
+        List<TrendItem> viewTrend = new ArrayList<>();
+
+        YearMonth anchor = parseMonth(month);
+        if (anchor == null) {
+            anchor = YearMonth.now();
+        }
+
+        for (int i = TREND_MONTHS - 1; i >= 0; i--) {
+            YearMonth targetMonth = anchor.minusMonths(i);
+            LocalDateTime monthStart = targetMonth.atDay(1).atStartOfDay();
+            LocalDateTime monthEnd = targetMonth.atEndOfMonth().atTime(LocalTime.MAX);
+            String monthStr = targetMonth.format(MONTH_FORMATTER);
+
+            userTrend.add(new TrendItem(monthStr, userRepository.countByCreatedAtBetween(monthStart, monthEnd)));
+            postTrend.add(new TrendItem(monthStr, postRepository.countByCreatedAtBetween(monthStart, monthEnd)));
+            commentTrend.add(new TrendItem(monthStr, commentRepository.countByCreatedAtBetween(monthStart, monthEnd)));
+            viewTrend.add(new TrendItem(monthStr, postViewLogRepository.countByCreateTimeBetween(monthStart, monthEnd)));
+        }
+
+        response.setUserTrend(userTrend);
+        response.setPostTrend(postTrend);
+        response.setCommentTrend(commentTrend);
+        response.setViewTrend(viewTrend);
+    }
+
+    private YearMonth parseMonth(String month) {
+        if (month == null || month.isBlank()) {
+            return null;
+        }
+        try {
+            return YearMonth.parse(month, MONTH_FORMATTER);
+        } catch (Exception ex) {
+            logger.warn("解析月份失败，使用默认趋势范围: {}", month);
+            return null;
+        }
     }
 
     /**
@@ -275,6 +363,16 @@ public class DashboardServiceImpl implements DashboardService {
         long pendingPosts = postRepository.countByStatus(PostStatus.PENDING_REVIEW);
         if (pendingPosts > 0) {
             activities.add(new RecentActivityItem("pending", pendingPosts + " 篇文章待审核", "待处理", "⏳"));
+        }
+
+        long pendingComments = commentRepository.countByStatus(CommentStatus.PENDING);
+        if (pendingComments > 0) {
+            activities.add(new RecentActivityItem("comment_pending", pendingComments + " 条评论待审核", "待处理", "🗂️"));
+        }
+
+        long pendingReports = reportRepository.countByStatus(ReportStatus.PENDING);
+        if (pendingReports > 0) {
+            activities.add(new RecentActivityItem("report_pending", pendingReports + " 条举报待处理", "待处理", "🚨"));
         }
 
         // 获取昨日数据
