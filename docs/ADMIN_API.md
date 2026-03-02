@@ -140,6 +140,13 @@ GET /api/admin/dashboard
 Authorization: Bearer {admin-token}
 ```
 
+**查询参数（可选）:**
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `month` | `YYYY-MM` | 当前月 | 趋势锚点月份；`granularity=day` 时返回该指定月份的按天数据，`granularity=month` 时将其作为近12个月窗口的结束月份 |
+| `granularity` | `day | month` | `day` | 趋势粒度：`day` 返回按天数据，`month` 返回按月聚合数据 |
+
 **成功响应:** `200 OK`
 ```json
 {
@@ -230,14 +237,14 @@ Authorization: Bearer {admin-token}
 | `totalPosts` / `todayNewPosts` | 文章总数 / 今日新增 |
 | `totalComments` / `todayNewComments` | 评论总数 / 今日新增 |
 | `totalViews` / `todayViews` | 总浏览量 / 今日浏览 |
-| `userTrend` / `postTrend` / `commentTrend` / `viewTrend` | 最近30天每日趋势数据 |
+| `userTrend` / `postTrend` / `commentTrend` / `viewTrend` | 趋势数据；`granularity=day` 返回指定月按天，`granularity=month` 返回近12个月按月 |
 | `hotPosts` | 热门文章 TOP10（按热度公式排序） |
 | `hotPosts[].heatScore` | 热度值，公式：`(viewCount*0.1 + likeCount*5 + commentCount*10) / POW(hours+2, 1.2)` |
 | `publishedPosts` / `draftPosts` / `pendingPosts` / `rejectedPosts` | 各状态文章数量 |
 | `tagStats` / `categoryStats` | 标签/分类的文章数统计（热力图数据） |
 | `totalTags` / `totalCategories` | 标签/分类总数 |
 | `enabledUsers` / `disabledUsers` | 活跃/禁用用户数 |
-| `recentActivities` | 最近动态列表（今日新增、待处理、昨日浏览） |
+| `recentActivities` | 最近动态列表（含今日新增、待审核文章、待审核评论、待处理举报、昨日浏览） |
 | `contentRadar` | 内容质量雷达图数据（0-100分，6个维度） |
 
 ---
