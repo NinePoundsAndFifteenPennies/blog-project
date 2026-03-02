@@ -714,6 +714,7 @@ export default {
     const typedWelcome = ref('')
     const welcomeText = ref('')
     let typingInterval = null
+    let dashboardFetchTimer = null
 
     const adminName = computed(() => {
       const user = store.getters.currentUser
@@ -1054,7 +1055,12 @@ export default {
       fetchDashboardData()
     })
 
-    watch([selectedMonth, trendGranularity], fetchDashboardData)
+    watch([selectedMonth, trendGranularity], () => {
+      if (dashboardFetchTimer) {
+        clearTimeout(dashboardFetchTimer)
+      }
+      dashboardFetchTimer = setTimeout(fetchDashboardData, 200)
+    })
 
     const resetTrendFilters = () => {
       selectedMonth.value = ''
@@ -1064,6 +1070,9 @@ export default {
     onUnmounted(() => {
       if (typingInterval) {
         clearInterval(typingInterval)
+      }
+      if (dashboardFetchTimer) {
+        clearTimeout(dashboardFetchTimer)
       }
     })
 
