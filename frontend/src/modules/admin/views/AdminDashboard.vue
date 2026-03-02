@@ -197,6 +197,16 @@
                 </div>
                 <div class="chart-body chart-body-tall">
                   <DoughnutChart :chart-data="postStatusChartData" />
+                  <div class="status-quick-links">
+                    <button
+                      v-for="item in postStatusLinks"
+                      :key="item.key"
+                      class="status-quick-link"
+                      @click.stop="navigateByConfig(item)"
+                    >
+                      {{ item.label }}：{{ item.value }}
+                    </button>
+                  </div>
                 </div>
               </div>
               <div class="chart-card chart-card-interactive" @click="openChartDetail('radar')">
@@ -234,50 +244,15 @@
                   <h3>🖥️ 系统概览</h3>
                 </div>
                 <div class="system-info-grid">
-                  <div class="system-info-item">
-                    <span class="system-info-icon">📝</span>
-                    <span class="system-info-label">已发布文章</span>
-                    <span class="system-info-value">{{ dashboard.publishedPosts || 0 }}</span>
-                  </div>
-                  <div class="system-info-item">
-                    <span class="system-info-icon">📋</span>
-                    <span class="system-info-label">草稿</span>
-                    <span class="system-info-value">{{ dashboard.draftPosts || 0 }}</span>
-                  </div>
-                  <div class="system-info-item">
-                    <span class="system-info-icon">⏳</span>
-                    <span class="system-info-label">待审核文章</span>
-                    <span class="system-info-value system-info-warning">{{ dashboard.pendingPosts || 0 }}</span>
-                  </div>
-                  <div class="system-info-item">
-                    <span class="system-info-icon">🚨</span>
-                    <span class="system-info-label">待处理举报</span>
-                    <span class="system-info-value system-info-warning">{{ dashboard.pendingReports || 0 }}</span>
-                  </div>
-                  <div class="system-info-item">
-                    <span class="system-info-icon">🏷️</span>
-                    <span class="system-info-label">标签总数</span>
-                    <span class="system-info-value">{{ dashboard.totalTags || 0 }}</span>
-                  </div>
-                  <div class="system-info-item">
-                    <span class="system-info-icon">📂</span>
-                    <span class="system-info-label">分类总数</span>
-                    <span class="system-info-value">{{ dashboard.totalCategories || 0 }}</span>
-                  </div>
-                  <div class="system-info-item">
-                    <span class="system-info-icon">✅</span>
-                    <span class="system-info-label">活跃用户</span>
-                    <span class="system-info-value system-info-success">{{ dashboard.enabledUsers || 0 }}</span>
-                  </div>
-                  <div class="system-info-item">
-                    <span class="system-info-icon">🚫</span>
-                    <span class="system-info-label">禁用用户</span>
-                    <span class="system-info-value system-info-danger">{{ dashboard.disabledUsers || 0 }}</span>
-                  </div>
-                  <div class="system-info-item">
-                    <span class="system-info-icon">❌</span>
-                    <span class="system-info-label">已拒绝文章</span>
-                    <span class="system-info-value system-info-danger">{{ dashboard.rejectedPosts || 0 }}</span>
+                  <div
+                    v-for="item in systemOverviewItems"
+                    :key="item.key"
+                    class="system-info-item system-info-item-clickable"
+                    @click="navigateByConfig(item)"
+                  >
+                    <span class="system-info-icon">{{ item.icon }}</span>
+                    <span class="system-info-label">{{ item.label }}</span>
+                    <span :class="['system-info-value', item.valueClass]">{{ item.value }}</span>
                   </div>
                 </div>
               </div>
@@ -309,6 +284,16 @@
           </div>
           <div class="modal-chart-container" v-else-if="chartModalType === 'postStatus'">
             <DoughnutChart :chart-data="postStatusChartData" />
+            <div class="status-quick-links modal-status-links">
+              <button
+                v-for="item in postStatusLinks"
+                :key="item.key"
+                class="status-quick-link"
+                @click="navigateByConfig(item)"
+              >
+                {{ item.label }}：{{ item.value }}
+              </button>
+            </div>
           </div>
           <div class="modal-chart-container" v-else-if="chartModalType === 'radar'">
             <RadarChart :chart-data="contentRadarChartData" />
@@ -850,6 +835,25 @@ export default {
       }],
     }))
 
+    const postStatusLinks = computed(() => ([
+      { key: 'published', label: '已发布', value: dashboard.publishedPosts || 0, path: '/admin/posts', query: { status: 'PUBLISHED' } },
+      { key: 'draft', label: '草稿', value: dashboard.draftPosts || 0, path: '/admin/posts', query: { status: 'DRAFT' } },
+      { key: 'pending', label: '待审核', value: dashboard.pendingPosts || 0, path: '/admin/posts', query: { status: 'PENDING_REVIEW' } },
+      { key: 'rejected', label: '已拒绝', value: dashboard.rejectedPosts || 0, path: '/admin/posts', query: { status: 'REJECTED' } },
+    ]))
+
+    const systemOverviewItems = computed(() => ([
+      { key: 'publishedPosts', icon: '📝', label: '已发布文章', value: dashboard.publishedPosts || 0, path: '/admin/posts', query: { status: 'PUBLISHED' } },
+      { key: 'draftPosts', icon: '📋', label: '草稿', value: dashboard.draftPosts || 0, path: '/admin/posts', query: { status: 'DRAFT' } },
+      { key: 'pendingPosts', icon: '⏳', label: '待审核文章', value: dashboard.pendingPosts || 0, valueClass: 'system-info-warning', path: '/admin/posts', query: { status: 'PENDING_REVIEW' } },
+      { key: 'pendingReports', icon: '🚨', label: '待处理举报', value: dashboard.pendingReports || 0, valueClass: 'system-info-warning', path: '/admin/reports', query: { status: 'PENDING' } },
+      { key: 'totalTags', icon: '🏷️', label: '标签总数', value: dashboard.totalTags || 0, path: '/admin/tags' },
+      { key: 'totalCategories', icon: '📂', label: '分类总数', value: dashboard.totalCategories || 0, path: '/admin/categories' },
+      { key: 'enabledUsers', icon: '✅', label: '活跃用户', value: dashboard.enabledUsers || 0, valueClass: 'system-info-success', path: '/admin/users', query: { enabled: 'true' } },
+      { key: 'disabledUsers', icon: '🚫', label: '禁用用户', value: dashboard.disabledUsers || 0, valueClass: 'system-info-danger', path: '/admin/users', query: { enabled: 'false' } },
+      { key: 'rejectedPosts', icon: '❌', label: '已拒绝文章', value: dashboard.rejectedPosts || 0, valueClass: 'system-info-danger', path: '/admin/posts', query: { status: 'REJECTED' } },
+    ]))
+
     // ======================= Radar Chart Data =======================
     const contentRadarChartData = computed(() => {
       const radar = dashboard.contentRadar || {}
@@ -1010,6 +1014,11 @@ export default {
       currentView.value = viewId
     }
 
+    const navigateByConfig = (item) => {
+      if (!item || !item.path) return
+      router.push({ path: item.path, query: item.query })
+    }
+
     // ======================= Welcome Animation Methods =======================
     const startTypingAnimation = () => {
       const fullText = `您好，${adminName.value}！`
@@ -1097,7 +1106,9 @@ export default {
       hotPostsChartData,
       hotPostsChartOptions,
       postStatusChartData,
+      postStatusLinks,
       contentRadarChartData,
+      systemOverviewItems,
       // Heatmap helpers
       maxTagCount,
       maxCategoryCount,
@@ -1120,6 +1131,7 @@ export default {
       getBadgeClass,
       handleLogout,
       setCurrentView,
+      navigateByConfig,
       // Welcome animation
       showWelcome,
       typedWelcome
@@ -1368,6 +1380,14 @@ export default {
   transform: translateY(-1px);
 }
 
+.system-info-item-clickable {
+  cursor: pointer;
+}
+
+.system-info-item-clickable:hover {
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.16);
+}
+
 .system-info-icon {
   display: block;
   font-size: 20px;
@@ -1394,6 +1414,32 @@ export default {
 
 .system-info-danger {
   color: #ff4d4f;
+}
+
+.status-quick-links {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-quick-link {
+  border: 1px solid #d9d9d9;
+  border-radius: 14px;
+  background: #fff;
+  color: #333;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.status-quick-link:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.modal-status-links {
+  justify-content: center;
 }
 
 .system-info-warning {

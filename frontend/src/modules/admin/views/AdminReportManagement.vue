@@ -297,7 +297,7 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { getAdminReports, getAdminReportDetail, executeReportAction } from '@/api/admin'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
@@ -308,6 +308,7 @@ export default {
   },
   setup() {
     const store = useStore()
+    const route = useRoute()
     const router = useRouter()
 
     // ======================= Report Management State =======================
@@ -456,6 +457,14 @@ export default {
       loadReports()
     }
 
+    const applyRouteFilters = () => {
+      const status = route.query.status
+      const validStatuses = ['PENDING', 'APPROVED', 'REJECTED']
+      if (typeof status === 'string' && validStatuses.includes(status)) {
+        reportSearchForm.value.status = status
+      }
+    }
+
     const changeReportPage = (newPage) => {
       reportPagination.value.page = newPage
       loadReports()
@@ -539,6 +548,7 @@ export default {
     }
 
     onMounted(() => {
+      applyRouteFilters()
       loadReports()
     })
 
