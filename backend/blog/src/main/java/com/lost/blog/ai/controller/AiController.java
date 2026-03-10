@@ -1,6 +1,5 @@
 package com.lost.blog.ai.controller;
 
-import com.lost.blog.ai.config.AiProperties;
 import com.lost.blog.ai.dto.AiChatRequest;
 import com.lost.blog.ai.dto.AiChatResponse;
 import com.lost.blog.ai.dto.AiProviderStatusResponse;
@@ -24,12 +23,10 @@ import java.util.List;
 public class AiController {
 
     private final AiGatewayService aiGatewayService;
-    private final AiProperties aiProperties;
 
     @Autowired
-    public AiController(AiGatewayService aiGatewayService, AiProperties aiProperties) {
+    public AiController(AiGatewayService aiGatewayService) {
         this.aiGatewayService = aiGatewayService;
-        this.aiProperties = aiProperties;
     }
 
     @GetMapping("/providers")
@@ -48,15 +45,11 @@ public class AiController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未登录");
         }
 
-        String prompt = request.getPrompt();
-        if (prompt != null && prompt.length() > aiProperties.getMaxPromptLength()) {
-            return ResponseEntity.badRequest()
-                    .body("prompt 长度不能超过 " + aiProperties.getMaxPromptLength() + " 个字符");
-        }
-
         try {
-            AiChatResponse response = aiGatewayService.chat(prompt, request.getProvider());
+            AiChatResponse response = aiGatewayService.chat(request.getPrompt(), request.getProvider());
             return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ex.getMessage());
         }

@@ -36,6 +36,11 @@ public class QwenAiProviderClient implements AiProviderClient {
     }
 
     @Override
+    public String getApiKeyHint() {
+        return "请设置环境变量 AI_QWEN_API_KEY";
+    }
+
+    @Override
     public AiChatResponse chat(String prompt) {
         AiChatResponse response = new AiChatResponse();
         response.setProvider(getProviderName());

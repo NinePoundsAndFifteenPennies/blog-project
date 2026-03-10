@@ -87,6 +87,11 @@ class AiGatewayServiceImplTest {
         }
 
         @Override
+        public String getApiKeyHint() {
+            return "set env";
+        }
+
+        @Override
         public AiChatResponse chat(String prompt) {
             AiChatResponse response = new AiChatResponse();
             response.setProvider(providerName);

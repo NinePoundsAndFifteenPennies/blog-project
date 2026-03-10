@@ -9,7 +9,6 @@ import org.springframework.util.StringUtils;
 public class AiProperties {
 
     private String defaultProvider = "qwen";
-    private int maxPromptLength = 4000;
     private ProviderSettings qwen = new ProviderSettings();
     private ProviderSettings deepseek = new ProviderSettings();
 
@@ -19,14 +18,6 @@ public class AiProperties {
 
     public void setDefaultProvider(String defaultProvider) {
         this.defaultProvider = defaultProvider;
-    }
-
-    public int getMaxPromptLength() {
-        return maxPromptLength;
-    }
-
-    public void setMaxPromptLength(int maxPromptLength) {
-        this.maxPromptLength = maxPromptLength;
     }
 
     public ProviderSettings getQwen() {
@@ -43,13 +34,6 @@ public class AiProperties {
 
     public void setDeepseek(ProviderSettings deepseek) {
         this.deepseek = deepseek;
-    }
-
-    public ProviderSettings getProviderSettings(String provider) {
-        if ("deepseek".equalsIgnoreCase(provider)) {
-            return deepseek;
-        }
-        return qwen;
     }
 
     public static class ProviderSettings {

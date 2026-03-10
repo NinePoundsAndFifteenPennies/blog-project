@@ -12,5 +12,7 @@ public interface AiProviderClient {
 
     String getBaseUrl();
 
+    String getApiKeyHint();
+
     AiChatResponse chat(String prompt);
 }

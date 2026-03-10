@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,10 +32,10 @@ public class AiGatewayServiceImpl implements AiGatewayService {
 
     @Override
     public List<AiProviderStatusResponse> getProviderStatus() {
-        List<AiProviderStatusResponse> statuses = new ArrayList<>();
-        statuses.add(buildStatus("qwen", "请设置环境变量 AI_QWEN_API_KEY"));
-        statuses.add(buildStatus("deepseek", "请设置环境变量 AI_DEEPSEEK_API_KEY"));
-        return statuses;
+        return providerClientMap.values().stream()
+                .sorted(Comparator.comparing(AiProviderClient::getProviderName))
+                .map(this::buildStatus)
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     @Override
@@ -52,17 +53,10 @@ public class AiGatewayServiceImpl implements AiGatewayService {
         return client.chat(prompt);
     }
 
-    private AiProviderStatusResponse buildStatus(String providerName, String apiKeyHint) {
-        AiProviderClient client = providerClientMap.get(providerName);
+    private AiProviderStatusResponse buildStatus(AiProviderClient client) {
         AiProviderStatusResponse response = new AiProviderStatusResponse();
-        response.setProvider(providerName);
-        response.setApiKeyHint(apiKeyHint);
-
-        if (client == null) {
-            response.setConfigured(false);
-            return response;
-        }
-
+        response.setProvider(client.getProviderName());
+        response.setApiKeyHint(client.getApiKeyHint());
         response.setBaseUrl(client.getBaseUrl());
         response.setModel(client.getModel());
         response.setConfigured(client.isConfigured());
