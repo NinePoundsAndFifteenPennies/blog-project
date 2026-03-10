@@ -2,6 +2,7 @@ package com.lost.blog.ai.service;
 
 import com.lost.blog.ai.config.AiProperties;
 import com.lost.blog.ai.dto.AiChatResponse;
+import com.lost.blog.ai.dto.AiProviderStatusResponse;
 import com.lost.blog.ai.provider.AiProviderClient;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -55,6 +56,36 @@ class AiGatewayServiceImplTest {
         );
 
         Assertions.assertThrows(IllegalStateException.class, () -> service.chat("hello", null));
+    }
+
+    @Test
+    void shouldThrowWhenRequestedProviderUnsupported() {
+        AiProperties properties = new AiProperties();
+        properties.setDefaultProvider("qwen");
+        AiGatewayService service = new AiGatewayServiceImpl(
+                List.of(new FakeProvider("qwen", true)),
+                properties
+        );
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> service.chat("hello", "glm"));
+    }
+
+    @Test
+    void shouldReturnProviderStatusInSortedOrder() {
+        AiProperties properties = new AiProperties();
+        properties.setDefaultProvider("qwen");
+        AiGatewayService service = new AiGatewayServiceImpl(
+                List.of(
+                        new FakeProvider("qwen", true),
+                        new FakeProvider("deepseek", false)
+                ),
+                properties
+        );
+
+        List<AiProviderStatusResponse> statuses = service.getProviderStatus();
+        Assertions.assertEquals(2, statuses.size());
+        Assertions.assertEquals("deepseek", statuses.get(0).getProvider());
+        Assertions.assertEquals("qwen", statuses.get(1).getProvider());
     }
 
     private static class FakeProvider implements AiProviderClient {

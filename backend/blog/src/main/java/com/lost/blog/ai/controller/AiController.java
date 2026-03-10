@@ -4,6 +4,8 @@ import com.lost.blog.ai.dto.AiChatRequest;
 import com.lost.blog.ai.dto.AiChatResponse;
 import com.lost.blog.ai.dto.AiProviderStatusResponse;
 import com.lost.blog.ai.service.AiGatewayService;
+import com.lost.blog.dto.ErrorResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -28,20 +30,31 @@ public class AiController {
     }
 
     @GetMapping("/providers")
-    public ResponseEntity<?> getProviders() {
+    public ResponseEntity<List<AiProviderStatusResponse>> getProviders() {
         List<AiProviderStatusResponse> providers = aiGatewayService.getProviderStatus();
         return ResponseEntity.ok(providers);
     }
 
     @PostMapping("/chat")
-    public ResponseEntity<?> chat(@Valid @RequestBody AiChatRequest request) {
+    public ResponseEntity<Object> chat(@Valid @RequestBody AiChatRequest request,
+                                       HttpServletRequest httpServletRequest) {
         try {
             AiChatResponse response = aiGatewayService.chat(request.getPrompt(), request.getProvider());
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(ex.getMessage());
+            return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), httpServletRequest);
         } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ex.getMessage());
+            return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), httpServletRequest);
         }
+    }
+
+    private ResponseEntity<Object> buildErrorResponse(HttpStatus status, String message, HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                status.value(),
+                status.getReasonPhrase(),
+                message,
+                request.getRequestURI()
+        );
+        return new ResponseEntity<>(errorResponse, status);
     }
 }

@@ -44,7 +44,9 @@ public class AiGatewayServiceImpl implements AiGatewayService {
         AiProviderClient client = providerClientMap.get(providerName);
 
         if (client == null) {
-            String supportedProviders = String.join(" / ", providerClientMap.keySet());
+            String supportedProviders = providerClientMap.keySet().stream()
+                    .sorted()
+                    .collect(Collectors.joining(" / "));
             throw new IllegalArgumentException("不支持的模型提供商: " + providerName + "，目前仅支持 " + supportedProviders);
         }
         if (!client.isConfigured()) {
@@ -71,6 +73,6 @@ public class AiGatewayServiceImpl implements AiGatewayService {
         if (StringUtils.hasText(aiProperties.getDefaultProvider())) {
             return aiProperties.getDefaultProvider().toLowerCase();
         }
-        return "qwen";
+        throw new IllegalStateException("未配置默认模型提供商，请设置 ai.default-provider");
     }
 }
