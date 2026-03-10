@@ -44,7 +44,8 @@ public class AiGatewayServiceImpl implements AiGatewayService {
         AiProviderClient client = providerClientMap.get(providerName);
 
         if (client == null) {
-            throw new IllegalArgumentException("不支持的模型提供商: " + providerName + "，目前仅支持 qwen / deepseek");
+            String supportedProviders = String.join(" / ", providerClientMap.keySet());
+            throw new IllegalArgumentException("不支持的模型提供商: " + providerName + "，目前仅支持 " + supportedProviders);
         }
         if (!client.isConfigured()) {
             throw new IllegalStateException("模型提供商 " + providerName + " 尚未配置 API Key");

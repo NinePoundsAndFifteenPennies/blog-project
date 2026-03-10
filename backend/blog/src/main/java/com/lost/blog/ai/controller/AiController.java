@@ -8,8 +8,6 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,21 +28,13 @@ public class AiController {
     }
 
     @GetMapping("/providers")
-    public ResponseEntity<?> getProviders(@AuthenticationPrincipal UserDetails currentUser) {
-        if (currentUser == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未登录");
-        }
+    public ResponseEntity<?> getProviders() {
         List<AiProviderStatusResponse> providers = aiGatewayService.getProviderStatus();
         return ResponseEntity.ok(providers);
     }
 
     @PostMapping("/chat")
-    public ResponseEntity<?> chat(@AuthenticationPrincipal UserDetails currentUser,
-                                  @Valid @RequestBody AiChatRequest request) {
-        if (currentUser == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("未登录");
-        }
-
+    public ResponseEntity<?> chat(@Valid @RequestBody AiChatRequest request) {
         try {
             AiChatResponse response = aiGatewayService.chat(request.getPrompt(), request.getProvider());
             return ResponseEntity.ok(response);
