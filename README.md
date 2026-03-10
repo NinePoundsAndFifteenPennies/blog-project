@@ -82,6 +82,8 @@ UPDATE users SET role = 'ADMIN' WHERE username = 'your_admin_username';
 - **[架构说明](docs/ARCHITECTURE.md)** - 项目架构、代码结构、设计模式
 - **[用户端 API 文档](docs/API.md)** - 用户端 REST API 接口文档（注册、登录、文章、评论、关注、私信等）
 - **[管理后台 API 文档](docs/ADMIN_API.md)** - 管理后台 REST API 接口文档（用户管理、文章审核、评论审核等）
+- **[AI 基建文档](docs/AI_INFRASTRUCTURE.md)** - AI 接入基础架构、鉴权与安全、模型接入规范（仅国产模型）
+- **[AI 功能文档](docs/AI_FEATURES.md)** - 用户与管理员可体验的 AI 功能规划与验收标准
 
 ## 技术栈
 
