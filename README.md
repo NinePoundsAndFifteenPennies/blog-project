@@ -84,6 +84,7 @@ UPDATE users SET role = 'ADMIN' WHERE username = 'your_admin_username';
 - **[管理后台 API 文档](docs/ADMIN_API.md)** - 管理后台 REST API 接口文档（用户管理、文章审核、评论审核等）
 - **[AI 基建文档](docs/AI_INFRASTRUCTURE.md)** - AI 接入基础架构、鉴权与安全、模型接入规范（仅国产模型）
 - **[AI 功能文档](docs/AI_FEATURES.md)** - 用户与管理员可体验的 AI 功能规划与验收标准
+- **[AI API 文档](docs/AI_API.md)** - AI 基础接口（`/api/ai/providers`、`/api/ai/chat`）、鉴权要求与配置说明
 
 ## 技术栈
 

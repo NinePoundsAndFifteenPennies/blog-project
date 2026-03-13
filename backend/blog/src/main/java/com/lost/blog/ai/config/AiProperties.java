@@ -11,6 +11,7 @@ public class AiProperties {
     private String defaultProvider = "qwen";
     private ProviderSettings qwen = new ProviderSettings();
     private ProviderSettings deepseek = new ProviderSettings();
+    private ProviderSettings kimi = new ProviderSettings();
 
     public String getDefaultProvider() {
         return defaultProvider;
@@ -34,6 +35,14 @@ public class AiProperties {
 
     public void setDeepseek(ProviderSettings deepseek) {
         this.deepseek = deepseek;
+    }
+
+    public ProviderSettings getKimi() {
+        return kimi;
+    }
+
+    public void setKimi(ProviderSettings kimi) {
+        this.kimi = kimi;
     }
 
     public static class ProviderSettings {

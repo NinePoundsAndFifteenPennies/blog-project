@@ -20,13 +20,16 @@
 - **DeepSeek API**
   - 官方文档当前显示 `deepseek-chat`、`deepseek-reasoner` 对应 `DeepSeek-V3.2` 能力。
   - 参考：https://api-docs.deepseek.com/zh-cn/quick_start/pricing
+- **Moonshot AI / Kimi**
+  - Moonshot 提供 Kimi 系列模型，并支持 OpenAI 兼容调用方式。
+  - 参考：https://platform.moonshot.cn/docs/guide/start-using-kimi-api
 
 ### 2.1 统一供应商抽象（必须）
 
 后端新增 AI 能力时，必须通过统一抽象层调用，禁止业务代码直连供应商 SDK：
 
 - `AiProvider`：定义统一请求/响应协议（文本生成、结构化输出、工具调用）。
-- `AiProviderFactory`：根据配置选择 `QwenProvider`、`DeepSeekProvider` 等。
+   - `AiProviderFactory`：根据配置选择 `QwenProvider`、`DeepSeekProvider`、`KimiProvider` 等。
 - `AiGatewayService`：统一处理重试、限流、超时、审计、降级与错误映射。
 
 ## 3. 认证与授权基线
@@ -41,10 +44,9 @@
 1. API Key 仅允许保存在后端安全配置（环境变量/密钥服务），禁止写入前端。
 2. 前端只能请求本项目后端 API，不得直接调用第三方模型接口。
 3. 配置分层：
-   - `ai.provider`（默认供应商）
-   - `ai.model.default`（默认模型）
-   - `ai.timeout-ms`、`ai.max-retries`
-   - `ai.rate-limit.*`（按用户、按接口限频）
+   - `ai.default-provider`（默认供应商）
+   - `ai.<provider>.base-url`、`ai.<provider>.model`、`ai.<provider>.api-key`
+   - 示例环境变量：`AI_QWEN_API_KEY` / `AI_DEEPSEEK_API_KEY` / `AI_KIMI_API_KEY`
 
 ## 5. 调用链与可观测性
 
@@ -97,3 +99,13 @@
 2. 审计日志与成本统计已可用；
 3. 内容安全过滤链路已启用；
 4. 至少完成一个主供应商 + 一个备用供应商的联调。
+
+## 11. 当前第一步落地状态（2026-03）
+
+1. 后端已提供统一入口 `/api/ai/*`，并要求登录用户访问。
+2. 已接入 Provider 抽象，并落地 `qwen`、`deepseek`、`kimi` 三个国产供应商适配层（当前为模拟响应链路）。
+3. API Key 环境变量占位：
+   - `AI_QWEN_API_KEY`
+   - `AI_DEEPSEEK_API_KEY`
+   - `AI_KIMI_API_KEY`
+4. 具体接口请求与响应示例见《[AI API 文档](./AI_API.md)》。
