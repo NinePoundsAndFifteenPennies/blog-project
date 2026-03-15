@@ -30,6 +30,9 @@ public class FileServiceImpl implements FileService {
 
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList(".jpg", ".jpeg", ".png");
     private static final List<String> ALLOWED_CONTENT_TYPES = Arrays.asList("image/jpeg", "image/png");
+    private static final String UPLOADS_PREFIX = "uploads/";
+    // Limit path prefix logging to avoid leaking full filesystem structure.
+    private static final int LOG_PATH_VISIBLE_LENGTH = 24;
 
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     private static final int MAX_WIDTH = 4096;  // 4K width
@@ -74,16 +77,22 @@ public class FileServiceImpl implements FileService {
 
         try {
             String filePath = avatarUrl.startsWith("/") ? avatarUrl.substring(1) : avatarUrl;
-            Path path = Paths.get(filePath);
-            if (!path.isAbsolute()) {
-                // resolve relative to resolved base dir
-                path = resolveBaseDir().resolve(filePath).normalize();
+            if (!filePath.startsWith(UPLOADS_PREFIX)) {
+                logger.warn("尝试删除非uploads目录的头像文件，路径前缀: {}", sanitizePathForLog(filePath));
+                return;
+            }
+            String relativePath = filePath.substring(UPLOADS_PREFIX.length());
+            Path baseDir = resolveBaseDir();
+            Path path = baseDir.resolve(relativePath).normalize();
+            if (!path.startsWith(baseDir)) {
+                logger.error("头像删除路径非法，路径前缀: {}", sanitizePathForLog(filePath));
+                return;
             }
             if (Files.exists(path)) {
                 Files.delete(path);
             }
         } catch (IOException e) {
-            System.err.println("删除旧头像失败: " + e.getMessage());
+            logger.warn("删除旧头像失败: {}", e.getMessage());
         }
     }
 
@@ -234,5 +243,13 @@ public class FileServiceImpl implements FileService {
         } catch (IOException e) {
             throw new RuntimeException("文件上传失败: " + e.getMessage());
         }
+    }
+
+    private String sanitizePathForLog(String path) {
+        if (path == null || path.isEmpty()) {
+            return "<empty>";
+        }
+        int visibleLength = Math.min(path.length(), LOG_PATH_VISIBLE_LENGTH);
+        return path.substring(0, visibleLength) + (path.length() > visibleLength ? "..." : "");
     }
 }
