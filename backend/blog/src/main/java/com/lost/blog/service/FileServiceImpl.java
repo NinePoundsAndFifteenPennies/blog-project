@@ -74,16 +74,22 @@ public class FileServiceImpl implements FileService {
 
         try {
             String filePath = avatarUrl.startsWith("/") ? avatarUrl.substring(1) : avatarUrl;
-            Path path = Paths.get(filePath);
-            if (!path.isAbsolute()) {
-                // resolve relative to resolved base dir
-                path = resolveBaseDir().resolve(filePath).normalize();
+            if (!filePath.startsWith("uploads/")) {
+                logger.warn("尝试删除非uploads目录的头像文件: {}", filePath);
+                return;
+            }
+            String relativePath = filePath.substring("uploads/".length());
+            Path baseDir = resolveBaseDir();
+            Path path = baseDir.resolve(relativePath).normalize();
+            if (!path.startsWith(baseDir)) {
+                logger.warn("头像删除路径非法: {}", filePath);
+                return;
             }
             if (Files.exists(path)) {
                 Files.delete(path);
             }
         } catch (IOException e) {
-            System.err.println("删除旧头像失败: " + e.getMessage());
+            logger.warn("删除旧头像失败: {}", e.getMessage());
         }
     }
 
